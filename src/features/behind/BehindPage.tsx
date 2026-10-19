@@ -10,6 +10,7 @@ import { FunnelCharts } from './FunnelCharts'
 import { MethodSection } from './MethodSection'
 import { ProbabilityTable } from './ProbabilityTable'
 import { SourcesSection } from './SourcesSection'
+import { TrialRecords } from '@/features/trial/TrialRecords'
 
 /**
  * 系統幕後（Q15b、Q65）：給評審看深度的地方。由上往下「先講道理、再看證據」：
@@ -69,6 +70,8 @@ export function BehindPage() {
         <h2 className="mb-6 mt-2 text-2xl font-bold cine:font-semibold lin:font-semibold">資料從哪裡來、現在新不新</h2>
         <SourcesSection />
       </section>
+
+      <TrialRecords />
 
       {data && (
         <section>

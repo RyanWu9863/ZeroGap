@@ -7,8 +7,11 @@
 ```bash
 npm install
 npm run dev        # http://localhost:5173
-npm test           # 單元測試（Vitest）
+npm test           # 單元測試（Vitest，37 個）
+npm run e2e        # 流程測試（Playwright，Chromium＋WebKit，12 個；第一次要先 npx playwright install chromium webkit）
 npm run build      # 正式打包到 dist/
+npm run build:pages  # GitHub Pages 版（PAGES_BASE=/repo名稱/）
+npm run og         # 重新產生連結預覽圖 public/og.png
 ```
 
 預設使用假資料（`VITE_USE_MOCK=true`）。要接後端時複製 `.env.example` 成 `.env`，把 `VITE_USE_MOCK` 改成 `false`。開發時 `/api` 會自動轉給 `localhost:8000`。
@@ -29,12 +32,25 @@ npm run build      # 正式打包到 dist/
 - 無解：網址加 `?mock=no_solution`，預算設在 $800 以下
 - 系統拿不定：網址加 `?mock=low_confidence`，電影選「幫我挑」
 
+## 特殊模式（網址參數）
+
+| 參數 | 用途 |
+|---|---|
+| `?proto=timetable｜cinematic｜linear` | 切換試做版 |
+| `?trial=1`／`?trial=0` | 試用模式：自動計時＋3 題問卷，紀錄在系統幕後匯出 |
+| `?present=1`／`?present=0` | 簡報模式：字放大，按 1–3 套用情境卡、B 系統幕後、H 首頁 |
+| `?mock=no_solution`、`?mock=low_confidence` | 預覽無解、系統拿不定（只在假資料模式） |
+
+## 部署
+
+推到 GitHub 的 `main` 後，`.github/workflows/pages.yml` 會自動打包並發布到 GitHub Pages（固定假資料）。需要在 repo 的 Settings → Pages 把 Source 設成「GitHub Actions」。
+
 ## 文件
 
 - `docs/前端決策紀錄.md`：102 題問答定下來的所有決定
 - `docs/API變更提案_前端需求.md`：要請後端加的欄位
-- `docs/導讀_01～03`：每一版程式的白話說明
+- `docs/導讀_01～04`：每一版程式的白話說明
 
 ## 技術
 
-React 19、Vite、TypeScript、Tailwind CSS v4、shadcn/ui（Base UI）、React Router、Zustand、TanStack Query、zod、Motion、Recharts、Lucide。
+React 19、Vite、TypeScript、Tailwind CSS v4、shadcn/ui（Base UI）、React Router、Zustand、TanStack Query、zod、Motion、Recharts、Lucide；測試用 Vitest＋Playwright。

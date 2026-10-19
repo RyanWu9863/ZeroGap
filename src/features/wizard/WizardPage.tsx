@@ -1,6 +1,7 @@
 import { ArrowLeft, ArrowRight } from 'lucide-react'
 import { AnimatePresence, motion } from 'motion/react'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import { useTrialStore } from '@/features/trial/trialStore'
 import { Link, Navigate, useNavigate, useParams } from 'react-router'
 import { usePlanStore } from '@/store/planStore'
 import { StepFood } from './steps/StepFood'
@@ -21,6 +22,8 @@ export function WizardPage() {
   const n = Number(useParams().step)
   const navigate = useNavigate()
   const request = usePlanStore((s) => s.request)
+  const markTrial = useTrialStore((s) => s.mark)
+  useEffect(() => markTrial('startClickAt'), [markTrial]) // 試用計時：按了開始（Q79）
   // 往後一步從右邊滑入、往前一步從左邊滑入（React 官方「依前一次的值調整 state」寫法）
   const [prev, setPrev] = useState(n)
   const [dir, setDir] = useState(1)

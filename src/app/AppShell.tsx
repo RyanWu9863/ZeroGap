@@ -6,6 +6,7 @@ import { LightTrails } from '@/shared/theme/LightTrails'
 import { LinearBackdrop } from '@/shared/theme/LinearBackdrop'
 import { useApplyProto } from '@/shared/theme/proto'
 import { useDemoStore } from '@/store/demoStore'
+import { PresentMode } from '@/features/present/PresentMode'
 import { ProtoSwitcher } from './ProtoSwitcher'
 
 const navCls = ({ isActive }: { isActive: boolean }) =>
@@ -55,6 +56,7 @@ export function AppShell() {
         ZeroGap 零空檔・資策會 AIAE1 第一組專題・時間與金額由確定性演算法計算
       </footer>
       <ProtoSwitcher />
+      <PresentMode />
       <ScrollRestoration />
     </MotionConfig>
   )

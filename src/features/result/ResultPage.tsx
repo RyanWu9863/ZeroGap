@@ -1,5 +1,7 @@
 import { ArrowRight } from 'lucide-react'
-import { useCallback, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
+import { TrialSurvey } from '@/features/trial/TrialSurvey'
+import { useTrialStore } from '@/features/trial/trialStore'
 import { Link, useLocation, useNavigate } from 'react-router'
 import type { ItineraryRequest } from '@/api/schemas'
 import { useItineraries } from '@/api/queries'
@@ -41,6 +43,12 @@ export function ResultPage() {
   }, [key, markAnimated, navigate, location.pathname, location.search])
   // 「都可以，幫我決定」只對這一組條件有效
   const [skipPickKey, setSkipPickKey] = useState<string | null>(null)
+  // 試用計時：三個方案真的出現在畫面上才算「拿到行程」（Q79）
+  const markTrial = useTrialStore((s) => s.mark)
+  const showingPlans = !runMode && data?.result_status === 'ok' && !(data.confidence_gate.uncertain_field && !data.confidence_gate.passed && skipPickKey !== key)
+  useEffect(() => {
+    if (showingPlans) markTrial('resultAt')
+  }, [showingPlans, markTrial])
   // 無解的一鍵放寬、結果頁的小視窗改條件，都會重算並播短版動畫（Q54）
   const rerun = (patch: Partial<ItineraryRequest>) => {
     update(patch)
@@ -93,6 +101,8 @@ export function ResultPage() {
       <div className="mt-10">
         <FreshnessNote />
       </div>
+
+      <TrialSurvey />
 
       {/* 手機：「複製行程」固定在底部（Q64） */}
       <div

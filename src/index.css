@@ -260,3 +260,8 @@
   outline: 3px solid var(--ring);
   outline-offset: 2px;
 }
+
+/* 簡報模式（Q95）：整體字級放大 15%（所有 rem 單位一起放大） */
+html[data-present] {
+  font-size: 115%;
+}
