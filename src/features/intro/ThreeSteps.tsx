@@ -12,11 +12,11 @@ export function ThreeSteps() {
   return (
     <section className="mx-auto max-w-6xl px-4 py-16 sm:px-6">
       <p className="font-mono text-xs tracking-[0.3em] text-muted-foreground">HOW IT WORKS</p>
-      <h2 className="mt-3 text-3xl font-bold sm:text-4xl cine:font-semibold">三步，拿到接得上的行程。</h2>
+      <h2 className="mt-3 text-3xl font-bold sm:text-4xl cine:font-semibold lin:font-semibold">三步，拿到接得上的行程。</h2>
       <ol className="mt-8 grid gap-4 md:grid-cols-3">
         {STEPS.map((s) => (
           <li key={s.n} className="zg-surface p-6">
-            <span className="zg-num text-3xl font-semibold text-zg-ok cine:text-primary">{s.n}</span>
+            <span className="zg-num text-3xl font-semibold text-zg-ok cine:text-primary lin:text-primary">{s.n}</span>
             <h3 className="mt-3 text-lg font-semibold">{s.title}</h3>
             <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{s.body}</p>
           </li>
@@ -26,7 +26,7 @@ export function ThreeSteps() {
         <p className="text-xl font-semibold">今晚要去哪？</p>
         <Link
           to="/plan/1"
-          className="inline-flex h-12 items-center gap-2 rounded-full bg-primary px-7 text-base font-medium text-primary-foreground transition-transform hover:-translate-y-0.5"
+          className="inline-flex h-12 items-center gap-2 rounded-full bg-primary px-7 lin:h-10 lin:rounded-md lin:px-5 lin:text-sm text-base font-medium text-primary-foreground transition-transform hover:-translate-y-0.5"
         >
           開始規劃 <ArrowRight className="size-4" />
         </Link>

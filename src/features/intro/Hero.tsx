@@ -17,11 +17,11 @@ export function Hero() {
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
-        className="mt-5 max-w-3xl text-4xl font-bold leading-tight tracking-tight sm:text-6xl cine:font-semibold"
+        className="mt-5 max-w-3xl text-4xl font-bold leading-tight tracking-tight sm:text-6xl cine:font-semibold lin:bg-linear-to-b lin:from-white lin:to-white/55 lin:bg-clip-text lin:font-semibold lin:text-transparent"
       >
         娛樂、餐廳、交通，
         <br />
-        <span className="text-zg-ok cine:text-primary">一次排到剛剛好。</span>
+        <span className="text-zg-ok cine:text-primary lin:bg-linear-to-r lin:from-[#a5adff] lin:to-[#5e6ad2] lin:bg-clip-text lin:text-transparent">一次排到剛剛好。</span>
       </motion.h1>
       <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.2 }} className="mt-6 max-w-xl text-lg text-muted-foreground">
         選好條件，我們把電影、晚餐、回程車排成<strong className="text-foreground">每一段都接得上</strong>的行程。不用再開三個 App 自己算。
@@ -29,7 +29,7 @@ export function Hero() {
       <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.3 }} className="mt-9">
         <Link
           to="/plan/1"
-          className="inline-flex h-12 items-center gap-2 rounded-full bg-primary px-7 text-base font-medium text-primary-foreground transition-transform hover:-translate-y-0.5"
+          className="inline-flex h-12 items-center gap-2 rounded-full bg-primary px-7 lin:h-10 lin:rounded-md lin:px-5 lin:text-sm text-base font-medium text-primary-foreground transition-transform hover:-translate-y-0.5"
         >
           開始規劃 <ArrowRight className="size-4" />
         </Link>

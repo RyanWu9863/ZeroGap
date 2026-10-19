@@ -1,6 +1,7 @@
-import { createBrowserRouter } from 'react-router'
+import { createBrowserRouter, Navigate } from 'react-router'
 import { IntroPage } from '@/features/intro/IntroPage'
 import { ResultPage } from '@/features/result/ResultPage'
+import { WizardPage } from '@/features/wizard/WizardPage'
 import { AppShell } from './AppShell'
 import { Placeholder } from './Placeholder'
 
@@ -11,7 +12,8 @@ export const router = createBrowserRouter(
       element: <AppShell />,
       children: [
         { path: '/', element: <IntroPage /> },
-        { path: '/plan/:step', element: <Placeholder title="四步規劃精靈" when="第 3–6 天" /> },
+        { path: '/plan', element: <Navigate to="/plan/1" replace /> },
+        { path: '/plan/:step', element: <WizardPage /> },
         { path: '/result', element: <ResultPage /> },
         { path: '/behind', element: <Placeholder title="系統幕後" when="第 7–8 天" /> },
       ],

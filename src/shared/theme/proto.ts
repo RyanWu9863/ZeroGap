@@ -3,16 +3,17 @@ import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 
 /*
- * 兩版試做稿（決策 Q37b、Q38）：A 時刻表（淺色）／B 電影感（深色）。
- * 網址 ?proto=cinematic 可以直接指定，方便投票時傳連結。
+ * 試做稿（決策 Q37b、Q38）：A 時刻表（淺色）／B 電影感（深色）／C Linear 風（深色極簡，2026-10-19 加）。
+ * 網址 ?proto=linear 可以直接指定，方便投票時傳連結。
  */
-export type Proto = 'timetable' | 'cinematic'
+export type Proto = 'timetable' | 'cinematic' | 'linear'
 
-export const PROTO_NAME: Record<Proto, string> = { timetable: 'A 時刻表', cinematic: 'B 電影感' }
+export const PROTO_NAME: Record<Proto, string> = { timetable: 'A 時刻表', cinematic: 'B 電影感', linear: 'C Linear 風' }
+const PROTOS = Object.keys(PROTO_NAME) as Proto[]
 
 const fromUrl = (): Proto | null => {
   const v = new URLSearchParams(window.location.search).get('proto')
-  return v === 'timetable' || v === 'cinematic' ? v : null
+  return PROTOS.includes(v as Proto) ? (v as Proto) : null
 }
 
 export const useProtoStore = create<{ proto: Proto; setProto: (p: Proto) => void }>()(
@@ -28,7 +29,7 @@ export function useApplyProto() {
   useEffect(() => {
     const root = document.documentElement
     root.dataset.proto = proto
-    root.classList.toggle('dark', proto === 'cinematic')
+    root.classList.toggle('dark', proto !== 'timetable')
   }, [proto])
   return proto
 }

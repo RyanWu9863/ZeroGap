@@ -13,7 +13,7 @@ export function TimelinePreview() {
       <div className="grid items-center gap-10 lg:grid-cols-[1fr_1.1fr]">
         <div>
           <p className="font-mono text-xs tracking-[0.3em] text-muted-foreground">WHAT YOU GET</p>
-          <h2 className="mt-3 text-3xl font-bold sm:text-4xl cine:font-semibold">每一段，都先幫你算好。</h2>
+          <h2 className="mt-3 text-3xl font-bold sm:text-4xl cine:font-semibold lin:font-semibold">每一段，都先幫你算好。</h2>
           <p className="mt-4 text-muted-foreground">
             趕不趕得上開演、來不來得及點餐、回程車還有沒有——每兩步之間的餘裕都寫給你看，綠色代表寬鬆、藍色剛好、橘色偏緊。
           </p>

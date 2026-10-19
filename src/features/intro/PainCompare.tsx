@@ -52,7 +52,7 @@ export function PainCompare() {
   return (
     <section className="mx-auto max-w-6xl px-4 py-16 sm:px-6">
       <p className="font-mono text-xs tracking-[0.3em] text-muted-foreground">WHY ZEROGAP</p>
-      <h2 className="mt-3 text-3xl font-bold sm:text-4xl cine:font-semibold">自己排，常常差那幾分鐘。</h2>
+      <h2 className="mt-3 text-3xl font-bold sm:text-4xl cine:font-semibold lin:font-semibold">自己排，常常差那幾分鐘。</h2>
       <div className="mt-8 grid gap-4 md:grid-cols-2">
         <Column title="自己查三個 App 拼起來" sub="電影、地圖、台鐵各查各的（示意）" rows={DIY} good={false} />
         <Column title="用 ZeroGap" sub="每一段先算好才給你" rows={ZG} good />

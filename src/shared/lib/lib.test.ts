@@ -3,7 +3,7 @@ import { itineraryOk } from '@/mocks/itineraryOk'
 import { benchmarkRequest } from '@/mocks/request'
 import { bufferLevel, bufferSentence } from './buffer'
 import { itineraryToText } from './copyText'
-import { formatCost, formatDate, formatMoney, stationLabel } from './format'
+import { formatCost, formatDate, formatMoney, stationLabel, walkDistance } from './format'
 import { placeUrl, routeUrl } from './maps'
 
 describe('bufferLevel（Q40）', () => {
@@ -27,6 +27,10 @@ describe('format（Q82）', () => {
     expect(formatCost(25, false)).toBe('$25')
   })
   it('車站統一叫「XX 站」', () => expect(stationLabel('中壢車站')).toBe('中壢站'))
+  it('步行換算距離（Q52）', () => {
+    expect(walkDistance(12)).toBe('約 1 公里')
+    expect(walkDistance(5)).toBe('約 400 公尺')
+  })
 })
 
 describe('maps（Q28b）', () => {

@@ -1,5 +1,5 @@
 import { Link } from 'react-router'
-import type { ItineraryRequest } from '@/api/schemas'
+import { PICK_FOR_ME, type ItineraryRequest } from '@/api/schemas'
 import { formatDate, formatMoney } from '@/shared/lib/format'
 
 /**
@@ -7,7 +7,7 @@ import { formatDate, formatMoney } from '@/shared/lib/format'
  * 試做稿：點了回到精靈對應的那一步；精靈完成後改成「點哪個就彈出小視窗、改完重算」。
  */
 export function ConditionBar({ req }: { req: ItineraryRequest }) {
-  const movie = req.movie_title === '交給 Jev 決定' ? '幫我挑電影' : `《${req.movie_title}》`
+  const movie = req.movie_title === PICK_FOR_ME ? '幫我挑電影' : `《${req.movie_title}》`
   const chips: { label: string; step: number }[] = [
     { label: `${req.origin_station} → ${req.district_hub}`, step: 1 },
     { label: formatDate(req.date), step: 2 },

@@ -21,3 +21,9 @@ export function formatCost(amount: number, isEstimated: boolean): string {
 export function stationLabel(name: string): string {
   return name.replace(/車站$/, '站')
 }
+
+/** 步行分鐘換成生活化距離（一般人一分鐘約走 80 公尺，Q52）：12 → 約 1 公里、5 → 約 400 公尺 */
+export function walkDistance(min: number): string {
+  const m = min * 80
+  return m >= 950 ? `約 ${Math.round(m / 100) / 10} 公里` : `約 ${Math.round(m / 50) * 50} 公尺`
+}

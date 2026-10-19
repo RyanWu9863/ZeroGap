@@ -126,6 +126,34 @@ export const StatusResponse = z.object({
   ),
 })
 
+export const OptionsResponse = z.object({
+  cities: z.array(z.string()),
+  districts: z.array(
+    z.object({
+      id: z.number().int(),
+      city: z.string(),
+      name: z.string(),
+      theater_names: z.array(z.string()).optional(), // 提案 #8
+      restaurant_count: z.number().int().optional(), // 提案 #8
+    }),
+  ),
+  stations: z.array(z.object({ id: z.number().int(), name: z.string(), operator: z.string() })),
+  dining_orders: z.array(z.string()),
+  movies: z.array(z.object({ id: z.number().int(), title: z.string(), runtime_minutes: z.number().int() })),
+  movie_genres: z.array(z.string()),
+  theater_types: z.array(z.string()),
+  languages: z.array(z.string()),
+  cuisine_types: z.array(z.string()),
+  dietary_restrictions: z.array(z.string()),
+  budget_options: z.array(z.number().int()),
+  walk_minutes_options: z.array(z.number().int()),
+  available_dates: z.array(z.string()).optional(), // 提案 #4
+})
+
+/** API 規定「讓系統幫我挑電影」時 movie_title 要送這個固定字串；畫面上顯示成「幫我挑」 */
+export const PICK_FOR_ME = '交給 Jev 決定'
+
+export type OptionsResponse = z.infer<typeof OptionsResponse>
 export type TimelineStep = z.infer<typeof TimelineStep>
 export type Proposal = z.infer<typeof Proposal>
 export type ItineraryRequest = z.infer<typeof ItineraryRequest>

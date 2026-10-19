@@ -3,6 +3,7 @@ import { Link, NavLink, Outlet, ScrollRestoration, useLocation } from 'react-rou
 import { USE_MOCK } from '@/api/client'
 import { Logo } from '@/shared/brand/Logo'
 import { LightTrails } from '@/shared/theme/LightTrails'
+import { LinearBackdrop } from '@/shared/theme/LinearBackdrop'
 import { useApplyProto } from '@/shared/theme/proto'
 import { ProtoSwitcher } from './ProtoSwitcher'
 
@@ -16,6 +17,7 @@ export function AppShell() {
   return (
     <MotionConfig reducedMotion="user">
       {proto === 'cinematic' && <LightTrails dim={pathname !== '/'} />}
+      {proto === 'linear' && <LinearBackdrop />}
       <header
         className="sticky z-40 border-b bg-background/80 backdrop-blur-md"
         style={{ top: 'env(safe-area-inset-top, 0px)' }}

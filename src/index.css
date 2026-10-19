@@ -4,19 +4,22 @@
 @import "@fontsource-variable/noto-sans-tc";
 @import "@fontsource-variable/noto-serif-tc";
 @import "@fontsource-variable/jetbrains-mono";
+@import "@fontsource-variable/inter";
 
 @custom-variant dark (&:is(.dark *));
 
 /*
- * 兩版試做稿共用同一套元件，只換「設計代號（token）」：
+ * 三版試做稿共用同一套元件，只換「設計代號（token）」：
  *   A 時刻表（timetable，淺色）= :root 預設值
  *   B 電影感（cinematic，深色）= [data-proto="cinematic"]
- * 投票選定後，刪掉沒選上的那一組即可。
+ *   C Linear 風（linear，深色極簡）= [data-proto="linear"]
+ * 投票選定後，刪掉沒選上的組別即可。
  */
 @theme inline {
   --font-sans: "Noto Sans TC Variable", system-ui, sans-serif;
   --font-serif: "Noto Serif TC Variable", serif;
   --font-mono: "JetBrains Mono Variable", ui-monospace, monospace;
+  --font-inter: "Inter Variable", "Noto Sans TC Variable", system-ui, sans-serif;
   --font-heading: var(--zg-heading-font);
   --font-num: var(--zg-num-font);
 
@@ -93,6 +96,7 @@
 
   --zg-heading-font: var(--font-sans);
   --zg-num-font: var(--font-mono);
+  --zg-body-font: var(--font-sans);
 }
 
 /* ── B 電影感（深色）：夜色、光軌、毛玻璃、琥珀重點 ── */
@@ -131,6 +135,46 @@
 
   --zg-heading-font: var(--font-serif);
   --zg-num-font: var(--font-sans);
+  --zg-body-font: var(--font-sans);
+}
+
+/* ── C Linear 風（深色極簡）：近黑底、細灰線、靛紫重點、Inter 字體、小圓角 ── */
+[data-proto="linear"] {
+  color-scheme: dark;
+  --background: #08090a;
+  --foreground: #f7f8f8;
+  --card: #0f1011;
+  --card-foreground: #f7f8f8;
+  --popover: #141516;
+  --popover-foreground: #f7f8f8;
+  --primary: #5e6ad2;
+  --primary-foreground: #ffffff;
+  --secondary: #1c1d1f;
+  --secondary-foreground: #f7f8f8;
+  --muted: #161718;
+  --muted-foreground: #8a8f98;
+  --accent: rgb(94 106 210 / 0.16);
+  --accent-foreground: #f7f8f8;
+  --destructive: #eb5757;
+  --border: rgb(255 255 255 / 0.08);
+  --input: rgb(255 255 255 / 0.1);
+  --ring: #5e6ad2;
+  --radius: 0.375rem;
+
+  --zg-ok: #4cb782;
+  --zg-ok-soft: rgb(76 183 130 / 0.14);
+  --zg-snug: #4ea7fc;
+  --zg-snug-soft: rgb(78 167 252 / 0.14);
+  --zg-tight: #f2994a;
+  --zg-tight-soft: rgb(242 153 74 / 0.14);
+  --zg-fail: #eb5757;
+  --zg-fail-soft: rgb(235 87 87 / 0.14);
+  --zg-est-bg: rgb(242 201 76 / 0.18);
+  --zg-est-ink: #f2c94c;
+
+  --zg-heading-font: var(--font-inter);
+  --zg-num-font: var(--font-inter);
+  --zg-body-font: var(--font-inter);
 }
 
 /* 卡片表面：A 是白卡細線，B 是毛玻璃 */
@@ -141,6 +185,9 @@
   [data-proto="cinematic"] & {
     backdrop-filter: blur(14px) saturate(140%);
     box-shadow: 0 1px 0 rgb(255 255 255 / 0.06) inset, 0 20px 40px -20px rgb(0 0 0 / 0.6);
+  }
+  [data-proto="linear"] & {
+    box-shadow: 0 1px 0 rgb(255 255 255 / 0.04) inset;
   }
 }
 
@@ -156,7 +203,8 @@
     @apply border-border outline-ring/50;
   }
   html {
-    @apply font-sans antialiased;
+    @apply antialiased;
+    font-family: var(--zg-body-font);
   }
   body {
     @apply bg-background text-foreground;
@@ -164,6 +212,43 @@
   h1, h2, h3 {
     font-family: var(--zg-heading-font);
   }
+  [data-proto="linear"] :is(h1, h2) {
+    letter-spacing: -0.03em;
+  }
 }
 
 @custom-variant cine (&:where([data-proto="cinematic"], [data-proto="cinematic"] *));
+@custom-variant lin (&:where([data-proto="linear"], [data-proto="linear"] *));
+
+/* 雙頭時間滑桿：兩個 range 疊在一起，只有圓鈕能被點到 */
+.zg-range {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  appearance: none;
+  background: transparent;
+  pointer-events: none;
+}
+.zg-range::-webkit-slider-thumb {
+  appearance: none;
+  pointer-events: auto;
+  width: 22px;
+  height: 22px;
+  border-radius: 9999px;
+  background: var(--background);
+  border: 2px solid var(--primary);
+  cursor: grab;
+}
+.zg-range::-moz-range-thumb {
+  pointer-events: auto;
+  width: 18px;
+  height: 18px;
+  border-radius: 9999px;
+  background: var(--background);
+  border: 2px solid var(--primary);
+  cursor: grab;
+}
+.zg-range:focus-visible::-webkit-slider-thumb {
+  outline: 3px solid var(--ring);
+  outline-offset: 2px;
+}
