@@ -1,0 +1,169 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+@import "@fontsource-variable/noto-sans-tc";
+@import "@fontsource-variable/noto-serif-tc";
+@import "@fontsource-variable/jetbrains-mono";
+
+@custom-variant dark (&:is(.dark *));
+
+/*
+ * 兩版試做稿共用同一套元件，只換「設計代號（token）」：
+ *   A 時刻表（timetable，淺色）= :root 預設值
+ *   B 電影感（cinematic，深色）= [data-proto="cinematic"]
+ * 投票選定後，刪掉沒選上的那一組即可。
+ */
+@theme inline {
+  --font-sans: "Noto Sans TC Variable", system-ui, sans-serif;
+  --font-serif: "Noto Serif TC Variable", serif;
+  --font-mono: "JetBrains Mono Variable", ui-monospace, monospace;
+  --font-heading: var(--zg-heading-font);
+  --font-num: var(--zg-num-font);
+
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  /* ZeroGap 語意色：ok＝寬鬆、snug＝剛好、tight＝偏緊、fail＝接不上、est＝估計值黃底 */
+  --color-zg-ok: var(--zg-ok);
+  --color-zg-ok-soft: var(--zg-ok-soft);
+  --color-zg-snug: var(--zg-snug);
+  --color-zg-snug-soft: var(--zg-snug-soft);
+  --color-zg-tight: var(--zg-tight);
+  --color-zg-tight-soft: var(--zg-tight-soft);
+  --color-zg-fail: var(--zg-fail);
+  --color-zg-fail-soft: var(--zg-fail-soft);
+  --color-zg-est: var(--zg-est-bg);
+  --color-zg-est-ink: var(--zg-est-ink);
+
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+}
+
+/* ── A 時刻表（淺色）：紙白底、細黑線、鐵道綠訊號 ── */
+:root {
+  --background: #f7f6f2;
+  --foreground: #14161a;
+  --card: #ffffff;
+  --card-foreground: #14161a;
+  --popover: #ffffff;
+  --popover-foreground: #14161a;
+  --primary: #14161a;
+  --primary-foreground: #ffffff;
+  --secondary: #eeede8;
+  --secondary-foreground: #14161a;
+  --muted: #eeede8;
+  --muted-foreground: #5b6068;
+  --accent: #e3f1e9;
+  --accent-foreground: #14161a;
+  --destructive: #b42318;
+  --border: #d9d7cf;
+  --input: #d9d7cf;
+  --ring: #1e7a4c;
+  --radius: 0.5rem;
+
+  --zg-ok: #1e7a4c;
+  --zg-ok-soft: #e3f1e9;
+  --zg-snug: #2f5d8a;
+  --zg-snug-soft: #e5edf6;
+  --zg-tight: #b4520f;
+  --zg-tight-soft: #fbebdd;
+  --zg-fail: #b42318;
+  --zg-fail-soft: #fde8e6;
+  --zg-est-bg: #fff1b8;
+  --zg-est-ink: #6b4e00;
+
+  --zg-heading-font: var(--font-sans);
+  --zg-num-font: var(--font-mono);
+}
+
+/* ── B 電影感（深色）：夜色、光軌、毛玻璃、琥珀重點 ── */
+[data-proto="cinematic"] {
+  color-scheme: dark;
+  --background: #07090d;
+  --foreground: #edeff3;
+  --card: rgb(255 255 255 / 0.05);
+  --card-foreground: #edeff3;
+  --popover: #12161d;
+  --popover-foreground: #edeff3;
+  --primary: #f5b544;
+  --primary-foreground: #1a1206;
+  --secondary: rgb(255 255 255 / 0.08);
+  --secondary-foreground: #edeff3;
+  --muted: rgb(255 255 255 / 0.06);
+  --muted-foreground: #9aa3ae;
+  --accent: rgb(245 181 68 / 0.14);
+  --accent-foreground: #edeff3;
+  --destructive: #ff6b6b;
+  --border: rgb(255 255 255 / 0.12);
+  --input: rgb(255 255 255 / 0.16);
+  --ring: #f5b544;
+  --radius: 0.875rem;
+
+  --zg-ok: #5ee6a0;
+  --zg-ok-soft: rgb(94 230 160 / 0.12);
+  --zg-snug: #7cc4ff;
+  --zg-snug-soft: rgb(124 196 255 / 0.12);
+  --zg-tight: #ffa057;
+  --zg-tight-soft: rgb(255 160 87 / 0.14);
+  --zg-fail: #ff6b6b;
+  --zg-fail-soft: rgb(255 107 107 / 0.14);
+  --zg-est-bg: rgb(255 214 10 / 0.2);
+  --zg-est-ink: #ffe27a;
+
+  --zg-heading-font: var(--font-serif);
+  --zg-num-font: var(--font-sans);
+}
+
+/* 卡片表面：A 是白卡細線，B 是毛玻璃 */
+@utility zg-surface {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xl);
+  [data-proto="cinematic"] & {
+    backdrop-filter: blur(14px) saturate(140%);
+    box-shadow: 0 1px 0 rgb(255 255 255 / 0.06) inset, 0 20px 40px -20px rgb(0 0 0 / 0.6);
+  }
+}
+
+/* 時間、金額用等寬數字，上下對齊像車站時刻表 */
+@utility zg-num {
+  font-family: var(--zg-num-font);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  html {
+    @apply font-sans antialiased;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+  h1, h2, h3 {
+    font-family: var(--zg-heading-font);
+  }
+}
+
+@custom-variant cine (&:where([data-proto="cinematic"], [data-proto="cinematic"] *));
