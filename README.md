@@ -12,6 +12,7 @@ npm run e2e        # 流程測試（Playwright，Chromium＋WebKit，12 個；�
 npm run build      # 正式打包到 dist/
 npm run build:pages  # GitHub Pages 版（PAGES_BASE=/repo名稱/）
 npm run og         # 重新產生連結預覽圖 public/og.png
+npm run predemo    # Demo 前一鍵檢查：型別＋單元測試＋流程測試＋打包
 ```
 
 預設使用假資料（`VITE_USE_MOCK=true`）。要接後端時複製 `.env.example` 成 `.env`，把 `VITE_USE_MOCK` 改成 `false`。開發時 `/api` 會自動轉給 `localhost:8000`。
@@ -41,6 +42,15 @@ npm run og         # 重新產生連結預覽圖 public/og.png
 | `?present=1`／`?present=0` | 簡報模式：字放大，按 1–3 套用情境卡、B 系統幕後、H 首頁 |
 | `?mock=no_solution`、`?mock=low_confidence` | 預覽無解、系統拿不定（只在假資料模式） |
 
+## Docker（決策 Q10）
+
+```bash
+docker build -t zerogap-frontend .                                    # 接真的後端
+docker build -t zerogap-frontend:mock --build-arg VITE_USE_MOCK=true .  # 展示版（假資料）
+```
+
+nginx 提供打包好的網頁，`/api/` 轉給 `BACKEND_URL`（預設 `http://backend:8000`，小組 docker-compose 裡後端服務叫 `backend` 就不用改）。後端還沒啟動時前端照樣能開，只有 `/api` 回 502。
+
 ## 部署
 
 推到 GitHub 的 `main` 後，`.github/workflows/pages.yml` 會自動打包並發布到 GitHub Pages（固定假資料）。需要在 repo 的 Settings → Pages 把 Source 設成「GitHub Actions」。
@@ -50,6 +60,7 @@ npm run og         # 重新產生連結預覽圖 public/og.png
 - `docs/前端決策紀錄.md`：102 題問答定下來的所有決定
 - `docs/API變更提案_前端需求.md`：要請後端加的欄位
 - `docs/導讀_01～04`：每一版程式的白話說明
+- `docs/試用計畫_第13天.md`、`docs/彩排腳本_第14天.md`：試用與上台用
 
 ## 技術
 

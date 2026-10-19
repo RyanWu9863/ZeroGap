@@ -11,7 +11,8 @@
     "test": "vitest run",
     "e2e": "playwright test",
     "build:pages": "tsc -b && vite build --base=${PAGES_BASE:-/zerogap/} && cp dist/index.html dist/404.html",
-    "og": "node scripts/make-og.mjs"
+    "og": "node scripts/make-og.mjs",
+    "predemo": "tsc -b && vitest run && playwright test && vite build && echo ✅ Demo 前檢查全部通過"
   },
   "dependencies": {
     "@base-ui/react": "^1.9.0",

@@ -52,6 +52,9 @@ test('改條件小視窗：預算改 $1,500 重算，網址和花費區同步（
 
 test('試用模式：計時＋小問卷，紀錄出現在系統幕後（Q79、Q80）', async ({ page }) => {
   await page.goto('/?trial=1')
+  // 主持人畫面：第 1 位預設 A 版，按下才開始計時
+  await expect(page.getByRole('dialog', { name: '試用開始' })).toContainText('第 1 位試用者')
+  await page.getByRole('button', { name: '試用者坐好了，開始計時' }).click()
   await page.getByRole('main').getByRole('link', { name: '開始規劃' }).first().click()
   await page.goto('/plan/4')
   await page.getByRole('button', { name: '排出接得上的行程' }).click()
@@ -63,6 +66,11 @@ test('試用模式：計時＋小問卷，紀錄出現在系統幕後（Q79、Q8
   await survey.getByRole('radio', { name: '是' }).click()
   await survey.getByRole('button', { name: '送出' }).click()
   await expect(page.getByText('謝謝你的試用！')).toBeVisible()
+
+  // 下一位：回到主持人畫面，版本自動輪到 B
+  await page.getByRole('button', { name: '下一位試用者 →' }).click()
+  await expect(page.getByRole('dialog', { name: '試用開始' })).toContainText('第 2 位試用者')
+  await expect(page.getByRole('radio', { name: 'B 電影感' }).first()).toHaveAttribute('aria-checked', 'true')
 
   await page.goto('/behind')
   await expect(page.getByRole('heading', { name: '試用紀錄' })).toBeVisible()
