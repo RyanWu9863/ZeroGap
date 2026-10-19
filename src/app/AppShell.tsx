@@ -5,6 +5,7 @@ import { Logo } from '@/shared/brand/Logo'
 import { LightTrails } from '@/shared/theme/LightTrails'
 import { LinearBackdrop } from '@/shared/theme/LinearBackdrop'
 import { useApplyProto } from '@/shared/theme/proto'
+import { useDemoStore } from '@/store/demoStore'
 import { ProtoSwitcher } from './ProtoSwitcher'
 
 const navCls = ({ isActive }: { isActive: boolean }) =>
@@ -14,10 +15,16 @@ const navCls = ({ isActive }: { isActive: boolean }) =>
 export function AppShell() {
   const proto = useApplyProto()
   const { pathname } = useLocation()
+  const demo = useDemoStore((s) => s.demo)
   return (
     <MotionConfig reducedMotion="user">
       {proto === 'cinematic' && <LightTrails dim={pathname !== '/'} />}
       {proto === 'linear' && <LinearBackdrop />}
+      {demo && (
+        <div className="bg-zg-tight px-4 py-1.5 text-center text-xs font-medium text-background" role="status" style={{ paddingTop: 'max(0.375rem, env(safe-area-inset-top, 0px))' }}>
+          展示模式：使用預先錄製的回應，不是即時查詢（可在「系統幕後」關閉）
+        </div>
+      )}
       <header
         className="sticky z-40 border-b bg-background/80 backdrop-blur-md"
         style={{ top: 'env(safe-area-inset-top, 0px)' }}

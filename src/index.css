@@ -97,6 +97,10 @@
   --zg-heading-font: var(--font-sans);
   --zg-num-font: var(--font-mono);
   --zg-body-font: var(--font-sans);
+
+  /* 圖表：保留＝強調色、淘汰＝弱化灰（已用 dataviz 驗證：色盲區分、3:1 對比） */
+  --zg-chart-keep: #14583a;
+  --zg-chart-drop: #8a8880;
 }
 
 /* ── B 電影感（深色）：夜色、光軌、毛玻璃、琥珀重點 ── */
@@ -136,6 +140,8 @@
   --zg-heading-font: var(--font-serif);
   --zg-num-font: var(--font-sans);
   --zg-body-font: var(--font-sans);
+  --zg-chart-keep: #f5b544;
+  --zg-chart-drop: #5b6470;
 }
 
 /* ── C Linear 風（深色極簡）：近黑底、細灰線、靛紫重點、Inter 字體、小圓角 ── */
@@ -175,6 +181,8 @@
   --zg-heading-font: var(--font-inter);
   --zg-num-font: var(--font-inter);
   --zg-body-font: var(--font-inter);
+  --zg-chart-keep: #7b86f0;
+  --zg-chart-drop: #60656e;
 }
 
 /* 卡片表面：A 是白卡細線，B 是毛玻璃 */

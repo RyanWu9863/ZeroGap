@@ -77,6 +77,7 @@ export const ItineraryRequest = z.object({
   dietary_restriction: z.string(),
   budget_per_person: z.number().int().positive(),
   max_walk_minutes: z.number().int().positive(),
+  restaurant_name: z.string().optional(), // 提案 #6：低信心時使用者指定的餐廳
 })
 
 export const ItineraryResponse = z.object({

@@ -27,6 +27,8 @@ type PlanState = {
   /** 已經播過篩選動畫的條件；重新整理時不重播（Q62） */
   animatedKey: string | null
   setRequest: (patch: Partial<ItineraryRequest>) => void
+  /** 整份換掉（從網址讀回來、結果頁改條件時用） */
+  replaceRequest: (next: ItineraryRequest) => void
   resetRequest: () => void
   selectRank: (rank: number) => void
   markAnimated: (key: string) => void
@@ -42,6 +44,7 @@ export const usePlanStore = create<PlanState>()(
       selectedRank: 1,
       animatedKey: null,
       setRequest: (patch) => set((s) => ({ request: { ...s.request, ...patch }, selectedRank: 1 })),
+      replaceRequest: (next) => set({ request: next, selectedRank: 1 }),
       resetRequest: () => set({ request: blankRequest, selectedRank: 1 }),
       selectRank: (rank) => set({ selectedRank: rank }),
       markAnimated: (key) => set({ animatedKey: key }),

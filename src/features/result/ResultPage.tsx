@@ -5,8 +5,10 @@ import type { ItineraryRequest } from '@/api/schemas'
 import { useItineraries } from '@/api/queries'
 import { stationLabel } from '@/shared/lib/format'
 import { requestKey, usePlanStore } from '@/store/planStore'
+import { useResultState } from './useResultState'
 import { FilterRun } from './FilterRun'
 import { NoSolution } from './NoSolution'
+import { PickChoice } from './PickChoice'
 import { ConditionBar } from './ConditionBar'
 import { CopyButton } from './CopyButton'
 import { CostPanel } from './CostPanel'
@@ -18,10 +20,11 @@ import { Timeline } from './Timeline'
 
 /**
  * 結果頁（Q13b）：五道關卡動畫 → 條件摘要 → 漏斗一行字 → 三方案切換 → 大時間軸＋右欄（路線、花費、動作）。
- * 無解時改顯示放寬建議（Q23）。低信心挑選頁（Q22、Q87）在第 7–8 天補上。
+ * 無解時改顯示放寬建議（Q23）；系統拿不定時先問一題（Q22、Q87）。條件同步在網址上（Q62）。
  */
 export function ResultPage() {
-  const { request, selectedRank, selectRank, animatedKey, markAnimated, setRequest } = usePlanStore()
+  const { request, rank, update, choosePlan } = useResultState()
+  const { animatedKey, markAnimated } = usePlanStore()
   const { data, isPending, isError, refetch } = useItineraries(request)
   const station = stationLabel(request.origin_station)
   const key = requestKey(request)
@@ -36,23 +39,32 @@ export function ResultPage() {
     // 清掉「重播」記號，重新整理才不會再播一次；網址上的查詢參數要保留
     navigate({ pathname: location.pathname, search: location.search }, { replace: true, state: null })
   }, [key, markAnimated, navigate, location.pathname, location.search])
-  const relax = (patch: Partial<ItineraryRequest>) => {
-    setRequest(patch)
+  // 「都可以，幫我決定」只對這一組條件有效
+  const [skipPickKey, setSkipPickKey] = useState<string | null>(null)
+  // 無解的一鍵放寬、結果頁的小視窗改條件，都會重算並播短版動畫（Q54）
+  const rerun = (patch: Partial<ItineraryRequest>) => {
+    update(patch)
     setRunMode('short')
   }
 
   if (isError) return <ResultError onRetry={() => refetch()} />
   if (runMode) return <FilterRun key={key} request={request} data={data} mode={runMode} onDone={finish} />
   if (isPending) return <ResultLoading />
-  if (data.result_status === 'no_solution') return <NoSolution request={request} data={data} onRelax={relax} />
+  if (data.result_status === 'no_solution') return <NoSolution request={request} data={data} onRelax={rerun} />
+  const gate = data.confidence_gate
+  if (!gate.passed && gate.uncertain_field && gate.choices?.length && skipPickKey !== key) {
+    return <PickChoice data={data} onPick={rerun} onSkip={() => setSkipPickKey(key)} />
+  }
 
-  const plans = data.top_3_proposals
-  const plan = plans.find((p) => p.rank === selectedRank) ?? plans[0]
+  // 閥門沒過又選「都可以」時，後端可能只給 alternatives
+  const plans = data.top_3_proposals.length ? data.top_3_proposals : data.alternatives.slice(0, 3)
+  if (plans.length === 0) return <ResultError onRetry={() => refetch()} />
+  const plan = plans.find((p) => p.rank === rank) ?? plans[0]
   const f = data.funnel_stats
 
   return (
     <div className="mx-auto max-w-6xl px-4 pt-8 sm:px-6">
-      <ConditionBar req={request} />
+      <ConditionBar req={request} onApply={rerun} />
       <h1 className="mt-6 text-2xl font-bold sm:text-3xl cine:font-semibold lin:font-semibold">這 3 個行程，每一段都接得上。</h1>
       <p className="mt-1.5 text-sm text-muted-foreground">
         從 <span className="zg-num">{f.total_checked.toLocaleString()}</span> 種組合中，找到{' '}
@@ -60,7 +72,7 @@ export function ResultPage() {
       </p>
 
       <div className="mt-6">
-        <PlanSwitcher plans={plans} selected={plan.rank} onSelect={selectRank} stationName={station} />
+        <PlanSwitcher plans={plans} selected={plan.rank} onSelect={choosePlan} stationName={station} />
       </div>
 
       <div className="mt-8 grid gap-8 lg:grid-cols-[1fr_20rem]">
