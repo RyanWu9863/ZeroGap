@@ -579,6 +579,37 @@ rq cron（只負責觸發）── 每天 06:00 ──▶ 抓取佇列 ──▶
 2. 依 `alternatives` 有沒有那個 key 顯示「換一部／換一家」，不要只看 `decided_by`。
 3. `restaurant.hours_verified` 是 `false` 時顯示「營業時間未確認，請向店家確認」。
 
+### 2026-10-20 第二階段開始前的查證
+
+使用者說「開始做第二階段」。金鑰狀態：**TDX 已有**（填在 `.env` 的 `TDX_CLIENT_ID`、`TDX_CLIENT_SECRET`），Google、TypeSafe 還沒有。使用者決定：**Google 最後才接上實測，餐廳先用 OSM**。
+
+派 4 個子代理查官方文件和網站（只讀），結果：
+
+**TDX**
+- **旅運規劃 `/routing` 將在 2026/12/31 停止服務並下架**（官方公告 2026-10-16，我用瀏覽器親自確認過）：https://tdx.transportdata.tw/news/detail/1a48c0fc-ae7c-44f4-ae45-82198e15bcf7 。官方建議改用開源旅運規劃軟體。
+- token：`POST https://tdx.transportdata.tw/auth/realms/TDXConnect/protocol/openid-connect/token`，`grant_type=client_credentials`，有效 86400 秒；換 token 每個 IP 每分鐘 20 次。
+- `/routing` 的參數都查到了（`depart`、`arrival` 格式 `yyyy-mm-ddTHH:mm:ss` 台北時間；`transfer_time` 預設 `15,60`）。回應只有範例：`data.routes[].travel_time`（推測是秒）、`start_time`、`end_time`、`transfers`、`sections`。**`sections` 裡面的結構（班次名稱、車資、步行）官方沒寫**，要用金鑰實測。
+- 車站：要縣市代碼就用 **v2**（`/v2/Rail/TRA/Station`、`/v2/Rail/THSR/Station`、`/v2/Rail/Metro/Station/{RailSystem}`），有 `LocationCityCode`；v3 的台鐵車站沒有縣市欄位。
+- 地理編碼：`Geometry` 是字串，格式沒寫，第三方套件把它當 WKT 解析；預設回 GeoJSON，要帶 `$format=JSON`。
+- 免費會員：每分鐘 5 次；基礎服務 1,500 次 1 點、進階服務 200 次 1 點、MaaS 不扣點。
+
+**開眼電影網**
+- 只有今天和之後 1～2 天的場次，**做不到 7 天**。
+- robots.txt 沒有禁止一般爬蟲；全站聲明版權所有，找不到使用條款。**2012 年公平會曾處分未經同意使用開眼場次資料的 App「moovy」**（新聞轉述，原文沒找到）。
+- 「桃園中壢」區（a03）共 10 家影城：**青埔沒有影城、也沒有秀泰**；台茂在蘆竹，不在 4 個商圈內；兩家光影館只有節目表圖片，抓不到場次。
+- 頁面是伺服器輸出的 HTML（UTF-8）。電影頁有劇情簡介和 JSON-LD。版本文字只在特殊廳才出現，寫法不一（IMAX／IMAX版、ATMOS／Atmos版、國語版／中文版），要做對照表；跨午夜的場次要換到隔天；分級是圖檔名（cer_G 等），對應未確認。
+
+**MCP Python SDK**
+- `mcp` 2.0（2026-07-28）起支援新版規範（無狀態），最新 2.3.0（2026-10-02）。`FastMCP` 改名 `MCPServer`。
+- 掛在 FastAPI：`Mount("/", app=mcp.streamable_http_app())`，並在 lifespan 裡 `async with mcp.session_manager.run()`。
+- 進度：`await ctx.report_progress(progress, total, message)`；不能開 `json_response=True`，否則進度會被丟掉。
+- 放在 nginx 後面：預設只接受 localhost 的 Host，要設 `TransportSecuritySettings`，否則回 421。
+
+**OSM（Overpass）**
+- 中壢站 800 公尺內 109 家：店名 99%、料理類別 56%、營業時間只有 25%，寫法很雜（有不合規格的）。
+- 公開服務每天 1 萬次以下、不能同時送多個請求、要帶 User-Agent，429 時要等 30 秒。
+- 出處要顯示「© OpenStreetMap contributors」並連到 https://www.openstreetmap.org/copyright 。OSM 資料和 Google 資料分開存、不合併欄位比較安全（避免整份資料庫要採 ODbL）。
+
 ## 6. 剩下的步驟
 
 - **第 5 步：部署、測試、錯誤處理**
