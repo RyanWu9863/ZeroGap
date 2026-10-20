@@ -1,0 +1,2095 @@
+{
+  "version": 0.6,
+  "generator": "Overpass API 0.7.62.11 87bfad18",
+  "osm3s": {
+    "timestamp_osm_base": "2026-10-20T08:17:51Z",
+    "copyright": "The data included in this document is from www.openstreetmap.org. The data is made available under ODbL."
+  },
+  "elements": [
+
+{
+  "type": "node",
+  "id": 1256653154,
+  "lat": 24.9568287,
+  "lon": 121.2252116,
+  "tags": {
+    "addr:city": "桃園市",
+    "addr:country": "TW",
+    "addr:district": "中壢區",
+    "addr:full": "32041桃園市中壢區復興路57號",
+    "addr:housenumber": "57",
+    "addr:postcode": "32041",
+    "addr:street": "復興路",
+    "amenity": "fast_food",
+    "branch": "中壢中央店",
+    "brand": "麥當勞",
+    "brand:en": "McDonald's",
+    "brand:wikidata": "Q38076",
+    "brand:wikipedia": "zh:麥當勞",
+    "brand:zh": "麥當勞",
+    "brand:zh-Hant": "麥當勞",
+    "cuisine": "burger",
+    "drive_through": "no",
+    "name": "麥當勞",
+    "name:en": "McDonald's",
+    "name:ja": "マクドナルド",
+    "name:zh": "麥當勞",
+    "name:zh-Hant": "麥當勞",
+    "opening_hours": "24/7",
+    "operator": "和德昌股份有限公司",
+    "phone": "+886 3 422 9242",
+    "takeaway": "yes",
+    "website": "http://www.mcdonalds.com.tw/"
+  }
+},
+{
+  "type": "node",
+  "id": 1256653171,
+  "lat": 24.9552334,
+  "lon": 121.2214457,
+  "tags": {
+    "amenity": "fast_food",
+    "brand": "肯德基",
+    "brand:en": "KFC",
+    "brand:wikidata": "Q524757",
+    "brand:wikipedia": "zh:肯德基",
+    "brand:zh": "肯德基",
+    "cuisine": "chicken",
+    "int_name": "KFC",
+    "name": "肯德基",
+    "name:en": "KFC",
+    "name:zh": "肯德基",
+    "opening_hours": "Mo-Fr 10:00-22:00; Sa,Su,PH 09:00-23:00",
+    "takeaway": "yes"
+  }
+},
+{
+  "type": "node",
+  "id": 1256688210,
+  "lat": 24.9556644,
+  "lon": 121.2254833,
+  "tags": {
+    "amenity": "fast_food",
+    "brand": "摩斯漢堡",
+    "brand:en": "MOS Burger",
+    "brand:wikidata": "Q1204169",
+    "brand:wikipedia": "zh:摩斯漢堡",
+    "brand:zh": "摩斯漢堡",
+    "cuisine": "burger",
+    "name": "摩斯漢堡",
+    "name:en": "MOS Burger",
+    "name:ja": "モスバーガー",
+    "name:zh": "摩斯漢堡",
+    "takeaway": "yes",
+    "wheelchair": "yes"
+  }
+},
+{
+  "type": "node",
+  "id": 1256688224,
+  "lat": 24.9553435,
+  "lon": 121.2254620,
+  "tags": {
+    "addr:city": "桃園市",
+    "addr:country": "TW",
+    "addr:district": "中壢區",
+    "addr:full": "桃園市中壢區中山路111號",
+    "addr:housenumber": "111",
+    "addr:street": "中山路",
+    "amenity": "restaurant",
+    "brand": "陶板屋",
+    "name": "陶板屋",
+    "phone": "+886 3 280 7070",
+    "wheelchair": "no"
+  }
+},
+{
+  "type": "node",
+  "id": 1256688226,
+  "lat": 24.9552723,
+  "lon": 121.2257266,
+  "tags": {
+    "amenity": "restaurant",
+    "cuisine": "steak_house",
+    "name": "西堤牛排",
+    "wheelchair": "no"
+  }
+},
+{
+  "type": "node",
+  "id": 1260942597,
+  "lat": 24.9541857,
+  "lon": 121.2256268,
+  "tags": {
+    "addr:city": "桃園市",
+    "addr:country": "TW",
+    "addr:district": "中壢區",
+    "addr:full": "320001桃園市中壢區中和路106號",
+    "addr:housenumber": "106",
+    "addr:postcode": "320001",
+    "addr:street": "中和路",
+    "amenity": "fast_food",
+    "branch": "中壢中和餐廳",
+    "brand": "肯德基",
+    "brand:en": "KFC",
+    "brand:wikidata": "Q524757",
+    "brand:wikipedia": "zh:肯德基",
+    "brand:zh": "肯德基",
+    "cuisine": "chicken",
+    "name": "肯德基",
+    "name:en": "KFC",
+    "name:ja": "ケンタッキーフライドチキン",
+    "name:zh": "肯德基",
+    "phone": "+886 3 422 1802",
+    "takeaway": "yes",
+    "wheelchair": "limited"
+  }
+},
+{
+  "type": "node",
+  "id": 1260942603,
+  "lat": 24.9542892,
+  "lon": 121.2248985,
+  "tags": {
+    "amenity": "fast_food",
+    "branch": "中壢中正店",
+    "brand": "吉野家",
+    "brand:en": "Yoshinoya",
+    "brand:ja": "吉野家",
+    "brand:wikidata": "Q776272",
+    "brand:wikipedia": "ja:吉野家",
+    "brand:zh": "吉野家",
+    "brand:zh-Hans": "吉野家",
+    "brand:zh-Hant": "吉野家",
+    "cuisine": "beef_bowl",
+    "int_name": "YOSHINOYA",
+    "name": "吉野家",
+    "name:en": "Yoshinoya",
+    "name:ja": "吉野家",
+    "name:zh": "吉野家",
+    "name:zh-Hans": "吉野家",
+    "name:zh-Hant": "吉野家",
+    "phone": "+886 3 426 4315",
+    "takeaway": "yes",
+    "wheelchair": "limited"
+  }
+},
+{
+  "type": "node",
+  "id": 1378335125,
+  "lat": 24.9555495,
+  "lon": 121.2227395,
+  "tags": {
+    "amenity": "restaurant",
+    "cuisine": "steak_house",
+    "name": "王品牛排"
+  }
+},
+{
+  "type": "node",
+  "id": 2125608271,
+  "lat": 24.9557722,
+  "lon": 121.2251714,
+  "tags": {
+    "amenity": "restaurant",
+    "brand": "福勝亭",
+    "brand:en": "Tonkatsu",
+    "brand:wikidata": "Q126368392",
+    "brand:zh": "福勝亭",
+    "cuisine": "japanese",
+    "name": "福勝亭",
+    "name:en": "Tonkatsu",
+    "name:zh": "福勝亭",
+    "operator": "三商企業集團",
+    "operator:en": "Mercuries Group",
+    "operator:wikidata": "Q10865578",
+    "operator:zh": "三商企業集團",
+    "wheelchair": "no"
+  }
+},
+{
+  "type": "node",
+  "id": 2125608272,
+  "lat": 24.9562230,
+  "lon": 121.2249111,
+  "tags": {
+    "addr:city": "桃園市",
+    "addr:country": "TW",
+    "addr:district": "中壢區",
+    "addr:full": "32041桃園市中壢區復興路75號",
+    "addr:housenumber": "75",
+    "addr:postcode": "32041",
+    "addr:street": "復興路",
+    "amenity": "restaurant",
+    "branch": "中壢三門市",
+    "brand": "三商巧福",
+    "brand:wikidata": "Q10865579",
+    "brand:wikipedia": "zh:三商巧福",
+    "brand:zh": "三商巧福",
+    "cuisine": "taiwanese",
+    "name": "三商巧福",
+    "name:en": "Mercuries Food",
+    "name:hak": "Sâm-sông Kháu-fuk",
+    "name:nan": "Sam-siong Kháu-hok",
+    "name:nan-Hant": "三商巧福",
+    "name:nan-Latn-pehoeji": "Sam-siong Kháu-hok",
+    "name:nan-Latn-tailo": "Sam-siong Kháu-hok",
+    "name:zh": "三商巧福",
+    "opening_hours": "Mo-Su 11:00-21:30",
+    "operator": "三商企業集團",
+    "operator:en": "Mercuries Group",
+    "operator:wikidata": "Q10865578",
+    "operator:zh": "三商企業集團",
+    "phone": "+886 3 271 4029",
+    "takeaway": "yes",
+    "website": "http://www.3375.com.tw/"
+  }
+},
+{
+  "type": "node",
+  "id": 2125610607,
+  "lat": 24.9556256,
+  "lon": 121.2255853,
+  "tags": {
+    "amenity": "restaurant",
+    "cuisine": "japanese",
+    "name": "藝奇日本料理",
+    "wheelchair": "no"
+  }
+},
+{
+  "type": "node",
+  "id": 2125611030,
+  "lat": 24.9578246,
+  "lon": 121.2229055,
+  "tags": {
+    "amenity": "restaurant",
+    "cuisine": "japanese",
+    "name": "拉麵吧",
+    "wheelchair": "yes"
+  }
+},
+{
+  "type": "node",
+  "id": 2125624109,
+  "lat": 24.9605336,
+  "lon": 121.2277067,
+  "tags": {
+    "amenity": "restaurant",
+    "cuisine": "steak_house",
+    "name": "吼牛排"
+  }
+},
+{
+  "type": "node",
+  "id": 2125626338,
+  "lat": 24.9559862,
+  "lon": 121.2239141,
+  "tags": {
+    "amenity": "restaurant",
+    "brand": "爭鮮迴轉壽司",
+    "name": "爭鮮迴轉壽司",
+    "wheelchair": "no"
+  }
+},
+{
+  "type": "node",
+  "id": 2125626853,
+  "lat": 24.9553248,
+  "lon": 121.2256253,
+  "tags": {
+    "amenity": "cafe",
+    "cuisine": "coffee_shop",
+    "name": "cama咖啡",
+    "wheelchair": "no"
+  }
+},
+{
+  "type": "node",
+  "id": 2127529691,
+  "lat": 24.9579069,
+  "lon": 121.2256468,
+  "tags": {
+    "addr:city": "桃園市",
+    "addr:country": "TW",
+    "addr:district": "中壢區",
+    "addr:full": "桃園市中壢區復興路23號",
+    "addr:housenumber": "23",
+    "addr:street": "復興路",
+    "amenity": "restaurant",
+    "name": "夏慕尼"
+  }
+},
+{
+  "type": "node",
+  "id": 2633105194,
+  "lat": 24.9601992,
+  "lon": 121.2239099,
+  "tags": {
+    "addr:city": "桃園市",
+    "addr:country": "TW",
+    "addr:district": "中壢區",
+    "addr:full": "桃園市中壢區興南里11鄰恩德街24號",
+    "addr:hamlet": "興南里",
+    "addr:housenumber": "24",
+    "addr:neighbourhood": "11",
+    "addr:postcode": "320",
+    "addr:street": "恩德街",
+    "amenity": "restaurant",
+    "name": "稻葉山城麻辣鍋"
+  }
+},
+{
+  "type": "node",
+  "id": 2633108216,
+  "lat": 24.9573648,
+  "lon": 121.2226069,
+  "tags": {
+    "addr:city": "桃園市",
+    "addr:country": "TW",
+    "addr:district": "中壢區",
+    "addr:full": "桃園市中壢區中建里2鄰大同路101號",
+    "addr:hamlet": "中建里",
+    "addr:housenumber": "101",
+    "addr:neighbourhood": "2",
+    "addr:postcode": "320",
+    "addr:street": "大同路",
+    "amenity": "restaurant",
+    "cuisine": "italian",
+    "name": "艾隆義大利麵",
+    "wheelchair": "no"
+  }
+},
+{
+  "type": "node",
+  "id": 2633108231,
+  "lat": 24.9594420,
+  "lon": 121.2226189,
+  "tags": {
+    "addr:city": "桃園市",
+    "addr:country": "TW",
+    "addr:district": "中壢區",
+    "addr:full": "桃園市中壢區興國里1鄰新生路101號",
+    "addr:hamlet": "興國里",
+    "addr:housenumber": "101",
+    "addr:neighbourhood": "1",
+    "addr:postcode": "320",
+    "addr:street": "新生路",
+    "amenity": "restaurant",
+    "branch": "新生店",
+    "name": "潮肉炭火燒肉",
+    "wheelchair": "yes"
+  }
+},
+{
+  "type": "node",
+  "id": 3007100935,
+  "lat": 24.9590632,
+  "lon": 121.2242881,
+  "tags": {
+    "amenity": "restaurant",
+    "diet:vegetarian": "yes",
+    "name": "素寶齋"
+  }
+},
+{
+  "type": "node",
+  "id": 3128981427,
+  "lat": 24.9596554,
+  "lon": 121.2239036,
+  "tags": {
+    "addr:city": "桃園市",
+    "addr:country": "TW",
+    "addr:district": "中壢區",
+    "addr:full": "320桃園市中壢區中美路一段12號",
+    "addr:housenumber": "12",
+    "addr:postcode": "320",
+    "addr:street": "中美路一段",
+    "amenity": "restaurant",
+    "cuisine": "火鍋",
+    "name": "石二鍋中壢中美店",
+    "smoking": "no"
+  }
+},
+{
+  "type": "node",
+  "id": 3128981428,
+  "lat": 24.9597794,
+  "lon": 121.2238983,
+  "tags": {
+    "addr:city": "桃園市",
+    "addr:country": "TW",
+    "addr:district": "中壢區",
+    "addr:full": "320桃園市中壢區中美路一段12號",
+    "addr:housenumber": "12",
+    "addr:postcode": "320",
+    "addr:street": "中美路一段",
+    "amenity": "restaurant",
+    "cuisine": "鐵板燒",
+    "name": "hot7 中壢中美店",
+    "smoking": "no"
+  }
+},
+{
+  "type": "node",
+  "id": 3617168419,
+  "lat": 24.9579659,
+  "lon": 121.2273286,
+  "tags": {
+    "addr:city": "桃園市",
+    "addr:country": "TW",
+    "addr:district": "中壢區",
+    "addr:full": "320桃園市中壢區中美路19號",
+    "addr:housenumber": "19",
+    "addr:postcode": "320",
+    "addr:street": "中美路",
+    "amenity": "cafe",
+    "name": "公元九年",
+    "phone": "+886 3 425 8372"
+  }
+},
+{
+  "type": "node",
+  "id": 3669444088,
+  "lat": 24.9564996,
+  "lon": 121.2251480,
+  "tags": {
+    "addr:city": "桃園市",
+    "addr:country": "TW",
+    "addr:district": "中壢區",
+    "addr:full": "320桃園市中壢區中央東路50號",
+    "addr:housenumber": "50",
+    "addr:postcode": "320",
+    "addr:street": "中央東路",
+    "amenity": "restaurant",
+    "delivery": "no",
+    "name": "本燔野菜農場",
+    "smoking": "no",
+    "takeaway": "no"
+  }
+},
+{
+  "type": "node",
+  "id": 3785979362,
+  "lat": 24.9561565,
+  "lon": 121.2256618,
+  "tags": {
+    "amenity": "restaurant",
+    "name": "西西里義大利麵"
+  }
+},
+{
+  "type": "node",
+  "id": 3785979368,
+  "lat": 24.9559840,
+  "lon": 121.2248191,
+  "tags": {
+    "addr:city": "桃園市",
+    "addr:country": "TW",
+    "addr:district": "中壢區",
+    "addr:floor": "1",
+    "addr:full": "32041桃園市中壢區中山路138號1樓",
+    "addr:housenumber": "138",
+    "addr:postcode": "32041",
+    "addr:street": "中山路",
+    "amenity": "cafe",
+    "branch": "復興門市",
+    "brand": "星巴克",
+    "brand:en": "Starbucks",
+    "brand:wikidata": "Q37158",
+    "brand:wikipedia": "zh:星巴克",
+    "brand:zh": "星巴克",
+    "cuisine": "coffee_shop",
+    "internet_access": "wlan",
+    "name": "星巴克",
+    "name:en": "Starbucks",
+    "name:zh": "星巴克",
+    "opening_hours": "Su-Th 06:30-22:30; Fr-Sa 06:30-23:00",
+    "operator": "悠旅生活事業股份有限公司",
+    "phone": "+886 3 280 4279",
+    "takeaway": "yes",
+    "website": "https://www.starbucks.com.tw/"
+  }
+},
+{
+  "type": "node",
+  "id": 3785979369,
+  "lat": 24.9561803,
+  "lon": 121.2255170,
+  "tags": {
+    "amenity": "restaurant",
+    "name": "阿雄切仔麵"
+  }
+},
+{
+  "type": "node",
+  "id": 3785979370,
+  "lat": 24.9565609,
+  "lon": 121.2259256,
+  "tags": {
+    "amenity": "restaurant",
+    "cuisine": "thai",
+    "disused:amenity": "restaurant",
+    "disused:brand": "小蒙牛",
+    "disused:name": "小蒙牛火鍋",
+    "name": "泰好運"
+  }
+},
+{
+  "type": "node",
+  "id": 3785979371,
+  "lat": 24.9599498,
+  "lon": 121.2221669,
+  "tags": {
+    "amenity": "restaurant",
+    "cuisine": "麻辣鍋;火鍋;鴛鴦鍋",
+    "name": "糧倉1號店頂級麻辣鴛鴦鍋中壢店-職人海鮮 頂級和牛吃到飽(平價人氣必吃)"
+  }
+},
+{
+  "type": "node",
+  "id": 4199194389,
+  "lat": 24.9590832,
+  "lon": 121.2243585,
+  "tags": {
+    "addr:city": "桃園市",
+    "addr:country": "TW",
+    "addr:district": "中壢區",
+    "addr:full": "桃園市中壢區大同路16號",
+    "addr:housenumber": "16",
+    "addr:street": "大同路",
+    "amenity": "restaurant",
+    "cuisine": "diner;japanese",
+    "name": "鰻慢來",
+    "opening_hours": "Su, Tu-Th 11:00-14:00, 17:00-00:30; Mo, Fr-Sa 11:00-14:00, 17:00-01:30",
+    "phone": "+886 3 422 5544"
+  }
+},
+{
+  "type": "node",
+  "id": 4214774658,
+  "lat": 24.9484997,
+  "lon": 121.2285574,
+  "tags": {
+    "amenity": "cafe",
+    "brand": "清心福全",
+    "brand:en": "Ching Shin",
+    "brand:wikidata": "Q10391229",
+    "brand:wikipedia": "zh:清心福全冷飲站",
+    "brand:zh": "清心福全",
+    "cuisine": "bubble_tea",
+    "name": "清心福全",
+    "name:en": "Ching Shin",
+    "name:zh": "清心福全",
+    "shop": "beverages",
+    "takeaway": "yes"
+  }
+},
+{
+  "type": "node",
+  "id": 4214785591,
+  "lat": 24.9487135,
+  "lon": 121.2291265,
+  "tags": {
+    "amenity": "restaurant",
+    "cuisine": "beef_noodle",
+    "name": "我家牛肉麵"
+  }
+},
+{
+  "type": "node",
+  "id": 4214786598,
+  "lat": 24.9490579,
+  "lon": 121.2299338,
+  "tags": {
+    "amenity": "restaurant",
+    "name": "越味香—牛肉河粉"
+  }
+},
+{
+  "type": "node",
+  "id": 4598396789,
+  "lat": 24.9534960,
+  "lon": 121.2321788,
+  "tags": {
+    "amenity": "cafe",
+    "name": "突點咖啡",
+    "name:zh": "突點咖啡"
+  }
+},
+{
+  "type": "node",
+  "id": 4665107329,
+  "lat": 24.9584651,
+  "lon": 121.2234818,
+  "tags": {
+    "amenity": "restaurant",
+    "name": "炙燒",
+    "name:zh": "炙燒"
+  }
+},
+{
+  "type": "node",
+  "id": 4727092986,
+  "lat": 24.9583784,
+  "lon": 121.2262275,
+  "tags": {
+    "addr:city": "桃園市",
+    "addr:country": "TW",
+    "addr:district": "中壢區",
+    "addr:full": "桃園市中壢區中美路51號",
+    "addr:housenumber": "51",
+    "addr:street": "中美路",
+    "amenity": "restaurant",
+    "branch": "中美店",
+    "diet:vegetarian": "yes",
+    "name": "舒果新米蘭蔬食",
+    "opening_hours": "Mo-Fr 11:30-14:30 17:30-21:30 Holidays 11:30-14:30 17:30-22:00",
+    "phone": "+886 3 426 2652",
+    "website": "http://www.sufood.com.tw"
+  }
+},
+{
+  "type": "node",
+  "id": 4737363924,
+  "lat": 24.9550829,
+  "lon": 121.2259256,
+  "tags": {
+    "amenity": "restaurant",
+    "name": "魔法義大利",
+    "name:zh": "魔法義大利"
+  }
+},
+{
+  "type": "node",
+  "id": 4911844424,
+  "lat": 24.9541861,
+  "lon": 121.2202990,
+  "tags": {
+    "amenity": "restaurant",
+    "name": "曾水煎包",
+    "name:zh": "曾水煎包"
+  }
+},
+{
+  "type": "node",
+  "id": 4975328321,
+  "lat": 24.9475093,
+  "lon": 121.2272836,
+  "tags": {
+    "amenity": "restaurant",
+    "name:en": "Vegetarian restaurant"
+  }
+},
+{
+  "type": "node",
+  "id": 5611045842,
+  "lat": 24.9565477,
+  "lon": 121.2250644,
+  "tags": {
+    "amenity": "fast_food",
+    "brand": "Subway",
+    "brand:wikidata": "Q244457",
+    "brand:wikipedia": "en:Subway (restaurant)",
+    "cuisine": "sandwich",
+    "name": "Subway",
+    "takeaway": "yes"
+  }
+},
+{
+  "type": "node",
+  "id": 5611098213,
+  "lat": 24.9538559,
+  "lon": 121.2250942,
+  "tags": {
+    "addr:city": "桃園市",
+    "addr:country": "TW",
+    "addr:district": "中壢區",
+    "addr:full": "320桃園市中壢區中正路1號",
+    "addr:housenumber": "1",
+    "addr:postcode": "320",
+    "addr:street": "中正路",
+    "amenity": "cafe",
+    "name": "Kenangan COFFEE 凱娜克咖啡 ♥ 中壢站前時光",
+    "shop": "beverages",
+    "takeaway": "yes"
+  }
+},
+{
+  "type": "node",
+  "id": 7536225685,
+  "lat": 24.9578173,
+  "lon": 121.2276777,
+  "tags": {
+    "addr:city": "桃園市",
+    "addr:country": "TW",
+    "addr:district": "中壢區",
+    "addr:full": "320桃園市中壢區元化路66號",
+    "addr:housenumber": "66",
+    "addr:postcode": "320",
+    "addr:street": "元化路",
+    "amenity": "restaurant",
+    "name": "端陽邀月複合式餐廳",
+    "opening_hours": "Tu-Su 11:00-01:00",
+    "phone": "+886 3 426 2287"
+  }
+},
+{
+  "type": "node",
+  "id": 7577876886,
+  "lat": 24.9551833,
+  "lon": 121.2195551,
+  "tags": {
+    "addr:city": "桃園市",
+    "addr:country": "TW",
+    "addr:district": "中壢區",
+    "addr:full": "320桃園市中壢區中正路235號",
+    "addr:housenumber": "235",
+    "addr:postcode": "320",
+    "addr:street": "中正路",
+    "amenity": "fast_food",
+    "name": "中壢羊肉羹 原新明路",
+    "opening_hours": "Mo-Su 10:00-02:00",
+    "phone": "+886 3 426 8680"
+  }
+},
+{
+  "type": "node",
+  "id": 7673522066,
+  "lat": 24.9554954,
+  "lon": 121.2258330,
+  "tags": {
+    "amenity": "restaurant",
+    "brand": "四海遊龍",
+    "brand:en": "YuLoong",
+    "brand:wikidata": "Q28417394",
+    "brand:zh": "四海遊龍",
+    "cuisine": "dumplings",
+    "name": "四海遊龍",
+    "name:en": "YuLoong",
+    "name:zh": "四海遊龍"
+  }
+},
+{
+  "type": "node",
+  "id": 7984645200,
+  "lat": 24.9543600,
+  "lon": 121.2327393,
+  "tags": {
+    "amenity": "cafe",
+    "cuisine": "coffee_shop",
+    "delivery": "yes",
+    "name": "丘谷",
+    "outdoor_seating": "yes"
+  }
+},
+{
+  "type": "node",
+  "id": 8385313278,
+  "lat": 24.9479447,
+  "lon": 121.2280826,
+  "tags": {
+    "addr:city": "桃園市",
+    "addr:country": "TW",
+    "addr:district": "中壢區",
+    "addr:full": "320桃園市中壢區健行路209號",
+    "addr:housenumber": "209",
+    "addr:street": "健行路",
+    "amenity": "fast_food",
+    "branch": "中壢健行店",
+    "brand": "八方雲集",
+    "brand:en": "Bafang Dumpling",
+    "brand:wikidata": "Q28417381",
+    "brand:wikipedia": "zh:八方雲集",
+    "brand:zh": "八方雲集",
+    "cuisine": "dumplings",
+    "name": "八方雲集",
+    "name:en": "Bafang Dumpling",
+    "name:zh": "八方雲集",
+    "phone": "+886 3 458 3992",
+    "takeaway": "yes",
+    "website": "https://www.8way.com.tw/"
+  }
+},
+{
+  "type": "node",
+  "id": 8385313303,
+  "lat": 24.9580758,
+  "lon": 121.2265389,
+  "tags": {
+    "addr:city": "桃園市",
+    "addr:country": "TW",
+    "addr:district": "中壢區",
+    "addr:full": "320桃園市中壢區中央東路27號",
+    "addr:housenumber": "27",
+    "addr:street": "中央東路",
+    "amenity": "fast_food",
+    "branch": "中壢中央東店",
+    "brand": "八方雲集",
+    "brand:en": "Bafang Dumpling",
+    "brand:wikidata": "Q28417381",
+    "brand:wikipedia": "zh:八方雲集",
+    "brand:zh": "八方雲集",
+    "cuisine": "dumplings",
+    "name": "八方雲集",
+    "name:en": "Bafang Dumpling",
+    "name:zh": "八方雲集",
+    "phone": "+886 3 280 5387",
+    "takeaway": "yes",
+    "website": "https://www.8way.com.tw/"
+  }
+},
+{
+  "type": "node",
+  "id": 8743039508,
+  "lat": 24.9609017,
+  "lon": 121.2243420,
+  "tags": {
+    "addr:city": "桃園市",
+    "addr:country": "TW",
+    "addr:district": "中壢區",
+    "addr:full": "320桃園市中壢區慈惠三街30巷10號",
+    "addr:housenumber": "10",
+    "addr:postcode": "320",
+    "addr:street": "慈惠三街30巷",
+    "amenity": "restaurant",
+    "cuisine": "noodle",
+    "name": "喫麵《辣椒板麵》",
+    "opening_hours": "Mo-Su 09:00-20:00"
+  }
+},
+{
+  "type": "node",
+  "id": 9340709709,
+  "lat": 24.9597065,
+  "lon": 121.2227263,
+  "tags": {
+    "amenity": "restaurant",
+    "cuisine": "chinese;小吃",
+    "name": "楊記美食小吃城"
+  }
+},
+{
+  "type": "node",
+  "id": 9340733051,
+  "lat": 24.9598835,
+  "lon": 121.2226688,
+  "tags": {
+    "amenity": "cafe",
+    "brand": "茶湯會",
+    "brand:en": "TP Tea",
+    "brand:wikidata": "Q108166023",
+    "brand:zh": "茶湯會",
+    "cuisine": "bubble_tea",
+    "name": "茶湯會",
+    "name:en": "TP Tea",
+    "name:zh": "茶湯會",
+    "operator": "春水堂人文茶館",
+    "operator:wikidata": "Q11088820",
+    "shop": "beverages",
+    "takeaway": "yes"
+  }
+},
+{
+  "type": "node",
+  "id": 9340734054,
+  "lat": 24.9598636,
+  "lon": 121.2229851,
+  "tags": {
+    "amenity": "restaurant",
+    "cuisine": "麵包;蛋糕;bread;dessert",
+    "name": "百年神仙蛋糕"
+  }
+},
+{
+  "type": "node",
+  "id": 9340746643,
+  "lat": 24.9598863,
+  "lon": 121.2226133,
+  "tags": {
+    "amenity": "fast_food",
+    "name": "PIZZA HUT必勝客"
+  }
+},
+{
+  "type": "node",
+  "id": 9354952387,
+  "lat": 24.9603851,
+  "lon": 121.2230542,
+  "tags": {
+    "amenity": "restaurant",
+    "name": "永和傳統豆漿"
+  }
+},
+{
+  "type": "node",
+  "id": 9411693053,
+  "lat": 24.9590602,
+  "lon": 121.2228239,
+  "tags": {
+    "amenity": "cafe",
+    "brand": "清心福全",
+    "brand:en": "Ching Shin",
+    "brand:wikidata": "Q10391229",
+    "brand:wikipedia": "zh:清心福全冷飲站",
+    "brand:zh": "清心福全",
+    "cuisine": "bubble_tea",
+    "name": "清心福全",
+    "name:en": "Ching Shin",
+    "name:zh": "清心福全",
+    "takeaway": "yes"
+  }
+},
+{
+  "type": "node",
+  "id": 9595463890,
+  "lat": 24.9523711,
+  "lon": 121.2274856,
+  "tags": {
+    "addr:city": "桃園市",
+    "addr:country": "TW",
+    "addr:district": "中壢區",
+    "addr:full": "320桃園市中壢區中北路二段178號",
+    "addr:housenumber": "178",
+    "addr:postcode": "320",
+    "addr:street": "中北路二段",
+    "amenity": "restaurant",
+    "cuisine": "sandwich",
+    "name": "芽咪早午餐",
+    "opening_hours": "06:40-14:30",
+    "source": "https://mnya.tw/yo/word/2727.html",
+    "takeaway": "yes",
+    "website": "https://www.facebook.com/%E8%8A%BD%E5%92%AA%E6%97%A9%E5%8D%88%E9%A4%90-108069785036401/"
+  }
+},
+{
+  "type": "node",
+  "id": 9684720229,
+  "lat": 24.9578460,
+  "lon": 121.2224395,
+  "tags": {
+    "addr:city": "桃園市",
+    "addr:country": "TW",
+    "addr:district": "中壢區",
+    "addr:full": "桃園市中壢區興南里8鄰新生路32號",
+    "addr:hamlet": "興南里",
+    "addr:housenumber": "32",
+    "addr:neighbourhood": "8",
+    "addr:postcode": "320",
+    "addr:street": "新生路",
+    "amenity": "restaurant",
+    "name": "中央排骨飯便當",
+    "wheelchair": "yes"
+  }
+},
+{
+  "type": "node",
+  "id": 10244589069,
+  "lat": 24.9581058,
+  "lon": 121.2257231,
+  "tags": {
+    "addr:city": "桃園市",
+    "addr:country": "TW",
+    "addr:district": "中壢區",
+    "addr:full": "桃園市中壢區復興路17號",
+    "addr:housenumber": "17",
+    "addr:street": "復興路",
+    "amenity": "cafe",
+    "branch": "中壢復興門市",
+    "brand": "路易莎咖啡",
+    "brand:en": "Louisa Coffee",
+    "brand:wikidata": "Q96390921",
+    "brand:zh": "路易莎咖啡",
+    "cuisine": "coffee_shop",
+    "name": "路易莎咖啡",
+    "name:en": "Louisa Coffee",
+    "name:zh": "路易莎咖啡",
+    "opening_hours": "Mo-Su 07:00-22:00",
+    "takeaway": "yes"
+  }
+},
+{
+  "type": "node",
+  "id": 10296168811,
+  "lat": 24.9559121,
+  "lon": 121.2214421,
+  "tags": {
+    "addr:floor": "2",
+    "amenity": "restaurant",
+    "brand": "壽司郎",
+    "brand:en": "Sushiro",
+    "brand:ja": "スシロー",
+    "brand:wikidata": "Q11257037",
+    "brand:zh": "壽司郎",
+    "cuisine": "sushi",
+    "name": "壽司郎",
+    "name:en": "Sushiro",
+    "name:ja": "スシロー",
+    "name:zh": "壽司郎"
+  }
+},
+{
+  "type": "node",
+  "id": 10296168812,
+  "lat": 24.9560116,
+  "lon": 121.2215411,
+  "tags": {
+    "addr:floor": "2",
+    "amenity": "fast_food",
+    "name": "21plus"
+  }
+},
+{
+  "type": "node",
+  "id": 10296168813,
+  "lat": 24.9558046,
+  "lon": 121.2213317,
+  "tags": {
+    "addr:floor": "3",
+    "amenity": "restaurant",
+    "cuisine": "japanese",
+    "name": "超夯燒肉"
+  }
+},
+{
+  "type": "node",
+  "id": 10296168814,
+  "lat": 24.9556898,
+  "lon": 121.2212222,
+  "tags": {
+    "addr:floor": "3",
+    "amenity": "restaurant",
+    "cuisine": "japanese;hotpot",
+    "name": "超夯川麻辣鍋"
+  }
+},
+{
+  "type": "node",
+  "id": 10607679522,
+  "lat": 24.9580704,
+  "lon": 121.2244229,
+  "tags": {
+    "addr:city": "桃園市",
+    "addr:country": "TW",
+    "addr:district": "中壢區",
+    "addr:full": "桃園市中壢區裕民街7號",
+    "addr:housenumber": "7",
+    "addr:street": "裕民街",
+    "amenity": "cafe",
+    "internet_access": "wlan",
+    "internet_access:fee": "no",
+    "name": "陪你咖啡 Petit Coffee",
+    "opening_hours": "Tu-Su 11:00-19:00",
+    "outdoor_seating": "no",
+    "phone": "+886 3 425 5977",
+    "website": "https://instagram.com/petit_cafe.tattoo"
+  }
+},
+{
+  "type": "node",
+  "id": 10713473014,
+  "lat": 24.9559057,
+  "lon": 121.2229114,
+  "tags": {
+    "addr:city": "桃園市",
+    "addr:country": "TW",
+    "addr:district": "中壢區",
+    "addr:full": "桃園市中壢區延平路536號",
+    "addr:housenumber": "536",
+    "addr:street": "延平路",
+    "amenity": "cafe",
+    "brand": "路易莎咖啡",
+    "brand:en": "Louisa Coffee",
+    "brand:wikidata": "Q96390921",
+    "brand:zh": "路易莎咖啡",
+    "cuisine": "coffee_shop",
+    "name": "路易莎咖啡",
+    "name:en": "Louisa Coffee",
+    "name:zh": "路易莎咖啡",
+    "takeaway": "yes"
+  }
+},
+{
+  "type": "node",
+  "id": 10713473015,
+  "lat": 24.9545346,
+  "lon": 121.2234214,
+  "tags": {
+    "addr:city": "桃園市",
+    "addr:country": "TW",
+    "addr:district": "中壢區",
+    "addr:full": "桃園市中壢區中正路93號",
+    "addr:housenumber": "93",
+    "addr:street": "中正路",
+    "amenity": "fast_food",
+    "brand": "麥當勞",
+    "brand:en": "McDonald's",
+    "brand:wikidata": "Q38076",
+    "brand:zh": "麥當勞",
+    "brand:zh-Hant": "麥當勞",
+    "cuisine": "burger",
+    "name": "麥當勞",
+    "name:en": "McDonald's",
+    "name:zh": "麥當勞",
+    "name:zh-Hant": "麥當勞",
+    "opening_hours": "Mo-Su 06:00-24:00",
+    "takeaway": "yes"
+  }
+},
+{
+  "type": "node",
+  "id": 10713473016,
+  "lat": 24.9545036,
+  "lon": 121.2235271,
+  "tags": {
+    "addr:city": "桃園市",
+    "addr:country": "TW",
+    "addr:district": "中壢區",
+    "addr:full": "桃園市中壢區中正路89-2號",
+    "addr:housenumber": "89-2",
+    "addr:street": "中正路",
+    "amenity": "cafe",
+    "brand": "迷客夏",
+    "brand:en": "Milkshop",
+    "brand:wikidata": "Q67934215",
+    "brand:zh": "迷客夏",
+    "cuisine": "bubble_tea",
+    "name": "迷客夏",
+    "name:en": "Milkshop",
+    "name:zh": "迷客夏",
+    "takeaway": "yes"
+  }
+},
+{
+  "type": "node",
+  "id": 10846624932,
+  "lat": 24.9557033,
+  "lon": 121.2251851,
+  "tags": {
+    "addr:city": "桃園市",
+    "addr:country": "TW",
+    "addr:district": "中壢區",
+    "addr:full": "桃園市中壢區中山路128號",
+    "addr:housenumber": "128",
+    "addr:street": "中山路",
+    "amenity": "fast_food",
+    "branch": "中壢店",
+    "branch:en": "Kaohsiung Mingcheng Store",
+    "brand": "漢堡王",
+    "brand:en": "Burger King",
+    "brand:wikidata": "Q177054",
+    "brand:wikipedia": "en:Burger King",
+    "brand:zh": "漢堡王",
+    "cuisine": "burger",
+    "drive_through": "no",
+    "name": "漢堡王",
+    "name:en": "Burger King",
+    "name:ja": "バーガーキング",
+    "name:zh": "漢堡王",
+    "opening_hours": "Mo-Su 08:00-22:00",
+    "operator": "家城股份有限公司",
+    "ref:vatin": "TW23309178",
+    "takeaway": "yes"
+  }
+},
+{
+  "type": "node",
+  "id": 11990343702,
+  "lat": 24.9541189,
+  "lon": 121.2240595,
+  "tags": {
+    "amenity": "fast_food",
+    "branch": "中壢站前店",
+    "brand": "藏壽司",
+    "brand:en": "Kura Sushi",
+    "brand:wikidata": "Q6445491",
+    "brand:zh": "藏壽司",
+    "cuisine": "sushi",
+    "name": "藏壽司",
+    "name:en": "Kura Sushi",
+    "name:zh": "藏壽司",
+    "takeaway": "yes"
+  }
+},
+{
+  "type": "node",
+  "id": 11990344000,
+  "lat": 24.9533634,
+  "lon": 121.2268294,
+  "tags": {
+    "amenity": "restaurant",
+    "name": "Warung"
+  }
+},
+{
+  "type": "node",
+  "id": 11990344046,
+  "lat": 24.9534895,
+  "lon": 121.2277391,
+  "tags": {
+    "amenity": "restaurant",
+    "name": "中平素食之家"
+  }
+},
+{
+  "type": "node",
+  "id": 11990344060,
+  "lat": 24.9526172,
+  "lon": 121.2254270,
+  "tags": {
+    "amenity": "restaurant",
+    "name": "彭阿星潛艇堡"
+  }
+},
+{
+  "type": "node",
+  "id": 12139217483,
+  "lat": 24.9555335,
+  "lon": 121.2242329,
+  "tags": {
+    "addr:city": "桃園市",
+    "addr:country": "TW",
+    "addr:district": "中壢區",
+    "addr:full": "桃園市中壢區石頭里3鄰復興路102號",
+    "addr:hamlet": "石頭里",
+    "addr:housenumber": "102",
+    "addr:neighbourhood": "3",
+    "addr:street": "復興路",
+    "amenity": "restaurant",
+    "cuisine": "coffee_shop;burger;italian",
+    "name": "樂牧‧樂食所",
+    "name:en": "Lomo Café & Deli",
+    "name:zh": "樂牧‧樂食所",
+    "opening_hours": "Mo-Su 10:00-21:00",
+    "payment:cash": "yes",
+    "payment:ep_linepay": "yes",
+    "phone": "+886 3 426 2226"
+  }
+},
+{
+  "type": "node",
+  "id": 12422246756,
+  "lat": 24.9542008,
+  "lon": 121.2251236,
+  "tags": {
+    "addr:city": "桃園市",
+    "addr:country": "TW",
+    "addr:district": "中壢區",
+    "addr:full": "320001桃園市中壢區中正路10號",
+    "addr:housenumber": "10",
+    "addr:postcode": "320001",
+    "addr:street": "中正路",
+    "amenity": "fast_food",
+    "name": "谷樂比炸雞"
+  }
+},
+{
+  "type": "node",
+  "id": 12422246762,
+  "lat": 24.9543328,
+  "lon": 121.2249460,
+  "tags": {
+    "addr:city": "桃園市",
+    "addr:country": "TW",
+    "addr:district": "中壢區",
+    "addr:full": "320001桃園市中壢區建國路77號",
+    "addr:housenumber": "77",
+    "addr:postcode": "320001",
+    "addr:street": "建國路",
+    "amenity": "restaurant",
+    "branch": "建國店",
+    "brand": "麥味登",
+    "brand:en": "My Warn Day",
+    "brand:wikidata": "Q108830023",
+    "brand:zh": "麥味登",
+    "cuisine": "american;breakfast",
+    "name": "麥味登",
+    "name:en": "My Warn Day Care & Brunch",
+    "name:zh": "麥味登",
+    "phone": "+886 3 422 2208"
+  }
+},
+{
+  "type": "node",
+  "id": 12422246763,
+  "lat": 24.9543742,
+  "lon": 121.2249688,
+  "tags": {
+    "addr:city": "桃園市",
+    "addr:country": "TW",
+    "addr:district": "中壢區",
+    "addr:full": "320001桃園市中壢區建國路73號",
+    "addr:housenumber": "73",
+    "addr:postcode": "320001",
+    "addr:street": "建國路",
+    "amenity": "restaurant",
+    "branch": "中壢店",
+    "name": "板本章魚燒",
+    "phone": "+886 903 519 201"
+  }
+},
+{
+  "type": "node",
+  "id": 12422246764,
+  "lat": 24.9544136,
+  "lon": 121.2249888,
+  "tags": {
+    "addr:city": "桃園市",
+    "addr:country": "TW",
+    "addr:district": "中壢區",
+    "addr:full": "320001桃園市中壢區建國路71號",
+    "addr:housenumber": "71",
+    "addr:postcode": "320001",
+    "addr:street": "建國路",
+    "amenity": "restaurant",
+    "name": "青葉自助餐",
+    "phone": "+886 3 426 8968"
+  }
+},
+{
+  "type": "node",
+  "id": 12422246766,
+  "lat": 24.9545419,
+  "lon": 121.2250457,
+  "tags": {
+    "addr:city": "桃園市",
+    "addr:country": "TW",
+    "addr:district": "中壢區",
+    "addr:full": "320001桃園市中壢區建國路65號",
+    "addr:housenumber": "65",
+    "addr:postcode": "320001",
+    "addr:street": "建國路",
+    "amenity": "restaurant",
+    "name": "水電行魯肉飯",
+    "phone": "+886 3 425 9208"
+  }
+},
+{
+  "type": "node",
+  "id": 12422246767,
+  "lat": 24.9545907,
+  "lon": 121.2250653,
+  "tags": {
+    "addr:city": "桃園市",
+    "addr:country": "TW",
+    "addr:district": "中壢區",
+    "addr:full": "320001桃園市中壢區建國路61號",
+    "addr:housenumber": "61",
+    "addr:postcode": "320001",
+    "addr:street": "建國路",
+    "amenity": "restaurant",
+    "name": "電器行麵店"
+  }
+},
+{
+  "type": "node",
+  "id": 12422246768,
+  "lat": 24.9546459,
+  "lon": 121.2250411,
+  "tags": {
+    "addr:city": "桃園市",
+    "addr:country": "TW",
+    "addr:district": "中壢區",
+    "addr:full": "320001桃園市中壢區中平路43號",
+    "addr:housenumber": "43",
+    "addr:postcode": "320001",
+    "addr:street": "中平路",
+    "amenity": "restaurant",
+    "name": "建國自助餐"
+  }
+},
+{
+  "type": "node",
+  "id": 12422246772,
+  "lat": 24.9545824,
+  "lon": 121.2252167,
+  "tags": {
+    "addr:city": "桃園市",
+    "addr:country": "TW",
+    "addr:district": "中壢區",
+    "addr:full": "320001桃園市中壢區中平路29-2號",
+    "addr:housenumber": "29-2",
+    "addr:postcode": "320001",
+    "addr:street": "中平路",
+    "amenity": "restaurant",
+    "cuisine": "vietnamese",
+    "name": "翠嬌館"
+  }
+},
+{
+  "type": "node",
+  "id": 12422246775,
+  "lat": 24.9544449,
+  "lon": 121.2254964,
+  "tags": {
+    "addr:city": "桃園市",
+    "addr:country": "TW",
+    "addr:district": "中壢區",
+    "addr:full": "320001桃園市中壢區中平路15號",
+    "addr:housenumber": "15",
+    "addr:postcode": "320001",
+    "addr:street": "中平路",
+    "amenity": "cafe",
+    "branch": "中壢站前店",
+    "brand": "CoCo都可",
+    "brand:en": "CoCo Fresh Tea & Juice",
+    "brand:wikidata": "Q65084369",
+    "brand:zh": "CoCo都可",
+    "cuisine": "bubble_tea",
+    "name": "CoCo都可",
+    "name:en": "CoCo Fresh Tea & Juice",
+    "name:zh": "CoCo都可",
+    "phone": "+886 3 426 1958",
+    "takeaway": "yes"
+  }
+},
+{
+  "type": "node",
+  "id": 12497426926,
+  "lat": 24.9501602,
+  "lon": 121.2272073,
+  "tags": {
+    "addr:city": "桃園市",
+    "addr:country": "TW",
+    "addr:district": "中壢區",
+    "addr:floor": "1",
+    "addr:full": "桃園市中壢區健行里9鄰健行路103號",
+    "addr:hamlet": "健行里",
+    "addr:housenumber": "103",
+    "addr:neighbourhood": "9",
+    "addr:street": "健行路",
+    "amenity": "restaurant",
+    "cuisine": "新加坡;malaysian",
+    "disused:amenity": "restaurant",
+    "disused:name": "歐米茄義式料理",
+    "name": "福達南洋餐室",
+    "opening_hours": "Tu-Su 11:00-15:00 16:30-21:00",
+    "phone": "+886 3 428 0298",
+    "website": "https://www.facebook.com/share/15cwLTaCkz/"
+  }
+},
+{
+  "type": "node",
+  "id": 12600375715,
+  "lat": 24.9567837,
+  "lon": 121.2271979,
+  "tags": {
+    "addr:city": "桃園市",
+    "addr:country": "TW",
+    "addr:district": "中壢區",
+    "addr:full": "桃園市中壢區元化路26號",
+    "addr:housenumber": "26",
+    "addr:street": "元化路",
+    "amenity": "restaurant",
+    "branch": "中壢元化店",
+    "name": "A-bao早午餐"
+  }
+},
+{
+  "type": "node",
+  "id": 13127944042,
+  "lat": 24.9603218,
+  "lon": 121.2254579,
+  "tags": {
+    "addr:city": "桃園市",
+    "addr:country": "TW",
+    "addr:district": "中壢區",
+    "addr:full": "桃園市中壢區延平路332號",
+    "addr:housenumber": "332",
+    "addr:street": "延平路",
+    "amenity": "restaurant",
+    "name": "肉包王"
+  }
+},
+{
+  "type": "node",
+  "id": 14046348089,
+  "lat": 24.9513920,
+  "lon": 121.2249651,
+  "tags": {
+    "addr:city": "桃園市",
+    "addr:district": "中壢區",
+    "addr:floor": "1",
+    "addr:postcode": "320",
+    "addr:street": "東昇街",
+    "addr:unit": "57號",
+    "amenity": "cafe",
+    "cuisine": "coffee_shop",
+    "name": "1000cc Coffee & Cookie"
+  }
+},
+{
+  "type": "node",
+  "id": 14046388119,
+  "lat": 24.9539221,
+  "lon": 121.2250846,
+  "tags": {
+    "addr:city": "桃園市",
+    "addr:country": "TW",
+    "addr:district": "中壢區",
+    "addr:full": "320桃園市中壢區中正路3號",
+    "addr:housenumber": "3",
+    "addr:postcode": "320",
+    "addr:street": "中正路",
+    "amenity": "restaurant",
+    "brand": "爭鮮gogo",
+    "brand:en": "Sushi Take Out",
+    "brand:wikidata": "Q130214155",
+    "brand:zh": "爭鮮gogo",
+    "cuisine": "sushi",
+    "name": "爭鮮gogo",
+    "name:en": "Sushi Take Out",
+    "name:zh": "爭鮮gogo",
+    "opening_hours": "Mo-Su 08:00-21:00",
+    "operator": "爭鮮股份有限公司",
+    "operator:en": "Sushi Express Co., Ltd.",
+    "operator:wikidata": "Q130214144",
+    "operator:zh": "爭鮮股份有限公司"
+  }
+},
+{
+  "type": "node",
+  "id": 14047900561,
+  "lat": 24.9552111,
+  "lon": 121.2270648,
+  "tags": {
+    "addr:city": "桃園市",
+    "addr:country": "TW",
+    "addr:district": "中壢區",
+    "addr:floor": "1",
+    "addr:full": "320桃園市中壢區中山路53號一樓",
+    "addr:housenumber": "53",
+    "addr:postcode": "320",
+    "addr:street": "中山路",
+    "amenity": "restaurant",
+    "brand": "必勝客",
+    "brand:en": "Pizza Hut",
+    "brand:wikidata": "Q191615",
+    "brand:zh": "必勝客",
+    "cuisine": "pizza",
+    "name": "必勝客",
+    "name:en": "Pizza Hut",
+    "name:zh": "必勝客",
+    "opening_hours": "Mo-Su 11:00-22:00",
+    "operator": "富利餐飲股份有限公司",
+    "operator:en": "JARDINE FOOD SERVICES (TAIWAN) CO., LTD.",
+    "operator:zh": "富利餐飲股份有限公司"
+  }
+},
+{
+  "type": "node",
+  "id": 14048304066,
+  "lat": 24.9497644,
+  "lon": 121.2234904,
+  "tags": {
+    "addr:city": "桃園市",
+    "addr:country": "TW",
+    "addr:district": "中壢區",
+    "addr:full": "320桃園市中壢區龍岡路一段96號",
+    "addr:housenumber": "96",
+    "addr:postcode": "320",
+    "addr:street": "龍岡路一段",
+    "amenity": "restaurant",
+    "name": "後站阿義羊肉爐"
+  }
+},
+{
+  "type": "node",
+  "id": 14050156090,
+  "lat": 24.9550754,
+  "lon": 121.2259199,
+  "tags": {
+    "addr:city": "桃園市",
+    "addr:country": "TW",
+    "addr:district": "中壢區",
+    "addr:full": "桃園市中壢區石頭里6鄰和平街25號",
+    "addr:hamlet": "石頭里",
+    "addr:housenumber": "25",
+    "addr:neighbourhood": "6",
+    "addr:postcode": "320",
+    "addr:street": "和平街",
+    "amenity": "cafe",
+    "brand": "50嵐",
+    "brand:en": "50 Lan",
+    "brand:wikidata": "Q106926258",
+    "brand:zh": "50嵐",
+    "cuisine": "bubble_tea",
+    "name": "50嵐",
+    "name:en": "50 Lan",
+    "name:zh": "50嵐",
+    "opening_hours": "Mo-Su 10:30-21:00",
+    "takeaway": "yes"
+  }
+},
+{
+  "type": "node",
+  "id": 14050156091,
+  "lat": 24.9536612,
+  "lon": 121.2250056,
+  "tags": {
+    "addr:city": "桃園市",
+    "addr:country": "TW",
+    "addr:district": "中壢區",
+    "addr:full": "桃園市中壢區石頭里7鄰中和路124號",
+    "addr:hamlet": "石頭里",
+    "addr:housenumber": "124",
+    "addr:neighbourhood": "7",
+    "addr:postcode": "320",
+    "addr:street": "中和路",
+    "amenity": "cafe",
+    "brand": "清心福全",
+    "brand:en": "Ching Shin",
+    "brand:wikidata": "Q10391229",
+    "brand:zh": "清心福全",
+    "cuisine": "bubble_tea",
+    "name": "清心福全",
+    "name:en": "Ching Shin",
+    "name:zh": "清心福全",
+    "opening_hours": "Mo-Su 08:00-21:50",
+    "takeaway": "yes"
+  }
+},
+{
+  "type": "node",
+  "id": 14050156092,
+  "lat": 24.9540590,
+  "lon": 121.2244860,
+  "tags": {
+    "addr:city": "桃園市",
+    "addr:country": "TW",
+    "addr:district": "中壢區",
+    "addr:full": "桃園市中壢區石頭里9鄰中正路29號",
+    "addr:hamlet": "石頭里",
+    "addr:housenumber": "29",
+    "addr:neighbourhood": "9",
+    "addr:street": "中正路",
+    "amenity": "cafe",
+    "brand": "可不可熟成紅茶",
+    "brand:en": "Kebuke",
+    "brand:wikidata": "Q45572389",
+    "brand:zh": "可不可熟成紅茶",
+    "cuisine": "bubble_tea",
+    "name": "可不可熟成紅茶",
+    "name:en": "Kebuke",
+    "name:zh": "可不可熟成紅茶",
+    "opening_hours": "Mo-Su 10:00-22:00",
+    "short_name": "可不可",
+    "takeaway": "only"
+  }
+},
+{
+  "type": "node",
+  "id": 14050156093,
+  "lat": 24.9547145,
+  "lon": 121.2227933,
+  "tags": {
+    "addr:city": "桃園市",
+    "addr:country": "TW",
+    "addr:district": "中壢區",
+    "addr:floor": "1",
+    "addr:full": "桃園市中壢區石頭里10鄰中正路109號",
+    "addr:hamlet": "石頭里",
+    "addr:housenumber": "109",
+    "addr:neighbourhood": "10",
+    "addr:postcode": "320",
+    "addr:street": "中正路",
+    "amenity": "fast_food",
+    "brand": "拿坡里披薩",
+    "brand:en": "Napoli Pizza",
+    "brand:wikidata": "Q48927936",
+    "brand:zh": "拿坡里披薩",
+    "cuisine": "pizza;fried_chicken",
+    "name": "拿坡里披薩",
+    "name:en": "Napoli Pizza",
+    "name:zh": "拿坡里披薩",
+    "opening_hours": "Mo-Su 11:00-21:00",
+    "operator": "三商企業集團",
+    "operator:en": "Mercuries Group",
+    "operator:wikidata": "Q10865578",
+    "operator:zh": "三商企業集團",
+    "takeaway": "yes"
+  }
+},
+{
+  "type": "node",
+  "id": 14050156094,
+  "lat": 24.9553207,
+  "lon": 121.2225624,
+  "tags": {
+    "addr:city": "桃園市",
+    "addr:country": "TW",
+    "addr:district": "中壢區",
+    "addr:full": "桃園市中壢區中建里12鄰延平路560號",
+    "addr:hamlet": "中建里",
+    "addr:housenumber": "560",
+    "addr:neighbourhood": "12",
+    "addr:postcode": "320",
+    "addr:street": "延平路",
+    "amenity": "restaurant",
+    "name": "公路便當",
+    "opening_hours": "Mo-Su 09:00-04:00"
+  }
+},
+{
+  "type": "node",
+  "id": 14050156095,
+  "lat": 24.9543981,
+  "lon": 121.2200171,
+  "tags": {
+    "addr:city": "桃園市",
+    "addr:country": "TW",
+    "addr:district": "中壢區",
+    "addr:floor": "1",
+    "addr:full": "桃園市中壢區中榮里13鄰博愛三路1號",
+    "addr:hamlet": "中榮里",
+    "addr:housenumber": "1",
+    "addr:neighbourhood": "13",
+    "addr:postcode": "320",
+    "addr:street": "博愛三路",
+    "amenity": "restaurant",
+    "name": "山の狼便當"
+  }
+},
+{
+  "type": "node",
+  "id": 14050156100,
+  "lat": 24.9527706,
+  "lon": 121.2275970,
+  "tags": {
+    "addr:city": "桃園市",
+    "addr:country": "TW",
+    "addr:district": "中壢區",
+    "addr:full": "桃園市中壢區東興里2鄰新興路194巷29號",
+    "addr:hamlet": "東興里",
+    "addr:housenumber": "29",
+    "addr:neighbourhood": "2",
+    "addr:street": "新興路194巷",
+    "amenity": "fast_food",
+    "cuisine": "burger",
+    "name": "B&C漢堡與雞(炸雞漢堡專賣店)"
+  }
+},
+{
+  "type": "node",
+  "id": 14050159010,
+  "lat": 24.9493385,
+  "lon": 121.2228351,
+  "tags": {
+    "addr:city": "桃園市",
+    "addr:country": "TW",
+    "addr:district": "平鎮區",
+    "addr:full": "桃園市平鎮區北勢里9鄰和平路1號",
+    "addr:hamlet": "北勢里",
+    "addr:housenumber": "1",
+    "addr:neighbourhood": "9",
+    "addr:street": "和平路",
+    "amenity": "cafe",
+    "brand": "85度C",
+    "brand:en": "85°C Bakery Cafe",
+    "brand:wikidata": "Q4644852",
+    "brand:zh": "85度C",
+    "cuisine": "coffee_shop",
+    "name": "85度C",
+    "name:en": "85°C Bakery Cafe",
+    "name:zh": "85度C",
+    "opening_hours": "Mo-Su 07:00-22:00",
+    "takeaway": "yes"
+  }
+},
+{
+  "type": "node",
+  "id": 14050159013,
+  "lat": 24.9500688,
+  "lon": 121.2269730,
+  "tags": {
+    "addr:city": "桃園市",
+    "addr:country": "TW",
+    "addr:district": "中壢區",
+    "addr:floor": "1",
+    "addr:full": "桃園市中壢區健行里10鄰健行路104號",
+    "addr:hamlet": "健行里",
+    "addr:housenumber": "104",
+    "addr:neighbourhood": "10",
+    "addr:postcode": "320",
+    "addr:street": "健行路",
+    "amenity": "restaurant",
+    "name": "雲南妯娌"
+  }
+},
+{
+  "type": "node",
+  "id": 14050159021,
+  "lat": 24.9477688,
+  "lon": 121.2251408,
+  "tags": {
+    "addr:city": "桃園市",
+    "addr:country": "TW",
+    "addr:district": "中壢區",
+    "addr:full": "桃園市中壢區新興里1鄰龍岡路一段192號",
+    "addr:hamlet": "新興里",
+    "addr:housenumber": "192",
+    "addr:neighbourhood": "1",
+    "addr:postcode": "320",
+    "addr:street": "龍岡路一段",
+    "amenity": "restaurant",
+    "name": "豆大爺永和豆漿(龍岡店)"
+  }
+},
+{
+  "type": "node",
+  "id": 14050159022,
+  "lat": 24.9474072,
+  "lon": 121.2284501,
+  "tags": {
+    "addr:city": "桃園市",
+    "addr:country": "TW",
+    "addr:district": "中壢區",
+    "addr:full": "桃園市中壢區健行里1鄰健行路245之1號",
+    "addr:hamlet": "健行里",
+    "addr:housenumber": "245之1",
+    "addr:neighbourhood": "1",
+    "addr:postcode": "320",
+    "addr:street": "健行路",
+    "amenity": "restaurant",
+    "name": "逸小鍋 鍋の物 中壢健行店",
+    "opening_hours": "Mo-Su 10:00-23:00"
+  }
+},
+{
+  "type": "node",
+  "id": 14050159023,
+  "lat": 24.9476915,
+  "lon": 121.2282266,
+  "tags": {
+    "addr:city": "桃園市",
+    "addr:country": "TW",
+    "addr:district": "中壢區",
+    "addr:floor": "3",
+    "addr:full": "桃園市中壢區健行里1鄰健行路219號三樓",
+    "addr:hamlet": "健行里",
+    "addr:housenumber": "219",
+    "addr:neighbourhood": "1",
+    "addr:postcode": "320",
+    "addr:street": "健行路",
+    "amenity": "cafe",
+    "brand": "可不可熟成紅茶",
+    "brand:en": "Kebuke",
+    "brand:wikidata": "Q45572389",
+    "brand:zh": "可不可熟成紅茶",
+    "cuisine": "bubble_tea",
+    "name": "可不可熟成紅茶",
+    "name:en": "Kebuke",
+    "name:zh": "可不可熟成紅茶",
+    "short_name": "可不可",
+    "takeaway": "only"
+  }
+},
+{
+  "type": "node",
+  "id": 14050159025,
+  "lat": 24.9474341,
+  "lon": 121.2280868,
+  "tags": {
+    "addr:city": "桃園市",
+    "addr:country": "TW",
+    "addr:district": "中壢區",
+    "addr:full": "桃園市中壢區健行里2鄰健行路222號",
+    "addr:hamlet": "健行里",
+    "addr:housenumber": "222",
+    "addr:neighbourhood": "2",
+    "addr:postcode": "320",
+    "addr:street": "健行路",
+    "amenity": "restaurant",
+    "brand": "六扇門時尚湯鍋",
+    "brand:en": "6owl door",
+    "brand:wikidata": "Q131688921",
+    "brand:zh": "六扇門時尚湯鍋",
+    "cuisine": "hot_pot",
+    "diet:vegetarian": "yes",
+    "name": "六扇門時尚湯鍋",
+    "name:en": "6owl door",
+    "name:zh": "六扇門時尚湯鍋",
+    "opening_hours": "Mo-Su 11:00-22:00",
+    "operator": "六扇門有限公司",
+    "operator:en": "Liu, Shan-Men Ltd.",
+    "operator:zh": "六扇門有限公司"
+  }
+},
+{
+  "type": "node",
+  "id": 14053956538,
+  "lat": 24.9481768,
+  "lon": 121.2231700,
+  "tags": {
+    "addr:city": "桃園市",
+    "addr:country": "TW",
+    "addr:district": "平鎮區",
+    "addr:floor": "1",
+    "addr:full": "桃園市平鎮區北勢里12鄰金陵路73號",
+    "addr:hamlet": "北勢里",
+    "addr:housenumber": "73",
+    "addr:neighbourhood": "12",
+    "addr:postcode": "320",
+    "addr:street": "金陵路",
+    "amenity": "restaurant",
+    "name": "百鮮鹹酥雞"
+  }
+},
+{
+  "type": "node",
+  "id": 14053956539,
+  "lat": 24.9493118,
+  "lon": 121.2222532,
+  "tags": {
+    "addr:city": "桃園市",
+    "addr:country": "TW",
+    "addr:district": "平鎮區",
+    "addr:floor": "1",
+    "addr:full": "桃園市平鎮區北勢里7鄰和平路16號",
+    "addr:hamlet": "北勢里",
+    "addr:housenumber": "16",
+    "addr:neighbourhood": "7",
+    "addr:postcode": "320",
+    "addr:street": "和平路",
+    "amenity": "restaurant",
+    "name": "鼎泰香台式烤鴨"
+  }
+},
+{
+  "type": "node",
+  "id": 14053956540,
+  "lat": 24.9492695,
+  "lon": 121.2221905,
+  "tags": {
+    "addr:city": "桃園市",
+    "addr:country": "TW",
+    "addr:district": "平鎮區",
+    "addr:floor": "1",
+    "addr:full": "桃園市平鎮區北勢里7鄰和平路20號五樓",
+    "addr:hamlet": "北勢里",
+    "addr:housenumber": "20",
+    "addr:neighbourhood": "7",
+    "addr:postcode": "320",
+    "addr:street": "和平路",
+    "amenity": "restaurant",
+    "cuisine": "noodle",
+    "name": "老北京御膳牛肉麵"
+  }
+},
+{
+  "type": "node",
+  "id": 14053956541,
+  "lat": 24.9495484,
+  "lon": 121.2231995,
+  "tags": {
+    "addr:city": "桃園市",
+    "addr:country": "TW",
+    "addr:district": "中壢區",
+    "addr:full": "桃園市中壢區東興里19鄰中北路二段4號",
+    "addr:hamlet": "東興里",
+    "addr:housenumber": "4",
+    "addr:neighbourhood": "19",
+    "addr:postcode": "320",
+    "addr:street": "中北路二段",
+    "amenity": "restaurant",
+    "name": "山東饅頭包子"
+  }
+},
+{
+  "type": "node",
+  "id": 14053956543,
+  "lat": 24.9504431,
+  "lon": 121.2268420,
+  "tags": {
+    "addr:city": "桃園市",
+    "addr:country": "TW",
+    "addr:district": "中壢區",
+    "addr:floor": "1",
+    "addr:full": "桃園市中壢區健行里15鄰健行路86號",
+    "addr:hamlet": "健行里",
+    "addr:housenumber": "86",
+    "addr:neighbourhood": "15",
+    "addr:postcode": "320",
+    "addr:street": "健行路",
+    "amenity": "restaurant",
+    "name": "豪爽鴨鴨肉專賣店"
+  }
+},
+{
+  "type": "node",
+  "id": 14053956544,
+  "lat": 24.9494871,
+  "lon": 121.2270954,
+  "tags": {
+    "addr:city": "桃園市",
+    "addr:country": "TW",
+    "addr:district": "中壢區",
+    "addr:floor": "1",
+    "addr:full": "桃園市中壢區健行里10鄰健行路132號",
+    "addr:hamlet": "健行里",
+    "addr:housenumber": "132",
+    "addr:neighbourhood": "10",
+    "addr:postcode": "320",
+    "addr:street": "健行路",
+    "amenity": "cafe",
+    "cuisine": "tea",
+    "name": "白巷子WHITE ALLEY 中壢健行店"
+  }
+},
+{
+  "type": "node",
+  "id": 14053956545,
+  "lat": 24.9487170,
+  "lon": 121.2274293,
+  "tags": {
+    "addr:city": "桃園市",
+    "addr:country": "TW",
+    "addr:district": "中壢區",
+    "addr:full": "桃園市中壢區健行里2鄰健行路162號",
+    "addr:hamlet": "健行里",
+    "addr:housenumber": "162",
+    "addr:neighbourhood": "2",
+    "addr:postcode": "320",
+    "addr:street": "健行路",
+    "amenity": "cafe",
+    "cuisine": "tea",
+    "name": "Tea's原味"
+  }
+},
+{
+  "type": "node",
+  "id": 14053956546,
+  "lat": 24.9476825,
+  "lon": 121.2282243,
+  "tags": {
+    "addr:city": "桃園市",
+    "addr:country": "TW",
+    "addr:district": "中壢區",
+    "addr:floor": "1",
+    "addr:full": "桃園市中壢區健行里1鄰健行路219號三樓",
+    "addr:hamlet": "健行里",
+    "addr:housenumber": "219",
+    "addr:neighbourhood": "1",
+    "addr:postcode": "320",
+    "addr:street": "健行路",
+    "amenity": "restaurant",
+    "name": "3Q脆皮雞排 健行店",
+    "opening_hours": "Mo-Su 16:00-00:00"
+  }
+},
+{
+  "type": "way",
+  "id": 1293449692,
+  "center": {
+    "lat": 24.9521477,
+    "lon": 121.2272506
+  },
+  "tags": {
+    "amenity": "restaurant",
+    "building": "restaurant",
+    "name": "Love泰廚泰式料理"
+  }
+}
+
+  ]
+}

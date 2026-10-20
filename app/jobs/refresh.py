@@ -6,11 +6,15 @@ python -m app.jobs.refresh stations
 import logging
 import sys
 
+from sqlalchemy import text
+
+from app.collectors.osm_import import refresh_osm
 from app.collectors.tdx_geocode import Geocoder, geocode_hubs
 from app.collectors.tdx_stations import refresh_stations
 from app.config import get_settings
 from app.db import sync_session
 from app.jobs.crawl import run_crawl
+from app.judge import RestaurantJudge
 from app.redis_client import sync_redis
 from app.tdx import TdxTransit
 
@@ -45,7 +49,33 @@ def geocode_hubs_job() -> dict | None:
         )
 
 
-JOBS = {"stations": refresh_stations_job, "hubs": geocode_hubs_job}
+def refresh_osm_job() -> dict | None:
+    """OSM 餐廳（每天）。屬性交給本機 Ollama 判斷，第一次會比較久。"""
+    s, r = get_settings(), sync_redis()
+    with sync_session()() as session:
+        cuisines = dict(
+            session.execute(
+                text(
+                    "SELECT code, label || '：' || coalesce(jev_description, '') FROM categories "
+                    "WHERE kind = 'cuisine' ORDER BY sort_order"
+                )
+            ).all()
+        )
+        judge = RestaurantJudge(
+            s.ollama_base_url,
+            s.ollama_model,
+            cuisines=cuisines,
+            timeout=s.ollama_timeout_seconds,
+            keep_alive=s.ollama_keep_alive,
+            think=s.ollama_think,
+        )
+        return run_crawl(
+            session, r, "refresh_osm", "osm",
+            lambda keep_alive: refresh_osm(session, judge, keep_alive=keep_alive),
+        )  # fmt: skip
+
+
+JOBS = {"stations": refresh_stations_job, "hubs": geocode_hubs_job, "osm": refresh_osm_job}
 
 
 def main(argv: list[str]) -> None:
