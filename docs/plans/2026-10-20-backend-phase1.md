@@ -203,13 +203,13 @@ tests/
 ### G. REST API
 
 - [x] **G1 `schemas/`**：照 6.3～6.5 定義全部的 Pydantic 模型。
-- [ ] **G2 選單端點**：`/api/counties`、`/api/areas`、`/api/stations`、`/api/categories`、`/api/coverage`（含 `available_dates`）、`/api/status`、`/api/health`。
-- [ ] **G3 `POST /api/plans`**：
+- [x] **G2 選單端點**：`/api/counties`、`/api/areas`、`/api/stations`、`/api/categories`、`/api/coverage`（含 `available_dates`）、`/api/status`、`/api/health`。
+- [x] **G3 `POST /api/plans`**：
   - 先訂閱 Pub/Sub 再排進佇列；轉成 SSE。
   - 帶 `X-Accel-Buffering: no`，每 15 秒送一次心跳。
   - 限流照 5.5：409、429、503。
-- [ ] **G4 錯誤格式與 CORS**：照 6.1。
-- [ ] **G5 端對端驗證**：`docker compose up` 後，用 `curl -N` 打 `POST /api/plans`，看到 `queued`、`progress`、`result` 依序出現。
+- [x] **G4 錯誤格式與 CORS**：照 6.1。
+- [x] **G5 端對端驗證**：`docker compose up` 後，用 `curl -N` 打 `POST /api/plans`，看到 `queued`、`progress`、`result` 依序出現。
 
 ## 3. 完成的定義
 

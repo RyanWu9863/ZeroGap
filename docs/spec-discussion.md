@@ -525,6 +525,10 @@ rq cron（只負責觸發）── 每天 06:00 ──▶ 抓取佇列 ──▶
   - 本機的 Ollama 原本沒有規格書指定的 `qwen2.5:3b`，使用者選擇下載（選項 A），已下載完成。實測代選：第一次 5.5 秒（含載入），之後每次 2.4 秒，都選中符合「日式」的那家。
   - E（限流、鎖、每月額度、路線快取）完成，共 143 個測試。限流的時間由程式傳進 Lua script，測試不用真的等；路線快取包成 `CachedTransit`，沒命中才呼叫 TDX，TDX 的限流也只在這時候等。
   - 測試時發現：Redis 連不上時，redis-py 預設會重試，每次讀寫可能卡好幾秒。之後建立 Redis 連線要設定連線和讀寫的逾時。
+  - G（REST API、SSE、限流、錯誤格式、CORS）完成，共 192 個測試。G5 用 `curl -N` 經過 nginx 驗證：事件即時推送、等待時每 15 秒有心跳；斷線時執行中的工作 3 秒內被停掉、排隊中的直接移除；409、CORS 正常。
+  - G5 發現：nginx 預設不往外傳 `X-Accel-*` 標頭，前端容器那一層 nginx 會收不到 `X-Accel-Buffering: no`。`deploy/nginx.conf` 加了 `proxy_pass_header X-Accel-Buffering`，已寫進規格書 8.1。
+  - 另外修了兩個 bug：限流上限設成 0 時 Lua script 出錯；API 轉交給 worker 的時間變成 `17:00:00`。
+  - **第一階段完成**，剩下「前端 `VITE_USE_MOCK=false` 排出一次行程」要等前端改好才能驗。
   - F（規劃流程、RQ 工作、排隊上限與取消）和 G1（Pydantic 模型）完成，共 163 個測試。Docker 裡實際跑一次約 64 秒：TDX 限流等了 59 秒，Ollama 代選每次約 1 秒。
   - 實際跑的時候發現：查詢時間往前取整到 15 分鐘，緊的組合在步驟 6 會查不到車而被淘汰，LLM 選的組合因此掉出第一名。改成退回用步驟 2 的路線，寫進 10.1。
   - **前端要改的一處**：前端 `schemas.ts` 的 `RestaurantSource` 只接受 `google`、`osm`，但示意餐廳的 `source` 是 `demo`。後端最上層的 `restaurant_source` 只回 `google`／`osm`，每家餐廳的 `source` 照實回 `demo`，前端要在 `Plan.restaurant.source` 加上 `demo`。
