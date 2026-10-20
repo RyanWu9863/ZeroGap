@@ -111,14 +111,14 @@ tests/
 
 每個函式都先寫失敗的測試，跑一次確認是因為「還沒實作」而失敗，再寫實作。
 
-- [ ] **B1 `planning/rules.py`**
+- [x] **B1 `planning/rules.py`**
   - `walk_minutes(meters: float) -> int`：直線距離 × 1.3 ÷ 75，無條件進位。測試：`walk_minutes(0) == 0`、`walk_minutes(300) == 6`（390 ÷ 75 ＝ 5.2，進位成 6）。
   - `max_straight_meters(minutes: int) -> float`：分鐘 × 75 ÷ 1.3。
   - `estimate_ticket(chain, hall_type, prices) -> int`：照 4.3 的查詢順序，取中間值後四捨五入到 10 元。測試：威秀一般廳 350、威秀 `imax` 440（435 進位）、秀泰 `imax` 退回秀泰一般廳 360（355 進位）、品牌是 `None` 時用 `default` 330（325 進位）。
   - `meal_cost(price_range) -> int`：150、350、750、1,200。
   - `last_order(close_time) -> time`：打烊前 30 分鐘。
   - commit：`feat(planning): 時間、步行、票價、餐費規則`
-- [ ] **B2 `planning/feasibility.py`（先看電影）**
+- [x] **B2 `planning/feasibility.py`（先看電影）**
   - 輸入：`Showtime`、`Restaurant`（含最近代表點和步行分鐘數、營業時間）、`Reach`（每家影城最早幾點能到、去程車資）、`Leave`（每個代表點最晚幾點要離開、回程車資）、使用者條件。
   - 輸出：`Combo`（各時間點、各段緩衝、每人花費）或 `Rejected(reason)`。
   - 被排除的原因照規格書 6.4 的表：`showtime`、`walk`、`opening_hours`、`last_order`、`last_train`、`budget`。依這個順序檢查，第一個不符合的就是原因。
@@ -129,25 +129,25 @@ tests/
     - 每人花費 350＋150＋25＋25＝550。
   - 另外每個排除原因各一個測試，再加一個跨午夜到家的測試。
   - commit：`feat(planning): 先看電影的可行性檢查`
-- [ ] **B3 先吃飯**：同一個模組加 `check_meal_first`。測試：最晚要離開改看影城，`return_trip` 緩衝放在 `movie`。
+- [x] **B3 先吃飯**：同一個模組加 `check_meal_first`。測試：最晚要離開改看影城，`return_trip` 緩衝放在 `movie`。
   - commit：`feat(planning): 先吃飯的可行性檢查`
-- [ ] **B4 `filter_all`**：所有「場次 × 餐廳」逐一檢查，回傳可行的組合加上 `reasons` 計數；同一組「電影 × 餐廳」有多個場次時，留最緊緩衝最大的一場。
+- [x] **B4 `filter_all`**：所有「場次 × 餐廳」逐一檢查，回傳可行的組合加上 `reasons` 計數；同一組「電影 × 餐廳」有多個場次時，留最緊緩衝最大的一場。
   - 測試：計數加總等於組合總數；重複組合只留一場。
   - commit：`feat(planning): 篩選全部組合與排除原因計數`
-- [ ] **B5 `planning/choose.py`**
+- [x] **B5 `planning/choose.py`**
   - `build_movie_question`、`build_restaurant_question`：最多 10 個選項，排序照 7.1 步驟 4。
   - `rank_combos(probs_movie, probs_restaurant, combos) -> list[Ranked]`：分數＝P(電影)×P(餐廳)，取前 3；使用者指定電影時選片機率當作 1。
   - `needs_llm(probs) -> bool`：最高機率低於 0.6。
   - `apply_llm_pick(...)`：含 LLM 選中選項的方案排到第一名，其他候選放進 `alternatives`（最多 2 個）。
   - commit：`feat(planning): Jev 題目、排名、LLM 代選`
-- [ ] **B6 `planning/timeline.py`**
+- [x] **B6 `planning/timeline.py`**
   - 從 `Combo` 和精確路線組出 6.5 的時間軸：每一步的 `place`，有關卡的步驟加 `buffer_minutes`、`buffer_gate`，`return_trip` 那一步加 `return_window`。
   - 測試：照 6.5 範例比對整條 JSON。
   - commit：`feat(planning): 時間軸、緩衝與 return_window`
-- [ ] **B7 `planning/highlights.py`**
+- [x] **B7 `planning/highlights.py`**
   - 測試：第一名一定是 `recommended`；第二、三名照規則分配；同分；一項都沒有時是 `None`。
   - commit：`feat(planning): 特色標籤分配`
-- [ ] **B8 `planning/alternatives.py`**
+- [x] **B8 `planning/alternatives.py`**
   - 照 7.1 步驟 7 估到家時間和花費，`estimated=True`。
   - 測試：餐廳備選、電影備選（同一家餐廳接不上時，改用分數最高的可行餐廳）。
   - commit：`feat(planning): 備選的估計值`
