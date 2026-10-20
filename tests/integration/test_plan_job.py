@@ -20,7 +20,7 @@ from app.jobs.queue import (
     plans_queue,
     queue_position,
 )
-from app.seed.demo import seed
+from tests.integration.conftest import reseed
 
 DAY = date(2026, 10, 22)
 
@@ -28,13 +28,10 @@ DAY = date(2026, 10, 22)
 @pytest.fixture
 def env(monkeypatch, db_url, redis_url, engine):
     """讓 worker 裡的 get_settings() 指向測試用的資料庫和 Redis。"""
-    from sqlalchemy.orm import sessionmaker
-
     import app.db
     import app.redis_client
 
-    with sessionmaker(engine)() as s:
-        seed(s, today=DAY)
+    reseed(engine, DAY)
     monkeypatch.setenv("DATABASE_URL", db_url)
     monkeypatch.setenv("REDIS_URL", redis_url)
     monkeypatch.setenv("LLM_MODE", "mock")

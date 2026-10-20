@@ -4,7 +4,9 @@
 連不上資料庫時整批略過。
 """
 
+import asyncio
 import os
+import sys
 
 import pytest
 from alembic import command
@@ -16,6 +18,10 @@ from sqlalchemy.orm import sessionmaker
 from app.config import get_settings
 
 TEST_DB = "zerogap_test"
+
+# psycopg 的非同步模式不能用 Windows 預設的 ProactorEventLoop（API 的測試會用到）
+if sys.platform == "win32":
+    asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
 
 
 def _test_url() -> str:
@@ -75,3 +81,13 @@ def redis_url() -> str:
     except redis.RedisError as exc:
         pytest.skip(f"連不上 Redis（{exc.__class__.__name__}），請先 docker compose up -d")
     return url
+
+
+def reseed(engine, today):
+    """先清空場次再寫入示意資料。各模組用的「今天」不同，不清掉的話場次會混在一起。"""
+    from app.seed.demo import seed
+
+    with sessionmaker(engine)() as s:
+        s.execute(text("DELETE FROM showtimes"))
+        s.commit()
+        return seed(s, today=today)

@@ -15,18 +15,15 @@ from app.places import MockPlaces
 from app.planner import Deps, PlanError, run_plan
 from app.redis_utils.quota import add_usage
 from app.schemas import PlanRequest, PlanResult
-from app.seed.demo import seed
 from app.transit import MockTransit
+from tests.integration.conftest import reseed
 
 DAY = date(2026, 10, 22)
 
 
 @pytest.fixture(scope="module", autouse=True)
 def seeded(engine):
-    from sqlalchemy.orm import sessionmaker
-
-    with sessionmaker(engine)() as s:
-        seed(s, today=DAY)
+    reseed(engine, DAY)
 
 
 @pytest.fixture

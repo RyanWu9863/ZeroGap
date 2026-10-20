@@ -7,7 +7,14 @@
 from datetime import date, datetime, time
 from typing import Annotated, Any, Literal
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    Field,
+    field_serializer,
+    field_validator,
+    model_validator,
+)
 
 from app.config import get_settings
 from app.planning.times import resolve_times
@@ -103,6 +110,11 @@ class PlanRequest(_Model):
         if isinstance(value, str) and len(value) != 5:
             raise ValueError("時間格式是 HH:MM")
         return value
+
+    @field_serializer("earliest_departure", "latest_home")
+    def _dump_hhmm(self, value: time) -> str:
+        # 轉交給 worker 時要維持 HH:MM，不能變成 17:00:00
+        return value.strftime("%H:%M")
 
     @field_validator("max_walk_minutes")
     @classmethod

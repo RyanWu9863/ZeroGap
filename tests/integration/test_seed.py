@@ -8,16 +8,14 @@ from sqlalchemy.exc import IntegrityError
 
 from app.models import Restaurant, Showtime
 from app.seed.demo import EMPTY_DAY, TZ, seed
+from tests.integration.conftest import reseed
 
 TODAY = date(2026, 10, 22)
 
 
 @pytest.fixture(scope="module")
 def seeded(engine):
-    from sqlalchemy.orm import sessionmaker
-
-    with sessionmaker(engine)() as s:
-        return seed(s, today=TODAY)
+    return reseed(engine, TODAY)
 
 
 def test_seed_twice_gives_same_counts(engine, seeded):

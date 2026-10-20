@@ -36,3 +36,17 @@ def test_latest_must_be_after_earliest():
         resolve_times(D, time(17), time(17))
     with pytest.raises(ValueError, match="晚於最早出門"):
         resolve_times(D, time(17), time(16))
+
+
+def test_plan_request_round_trips_hhmm():
+    from app.schemas import PlanRequest
+
+    body = {
+        "area": "taoyuan", "origin_station_id": 1, "date": "2026-10-22",
+        "earliest_departure": "17:00", "latest_home": "01:30", "order": "movie_first",
+        "budget_per_person": 1000, "max_walk_minutes": 12,
+    }  # fmt: skip
+    dumped = PlanRequest.model_validate(body).model_dump(mode="json")
+    assert dumped["earliest_departure"] == "17:00"
+    assert dumped["latest_home"] == "01:30"
+    assert PlanRequest.model_validate(dumped).latest_home == time(1, 30)

@@ -37,6 +37,11 @@ class TestRateLimit:
             hit(r, "rl:test", limit=5, window_ms=1_000, now_ms=500 + i)
         assert r.zcard("rl:test") == 5
 
+    def test_zero_limit_blocks_everything(self, r):
+        result = hit(r, "rl:test", limit=0, window_ms=60_000, now_ms=0)
+        assert not result.allowed
+        assert result.retry_after_ms == 60_000
+
     def test_key_expires_with_window(self, r):
         hit(r, "rl:test", limit=5, window_ms=60_000)
         assert 0 < r.pttl("rl:test") <= 60_000

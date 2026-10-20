@@ -7,16 +7,13 @@ from sqlalchemy import text
 
 from app.planning.rules import max_straight_meters, walk_minutes
 from app.queries import cinema_restaurant_meters, nearest_hubs, restaurants_within_walk
-from app.seed.demo import seed
 from app.transit import haversine_m
+from tests.integration.conftest import reseed
 
 
 @pytest.fixture(scope="module", autouse=True)
 def seeded(engine):
-    from sqlalchemy.orm import sessionmaker
-
-    with sessionmaker(engine)() as s:
-        seed(s, today=date(2026, 10, 22))
+    reseed(engine, date(2026, 10, 22))
 
 
 def _ids(session):
