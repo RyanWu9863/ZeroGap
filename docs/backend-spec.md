@@ -1109,7 +1109,7 @@ worker 完成 → PUBLISH result（完整結果）→ API 推送後關閉串流
 | 服務 | 映像檔 | 數量 | 說明 |
 |---|---|---|---|
 | `web` | 前端自建（nginx） | 1 | 前端 ZeroGap 的容器：提供打包好的網頁，`/api/` 轉給 `proxy`（前端的 `BACKEND_URL` 設成 `http://proxy`）【預設】 |
-| `proxy` | nginx【預設】 | 1 | 反向代理；SSE 和 `/mcp` 路徑要關閉緩衝（`proxy_buffering off`；後端的 SSE 回應也會帶 `X-Accel-Buffering: no`）。nginx 預設不往外傳 `X-Accel-*` 標頭，所以要加 `proxy_pass_header X-Accel-Buffering`，前端容器的 nginx 才收得到（實作時發現）；設定 `X-Forwarded-For`；一般的輪流分配即可，不需要固定連線 |
+| `proxy` | nginx【預設】 | 1 | 反向代理；SSE 和 `/mcp` 路徑要關閉緩衝（`proxy_buffering off`；後端的 SSE 回應也會帶 `X-Accel-Buffering: no`）。nginx 預設不往外傳 `X-Accel-*` 標頭，所以要加 `proxy_pass_header X-Accel-Buffering`，前端容器的 nginx 才收得到（實作時發現）；api 重開會換 IP，所以用 Docker 內建的 DNS（`resolver 127.0.0.11`）並把位址放在變數裡，讓 nginx 重新解析（實作時發現）；設定 `X-Forwarded-For`；一般的輪流分配即可，不需要固定連線 |
 | `migrate` | 自建 | 1（跑完就結束） | 執行 `alembic upgrade head`；`api`、`worker` 等它跑完才啟動，避免開多個 `api` 時同時跑 migration（實作時新增） |
 | `api` | 自建（uvicorn） | 1～N | 啟動參數加 `--proxy-headers`，才能拿到使用者的真實 IP |
 | `worker` | 自建（RQ worker） | 1～N | 規劃的速度受 TDX 每分鐘 5 次限制，開多個也不會更快；建議 1～2 個 |
