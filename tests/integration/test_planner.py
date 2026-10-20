@@ -312,3 +312,26 @@ def test_restaurants_without_jev_attributes_are_skipped(session, r):
             {"ids": list(ids)},
         )
         session.commit()
+
+
+def test_unparseable_hours_are_planned_but_marked_unverified(session, engine, r):
+    # 看不懂的營業時間：照樣排，但標成未確認（2026-10-20 決定）
+    result, _ = run(session, r, request(session))
+    assert all(p["restaurant"]["hours_verified"] for p in result["plans"])
+
+    session.execute(
+        text(
+            "UPDATE restaurants SET osm_opening_hours = 'Mo-Fr 11:00-21:00 || PH off' "
+            "WHERE area_id = (SELECT id FROM areas WHERE code = 'taoyuan')"
+        )
+    )
+    session.commit()
+    try:
+        result, _ = run(session, r, request(session))
+        data = PlanResult.model_validate(result).to_json()
+        assert data["plans"]
+        for plan in data["plans"]:
+            assert plan["restaurant"]["hours_verified"] is False
+            assert plan["restaurant"]["last_order"] is None
+    finally:
+        reseed(engine, DAY)

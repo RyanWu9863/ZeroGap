@@ -698,6 +698,8 @@ class Planner:
                             f"{combo.last_order_at:%H:%M}" if combo.last_order_at else None
                         ),
                         "source": rest_row.source,
+                        # 營業時間看不懂或補不到時照樣排，但讓前端提示先確認（2026-10-20 決定）
+                        "hours_verified": combo.last_order_at is not None,
                         "place_id": rest_row.external_id if rest_row.source == "google" else None,
                     },
                     "timeline": tl.steps,

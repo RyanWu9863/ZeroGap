@@ -248,6 +248,7 @@ class RestaurantOut(_Model):
     last_order: str | None  # HH:MM
     source: Literal["google", "osm", "demo"]
     place_id: str | None
+    hours_verified: bool  # false：營業時間看不懂或補不到，前端要提示「請向店家確認」
 
 
 class CostOut(_Model):
