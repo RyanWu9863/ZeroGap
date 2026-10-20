@@ -197,3 +197,32 @@ def apply_llm_pick(ranked: list[Ranked], movie: int | None, restaurant: int | No
         if hit is not None:
             return [ranked[hit], *ranked[:hit], *ranked[hit + 1 :]]
     return ranked
+
+
+def route_code(index: int) -> str:
+    return f"t{index}"
+
+
+def build_route_question(question_id: str, routes: list) -> ChoiceQuestion:
+    """步驟 6：從 TDX 回傳的路線選一條。`routes` 是 `app.planning.types.Route`。"""
+    options = [
+        Option(
+            code=route_code(i),
+            label=r.summary,
+            attrs={
+                "summary": r.summary,
+                "depart_at": f"{r.depart_at:%H:%M}",
+                "arrive_at": f"{r.arrive_at:%H:%M}",
+                "ride_minutes": r.ride_minutes,
+                "transfers": r.transfers,
+                "walk_minutes": r.walk_before + r.walk_after,
+                "fare": r.fare,
+            },
+        )
+        for i, r in enumerate(routes)
+    ]
+    return ChoiceQuestion(
+        id=question_id,
+        instructions="選出最適合的一條路線：轉乘少、時間短、走路少、車資低。",
+        options=options,
+    )
