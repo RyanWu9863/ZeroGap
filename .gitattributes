@@ -1,0 +1,4 @@
+# 程式會在 Linux 容器裡跑，一律用 LF
+* text=auto eol=lf
+*.png binary
+*.webp binary
