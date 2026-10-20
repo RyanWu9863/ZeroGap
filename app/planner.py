@@ -432,7 +432,12 @@ class Planner:
             answer = answers[q.id]
             code, by_llm = self._decide(q, answer)
             probs = {choose.parse_code(k): v for k, v in answer.probabilities.items()}
-            picks[q.id] = {"id": choose.parse_code(code), "llm": by_llm, "probs": probs}
+            picks[q.id] = {
+                "id": choose.parse_code(code),
+                "llm": by_llm,
+                "unsure": self._unsure(answer),
+                "probs": probs,
+            }
             if q.id == "movie":
                 p_movie = probs
         p_rest = picks["restaurant"]["probs"]
@@ -541,12 +546,16 @@ class Planner:
             c.ret = [self.step2_ret[ret_key]]
         return bool(c.go and c.ret)
 
+    def _unsure(self, answer: ChoiceAnswer) -> bool:
+        return choose.needs_llm(answer.probabilities, self.s.jev_min_top_probability)
+
     def _pick_route(self, qid, question, answers, routes):
         answer = answers[qid]
         code, by_llm = self._decide(question, answer)
         index = int(code[1:])
         alternatives = None
-        if by_llm:
+        # Jev 沒把握就附備選，不管 LLM 有沒有回答（2026-10-20 決定）
+        if self._unsure(answer):
             alternatives = [
                 {
                     "summary": r.summary,
@@ -600,16 +609,18 @@ class Planner:
             combo = tl.combo
             show_row = self.showtime_rows[combo.showtime.id]
             rest_row = self.restaurant_rows[combo.restaurant.id]
+            movie_id = combo.showtime.movie_id
             movie_pick, rest_pick = picks.get("movie"), picks["restaurant"]
+            # decided_by 是 llm：LLM 真的有回答，而且第一名用了它的選擇
             movie_llm = bool(
-                i == 0 and movie_pick and movie_pick["llm"]
-                and movie_pick["id"] == combo.showtime.movie_id
-            )  # fmt: skip
+                i == 0 and movie_pick and movie_pick["llm"] and movie_pick["id"] == movie_id
+            )
             rest_llm = bool(i == 0 and rest_pick["llm"] and rest_pick["id"] == rest_row.id)
 
+            # 備選：Jev 沒把握就附在第一名，不管 LLM 有沒有回答（2026-10-20 決定）
             alternatives: dict[str, Any] = {}
-            if movie_llm:
-                alt_ids = choose.llm_alternatives(movie_pick["probs"], movie_pick["id"])
+            if i == 0 and movie_pick and movie_pick["unsure"]:
+                alt_ids = choose.llm_alternatives(movie_pick["probs"], movie_id)
                 alternatives["movie"] = movie_alternatives(
                     c.ranked.combo,
                     alt_ids,
@@ -621,13 +632,13 @@ class Planner:
                     cuisines={rid: r.cuisine for rid, r in self.restaurant_rows.items()},
                     plan_fare_go=tl.cost.fare_go,
                 )
-            if rest_llm:
+            if i == 0 and rest_pick["unsure"]:
                 # 依 Jev 機率排序，挑接得上的補滿 2 家，可以超出前 3 名（2026-10-20 決定）
                 probs = rest_pick["probs"]
                 alt_ids = [
                     rid
                     for rid in sorted(self.restaurant_rows, key=lambda k: (-probs.get(k, 0.0), k))
-                    if rid != rest_pick["id"] and (combo.showtime.movie_id, rid) in self.feasible
+                    if rid != rest_row.id and (movie_id, rid) in self.feasible
                 ][: self.s.plan_alternatives_max]
                 alternatives["restaurant"] = restaurant_alternatives(
                     c.ranked.combo,
@@ -639,8 +650,10 @@ class Planner:
                     plan_fare_go=tl.cost.fare_go,
                 )
             for key in ("route_go", "route_return"):
-                if routes[key]["llm"]:
+                if routes[key]["alternatives"]:
                     alternatives[key] = routes[key]["alternatives"]
+            # 一個都換不了的不輸出，免得前端顯示點了沒東西的「換一家」
+            alternatives = {k: v for k, v in alternatives.items() if v}
 
             genre = self.movies[combo.showtime.movie_id].genre
             out.append(

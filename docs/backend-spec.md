@@ -883,7 +883,7 @@ worker 完成 → PUBLISH result（完整結果）→ API 推送後關閉串流
 | `min_buffer_minutes` | 各個時間限制剩下的空檔中，最小的一個：抵達影城比「開演前 15 分鐘」早多少、開始用餐比最後點餐早多少、離開商圈比「最晚要離開」早多少。先吃飯時改看對應的時間點 |
 | `estimated` | 哪些金額是估計值：票價是依品牌和影廳的參考區間換算，餐費是依 Jev 判斷的價位區間換算；車資來自 TDX，不算估計 |
 | `decided_by` | 每一項由 Jev 還是 LLM 決定。值是 `llm` 的就是 Jev 沒把握的項目，前端靠它知道要讓使用者改選電影還是餐廳 |
-| `alternatives` | 只有在 Jev 沒把握、由 LLM 代選時才有值，key 是沒把握的那一項：`movie`、`restaurant`、`route_go`、`route_return`。列出其他候選（最多 2 個【預設】）。使用者在前端可以直接改選，不必重新規劃；**改選後只更新到家時間和每人花費，時間軸不換**（2026-10-20 決定）。<br>電影、餐廳的備選只附估計值，`estimated` 一定是 `true`，算法見 7.1 步驟 7：<br>・餐廳：`restaurant_id`、`name`、`cuisine`、`probability`、`home_at`、`cost_per_person_total`、`estimated`。Google 的 Place Details Pro 額度用完時，`name` 是 `null`，前端改顯示料理類別（見 5.5）<br>・電影：`movie_id`、`title`、`probability`、`home_at`、`cost_per_person_total`、`estimated`，另外有 `restaurant_id`、`restaurant_name`、`restaurant_cuisine`：搭配的餐廳跟方案不同時才有值，同一家時三個都是 `null`；`restaurant_name` 也可能因為 Pro 額度用完而是 `null`<br>路線的備選是 TDX 查到的另外兩條路線，所以是精確值：`summary`、`depart_at`、`arrive_at`、`fare_per_person`、`probability` |
+| `alternatives` | 只有在 Jev 沒把握時才有值（不管 LLM 有沒有回答；2026-10-20 決定），而且只附在第一名；一個都換不了的 key 不輸出。key 是沒把握的那一項：`movie`、`restaurant`、`route_go`、`route_return`。列出其他候選（最多 2 個【預設】）。使用者在前端可以直接改選，不必重新規劃；**改選後只更新到家時間和每人花費，時間軸不換**（2026-10-20 決定）。<br>電影、餐廳的備選只附估計值，`estimated` 一定是 `true`，算法見 7.1 步驟 7：<br>・餐廳：`restaurant_id`、`name`、`cuisine`、`probability`、`home_at`、`cost_per_person_total`、`estimated`。Google 的 Place Details Pro 額度用完時，`name` 是 `null`，前端改顯示料理類別（見 5.5）<br>・電影：`movie_id`、`title`、`probability`、`home_at`、`cost_per_person_total`、`estimated`，另外有 `restaurant_id`、`restaurant_name`、`restaurant_cuisine`：搭配的餐廳跟方案不同時才有值，同一家時三個都是 `null`；`restaurant_name` 也可能因為 Pro 額度用完而是 `null`<br>路線的備選是 TDX 查到的另外兩條路線，所以是精確值：`summary`、`depart_at`、`arrive_at`、`fare_per_person`、`probability` |
 | `return_window` | 只出現在 `buffer_gate` 是 `return_trip` 的那一步：`planned_depart_at` 預定那班車的出發時間、`minutes_to_planned` 離那班車還有幾分鐘、`latest_depart_at` 最晚要離開的時間、`minutes_to_latest` 離最晚要離開還有幾分鐘。前端可以顯示「8 分鐘後發車，錯過的話 22:28 前還有車」 |
 
 **時間軸每一步的共通欄位**
@@ -949,7 +949,7 @@ worker 完成 → PUBLISH result（完整結果）→ API 推送後關閉串流
 | 篩選動畫 | 可以接 `queued` 的排隊順位和 `progress` 的階段、組合數。一次規劃約 2～3 分鐘，多人時還要排隊，等待畫面要撐得了這麼久 |
 | 方案卡的標籤 | `highlight`（6.5） |
 | 時間軸的緩衝和地點 | 每一步的 `buffer_minutes`、`buffer_gate`、`place`（6.5） |
-| 系統拿不定 | 不另外插一頁再重送。結果中 `decided_by` 是 `llm` 的項目，在結果頁用 `alternatives` 讓使用者換一部或換一家；換了以後只更新到家時間和每人花費，並標成估計值，時間軸不換 |
+| 系統拿不定 | 不另外插一頁再重送。`alternatives` 裡有哪個 key，就在結果頁讓使用者換那一項（換一部、換一家）。不要只看 `decided_by` 是不是 `llm`：Ollama 逾時時 `decided_by` 是 `jev`，但備選照樣會有（2026-10-20 決定）；換了以後只更新到家時間和每人花費，並標成估計值，時間軸不換 |
 | 回程緩衝 | `return_trip` 那一步另有 `return_window`，可以同時顯示「離預定那班車幾分鐘」和「最晚幾點前還有車」 |
 | 排隊順位 | `queued.position`：1 代表下一個就輪到 |
 | 無解 | `error` 事件：`NO_FEASIBLE` 附 `reasons`，key 見 6.4 的表；`NO_SHOWTIMES` 表示沒有符合條件的場次 |
@@ -1226,15 +1226,15 @@ worker 完成 → PUBLISH result（完整結果）→ API 推送後關閉串流
 | 營業時間的格式 | 示意資料和 OSM 都用 OSM `opening_hours` 的常見子集（`Mo-Fr 11:00-14:00,17:00-21:00; Sa,Su …`、`off`、`24/7`、跨夜）。解析不了就當作不知道營業時間，跟 Google 的店一樣先假設有營業；OSM 的店沒有步驟 5 可以補驗（實作時新增） | 7.1 |
 | 營業時間的判斷 | 開始用餐的時間要落在某個營業時段內，而且不晚於最後點餐；用餐結束可以超過打烊。比開門早到時，30 分鐘內就等開門，時間軸的 `wait` 那一步改標「等開門」；要等超過 30 分鐘才算 `opening_hours`（2026-10-20 確認） | 6.4 |
 | `stats.feasible` | 合併同一組「電影 × 餐廳」之前的可行組合數，跟 `combinations` 同一個基準（2026-10-20 確認） | 6.5 |
-| 排名同分 | 最緊緩衝大的優先，再依電影 id、餐廳 id（實作時新增） | 7.1 |
-| 電影和餐廳都由 LLM 代選 | 第一名優先找兩個都符合的組合；沒有就只照電影，再沒有就只照餐廳（實作時新增） | 7.1 |
+| 排名同分 | 最緊緩衝大的優先，再依電影 id、餐廳 id（2026-10-20 確認） | 7.1 |
+| 電影和餐廳都由 LLM 代選 | 第一名優先找兩個都符合的組合；沒有就只照電影，再沒有就只照餐廳（2026-10-20 確認） | 7.1 |
 | 餐廳備選 | 依 Jev 機率排序，挑跟方案的電影接得上的店補滿 2 家，可以超出前 3 名（2026-10-20 確認） | 6.5 |
 | `return_window.minutes_to_planned` | 離「最晚幾點要出發才趕得上預定那班車」還有幾分鐘；起點離站牌要走路時（先吃飯從影城走去站牌），會扣掉走路時間（實作時新增） | 6.5 |
 | 特色標籤的文字 | 最推薦「最符合你選的條件」、最省「每人 550 元，三個方案中最便宜」、最穩「最緊的空檔也有 30 分鐘」、最早回到站「21:10 就回到中壢」、走最少路「全程步行約 6 分鐘」（2026-10-20 確認） | 6.5 |
-| 步驟 6 查不到合用的車 | 查詢時間取整到 15 分鐘，緊的組合可能查不到；這時退回用步驟 2 查到的那條路線（不多呼叫 TDX，只有一條所以不用 Jev 選）（實作時新增） | 7.1 |
-| 先吃飯的去程查詢時間 | 用「最晚還來得及到代表點」的時間＝最早抵達 ＋ 開演、最後點餐兩道關卡中較小的空檔。直接用最早抵達時間，取整後查到的車都會早於最早出門（實作時新增） | 7.1 |
-| 步驟 5、6 最多試幾組 | 前三名加上最多補 2 組，共 5 組（對應「最差 TDX 約 15 次」）（實作時新增） | 7.1 |
-| `decided_by` 是 `llm` 的條件 | LLM 真的有回答，而且第一名含 LLM 選的選項；Ollama 逾時改用 Jev 第一名時記成 `jev`，也不附備選（實作時新增） | 6.5 |
+| 步驟 6 查不到合用的車 | 查詢時間取整到 15 分鐘，緊的組合可能查不到；這時退回用步驟 2 查到的那條路線（不多呼叫 TDX，只有一條所以不用 Jev 選）（2026-10-20 確認） | 7.1 |
+| 先吃飯的去程查詢時間 | 用「最晚還來得及到代表點」的時間＝最早抵達 ＋ 開演、最後點餐兩道關卡中較小的空檔。直接用最早抵達時間，取整後查到的車都會早於最早出門（2026-10-20 確認） | 7.1 |
+| 步驟 5、6 最多試幾組 | 前三名加上最多補 2 組，共 5 組（對應「最差 TDX 約 15 次」）（2026-10-20 確認） | 7.1 |
+| `decided_by` 和備選 | `decided_by` 是 `llm`：LLM 真的有回答，而且第一名含 LLM 選的選項。備選：只要 Jev 沒把握就附在第一名，Ollama 逾時改用 Jev 第一名時也照樣附（`decided_by` 記成 `jev`）；一個都換不了的 key 不輸出（2026-10-20 確認） | 6.5 |
 | 餐廳的 `source` | 每家餐廳照實回傳，示意資料是 `demo`；最上層的 `restaurant_source` 只會是 `google` 或 `osm`（實作時新增） | 6.5 |
 | 模擬版 TDX 也限流 | 照真的每分鐘 5 次排隊，讓前端測得到等待畫面；開發時想快可以在 `.env` 設 `TDX_PER_MINUTE=1000`（實作時新增） | 5.5 |
 

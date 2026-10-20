@@ -196,11 +196,40 @@ def test_llm_fallback_marks_decided_by_and_alternatives(session, r):
         assert plan["alternatives"].get("movie") is None
 
 
-def test_llm_timeout_counts_as_jev(session, r):
+def test_llm_timeout_counts_as_jev_but_keeps_alternatives(session, r):
+    # Jev 沒把握、Ollama 也沒回答：記成 jev，但照樣附備選，使用者還是能換（2026-10-20 決定）
     result, _ = run(session, r, request(session), jev=UnsureJev(), llm=MockLlm())
-    first = PlanResult.model_validate(result).to_json()["plans"][0]
+    data = PlanResult.model_validate(result).to_json()
+    first = data["plans"][0]
     assert first["decided_by"]["restaurant"] == "jev"
-    assert first["alternatives"] == {}
+    assert first["decided_by"]["movie"] == "jev"
+    # 示意資料裡第一名的電影只接得上一家店，所以只會有電影備選
+    assert first["alternatives"]["movie"]
+    for alt in first["alternatives"].get("restaurant", []):
+        assert alt["restaurant_id"] != first["restaurant"]["id"]
+    for plan in data["plans"]:
+        assert all(plan["alternatives"].values())  # 沒有空的備選清單
+    for plan in data["plans"][1:]:
+        assert "restaurant" not in plan["alternatives"]
+
+
+def test_confident_jev_has_no_alternatives(session, r):
+    class SureJev:
+        def choose(self, questions, state=None):
+            return JevResult(
+                answers={
+                    q.id: ChoiceAnswer(
+                        {o.code: (1.0 if i == 0 else 0.0) for i, o in enumerate(q.options)}
+                    )
+                    for q in questions
+                },
+                model="jev-sure",
+                input_tokens=10,
+            )
+
+    result, _ = run(session, r, request(session), jev=SureJev())
+    for plan in PlanResult.model_validate(result).to_json()["plans"]:
+        assert plan["alternatives"] == {}
 
 
 def test_google_quota_used_up_switches_to_osm(session, r):
