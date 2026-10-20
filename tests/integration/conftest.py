@@ -62,3 +62,16 @@ def engine(db_url):
 def session(engine):
     with sessionmaker(engine, expire_on_commit=False)() as s:
         yield s
+
+
+@pytest.fixture(scope="session")
+def redis_url() -> str:
+    """測試用 Redis 的第 15 號資料庫，不碰開發用的資料。"""
+    import redis
+
+    url = os.environ.get("TEST_REDIS_URL") or get_settings().redis_url.rsplit("/", 1)[0] + "/15"
+    try:
+        redis.Redis.from_url(url, socket_connect_timeout=1).ping()
+    except redis.RedisError as exc:
+        pytest.skip(f"連不上 Redis（{exc.__class__.__name__}），請先 docker compose up -d")
+    return url
