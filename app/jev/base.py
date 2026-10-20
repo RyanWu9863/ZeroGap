@@ -1,0 +1,32 @@
+"""Jev 的介面（規格書 3.1）。真的用戶端第二階段才做（要 TypeSafe 金鑰）。
+
+題目用 `app.planning.choose.ChoiceQuestion`；一次請求可以同時問好幾題。
+"""
+
+from dataclasses import dataclass
+from typing import Any, Protocol
+
+from app.planning.choose import ChoiceQuestion
+
+
+@dataclass(frozen=True)
+class ChoiceAnswer:
+    probabilities: dict[str, float]  # 選項代碼 → 機率
+    confidence: float | None = None  # 只記錄、不用來判斷（3.1）
+
+    @property
+    def top(self) -> str:
+        return max(self.probabilities, key=lambda k: (self.probabilities[k], k))
+
+
+@dataclass(frozen=True)
+class JevResult:
+    answers: dict[str, ChoiceAnswer]  # 題目 id → 答案
+    model: str  # 回應裡的模型版本（3.1：每次判斷都要記下來）
+    input_tokens: int  # 計費只算輸入 token，用來累加每月費用
+
+
+class Jev(Protocol):
+    def choose(
+        self, questions: list[ChoiceQuestion], state: dict[str, Any] | None = None
+    ) -> JevResult: ...
