@@ -1,0 +1,25 @@
+"""把請求的日期和 HH:MM 換成帶時區的時間（規格書 6.4）。
+
+- `earliest_departure` 一律是 `date` 當天
+- `latest_home` 早於 06:00 算隔天，最晚到隔天 02:00；其他時間算當天，要晚於最早出門【預設】
+"""
+
+from datetime import date, datetime, time, timedelta
+from zoneinfo import ZoneInfo
+
+TZ = ZoneInfo("Asia/Taipei")
+NEXT_DAY_BEFORE = time(6, 0)
+NEXT_DAY_LATEST = time(2, 0)
+
+
+def resolve_times(day: date, earliest: time, latest: time) -> tuple[datetime, datetime]:
+    earliest_dt = datetime.combine(day, earliest, TZ)
+    if latest < NEXT_DAY_BEFORE:
+        if latest > NEXT_DAY_LATEST:
+            raise ValueError("最晚到家可以跨到隔天，但不能晚於 02:00")
+        latest_dt = datetime.combine(day + timedelta(days=1), latest, TZ)
+    else:
+        latest_dt = datetime.combine(day, latest, TZ)
+    if latest_dt <= earliest_dt:
+        raise ValueError("最晚到家要晚於最早出門")
+    return earliest_dt, latest_dt
