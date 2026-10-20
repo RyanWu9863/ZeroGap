@@ -31,8 +31,8 @@ def r(redis_url):
     client.flushdb()
 
 
-def make(r, fallback=lambda route, o, d: 99):
-    return TdxTransit("id", "secret", r, fare_fallback=fallback, sleep=lambda s: None)
+def make(r, rates=None):
+    return TdxTransit("id", "secret", r, rates=rates, sleep=lambda s: None)
 
 
 def token_ok():
@@ -93,18 +93,22 @@ def test_arrival_filters_late_ones_and_puts_latest_first(r):
 
 
 @respx.mock
-def test_fare_fallback_when_tdx_has_no_price(r):
+def test_fare_is_estimated_when_tdx_has_no_price(r):
     respx.post(TOKEN_URL).mock(return_value=token_ok())
     respx.get(ROUTING_URL).mock(return_value=httpx.Response(200, json=fixture("routing_tra")))
-    seen = []
+    routes = make(r).route(A, B, datetime(2026, 10, 21, 17, 10, tzinfo=TZ), "depart")
+    assert routes[0].fare == 16
+    assert routes[0].fare_estimated is True
 
-    def fallback(route, origin, dest):
-        seen.append(route.summary)
-        return 30
 
-    routes = make(r, fallback).route(A, B, datetime(2026, 10, 21, 17, 10, tzinfo=TZ), "depart")
-    assert routes[0].fare == 30
-    assert seen and seen[0].startswith("台鐵")
+@respx.mock
+def test_bus_fare_from_tdx_is_not_estimated(r):
+    respx.post(TOKEN_URL).mock(return_value=token_ok())
+    respx.get(ROUTING_URL).mock(
+        return_value=httpx.Response(200, json=fixture("routing_mixed_arrival"))
+    )
+    routes = make(r).route(B, A, datetime(2026, 10, 21, 23, 0, tzinfo=TZ), "arrival")
+    assert routes[0].fare == 18 and routes[0].fare_estimated is False
 
 
 @respx.mock
@@ -142,4 +146,4 @@ def test_4xx_is_not_retried(r):
 
 def test_missing_keys_is_a_clear_error(r):
     with pytest.raises(TdxError, match="TDX_CLIENT_ID"):
-        TdxTransit("", "", r, fare_fallback=lambda *a: 0)
+        TdxTransit("", "", r)

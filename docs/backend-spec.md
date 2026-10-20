@@ -180,7 +180,14 @@ docker-compose.yml
 - **檢查回傳時間**：時間參數不能是過去。查不到路線時 TDX 會自動放寬時間，所以程式**必須檢查**：
   - 用 `depart` 時，回傳的出發時間不能早於要求的時間。
   - 用 `arrival` 時，回傳的抵達時間不能晚於要求的時間。
-- 班次名稱和車資從回傳的 `sections` 整理。這部分規格沒寫，【實作前確認】。
+- **回應格式**（2026-10-20 用金鑰實測，範例在 `tests/fixtures/tdx/`）：
+  - `data.routes[]`：`start_time`、`end_time`（台北時間、沒有時區）、`travel_time`（秒）、`transfers`；只有全程公車時才有 `total_price`。
+  - `sections[]`：`type` 是 `pedestrian`、`waiting`、`transit`。`transit` 段的 `transport.mode` 是 `Bus`、`TRA`……，`name` 是公車號碼（台鐵是起訖站），`headsign` 是往哪裡；上下車站在 `departure.place.name`、`arrival.place.name`。
+  - 回傳的路線不照時間排序。
+- **頭尾一定要帶 `first_mile_mode=0`、`last_mile_mode=0`**：不帶的話 TDX 會安排騎車和叫計程車（實測）。
+- **回傳的時間比要求的寬鬆**（實測：要 17:00 出發會給 16:48 出門的），所以每次至少要 5 條再篩，`top=1` 的用法也一樣。
+- **車資**：用到台鐵時 TDX 不給車資。先自己估：公車段每段 18 元，台鐵、高鐵、捷運依直線距離 × 1.15 × 每公里單價（台鐵 1.46、高鐵 3.8、捷運 2.4 元），不低於起跳價（15、40、20 元）【預設】，結果標成估計值；Demo 之後改查 TDX 的票價 API（2026-10-20 決定）。
+- **TDX 公告旅運規劃 2026/12/31 下架**，見第 9 節。
 
 ### 3.3 Google Places API (New)
 
@@ -881,7 +888,7 @@ worker 完成 → PUBLISH result（完整結果）→ API 推送後關閉串流
 | `highlight` | 方案卡上的特色標籤，每張方案最多一個，三張不重複。**第一名固定是 `recommended` 最推薦**（2026-10-20 決定）。第二、三名從四種裡分配：`cheapest` 最省（每人花費最低）、`safest` 最穩（最緊緩衝最大）、`earliest_return` 最早回到站（到家時間最早）、`shortest_walk` 走最少路（步行分鐘加總最少）。`label`、`reason` 由後端產生，裡面的數字都由程式計算；`reason` 不提 Jev、AI、機率。**第二、三名的分配規則**【預設】：依名次，每個方案取「它在三個方案中最好、而且還沒被用掉」的一項，順序是最省→最穩→最早回到站→走最少路；同分都算最好；一項都沒有時是 `null`，前端只顯示名次 |
 | `score` | 選片機率 × 選餐廳機率，都用 Jev 給的機率；由 LLM 代選時也照算，只用來顯示。使用者指定了電影時，選片機率當作 1 |
 | `min_buffer_minutes` | 各個時間限制剩下的空檔中，最小的一個：抵達影城比「開演前 15 分鐘」早多少、開始用餐比最後點餐早多少、離開商圈比「最晚要離開」早多少。先吃飯時改看對應的時間點 |
-| `estimated` | 哪些金額是估計值：票價是依品牌和影廳的參考區間換算，餐費是依 Jev 判斷的價位區間換算；車資來自 TDX，不算估計 |
+| `estimated` | 哪些金額是估計值：票價是依品牌和影廳的參考區間換算，餐費是依 Jev 判斷的價位區間換算；車資是 TDX 給的就不算估計，TDX 沒給、自己估的會列出 `fare_go`、`fare_return`（見 3.2） |
 | `decided_by` | 每一項由 Jev 還是 LLM 決定。值是 `llm` 的就是 Jev 沒把握的項目，前端靠它知道要讓使用者改選電影還是餐廳 |
 | `alternatives` | 只有在 Jev 沒把握時才有值（不管 LLM 有沒有回答；2026-10-20 決定），而且只附在第一名；一個都換不了的 key 不輸出。key 是沒把握的那一項：`movie`、`restaurant`、`route_go`、`route_return`。列出其他候選（最多 2 個【預設】）。使用者在前端可以直接改選，不必重新規劃；**改選後只更新到家時間和每人花費，時間軸不換**（2026-10-20 決定）。<br>電影、餐廳的備選只附估計值，`estimated` 一定是 `true`，算法見 7.1 步驟 7：<br>・餐廳：`restaurant_id`、`name`、`cuisine`、`probability`、`home_at`、`cost_per_person_total`、`estimated`。Google 的 Place Details Pro 額度用完時，`name` 是 `null`，前端改顯示料理類別（見 5.5）<br>・電影：`movie_id`、`title`、`probability`、`home_at`、`cost_per_person_total`、`estimated`，另外有 `restaurant_id`、`restaurant_name`、`restaurant_cuisine`：搭配的餐廳跟方案不同時才有值，同一家時三個都是 `null`；`restaurant_name` 也可能因為 Pro 額度用完而是 `null`<br>路線的備選是 TDX 查到的另外兩條路線，所以是精確值：`summary`、`depart_at`、`arrive_at`、`fare_per_person`、`probability` |
 | `restaurant.hours_verified` | 營業時間有沒有核對過。`false` 表示營業時間看不懂或補不到，前端要提示「營業時間未確認，請向店家確認」（2026-10-20 決定） |
@@ -1171,6 +1178,7 @@ worker 完成 → PUBLISH result（完整結果）→ API 推送後關閉串流
 | Ollama | 3B 模型在 CPU 上比較慢，代選時會增加等待時間 |
 | 排隊上限 | 尖峰時排隊超過 5 個，新的請求會直接被拒絕（`QUEUE_FULL`） |
 | 開放更多縣市 | 資料表已預留縣市欄位，但 TDX 每分鐘 5 次的限制不會變，使用者越多排隊越久 |
+| **TDX 旅運規劃下架** | TDX 公告 `/routing` 在 2026/12/31 停止服務並下架（2026-10-16 公告）。Demo 不受影響；之後要改用開源旅運規劃軟體（例如 OpenTripPlanner）或自己用時刻表計算。查路線都集中在 `transit.py`／`tdx.py`，換掉時不用改規劃流程（2026-10-20 決定） |
 | MCP 規範更新 | 2026-07-28 版剛發布，官方 Python SDK 的支援程度要在實作前確認 |
 
 ---

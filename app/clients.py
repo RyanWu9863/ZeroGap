@@ -1,17 +1,26 @@
-"""依設定建立外部服務的用戶端：mock 用模擬版；real 要等第二階段（金鑰到了才做）。"""
+"""依設定建立外部服務的用戶端：mock 用模擬版；real 用真的服務（TDX 已接上；Jev、Google 等金鑰）。"""
+
+import redis
 
 from app.config import Settings
 from app.jev.base import Jev
 from app.jev.mock import MockJev
 from app.llm import Llm, LlmPicker, MockLlm
 from app.places import MockPlaces, Places
+from app.tdx import TdxTransit
 from app.transit import MockTransit, Transit
 
 
-def make_transit(s: Settings) -> Transit:
+def make_transit(s: Settings, r: redis.Redis) -> Transit:
     if s.tdx_mode == "mock":
         return MockTransit()
-    raise NotImplementedError("真的 TDX 用戶端第二階段才做；先把 TDX_MODE 設成 mock")
+    return TdxTransit(
+        s.tdx_client_id,
+        s.tdx_client_secret,
+        r,
+        timeout=s.http_timeout_seconds,
+        retries=s.http_retries,
+    )
 
 
 def make_jev(s: Settings) -> Jev:

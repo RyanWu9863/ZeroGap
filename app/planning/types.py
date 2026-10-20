@@ -146,6 +146,7 @@ class Route:
     walk_before: int = 0
     walk_after: int = 0
     transfers: int = 0
+    fare_estimated: bool = False  # TDX 沒給車資，自己估的
 
     @property
     def leave_at(self) -> datetime:

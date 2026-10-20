@@ -146,7 +146,7 @@ class TestCachedTransit:
         assert inner.calls == [
             ("sta1", "hub1", datetime(2026, 10, 22, 18, 15, tzinfo=TZ), "depart", 1)
         ]
-        key = "tdx:route:v1:sta1:hub1:dep:202610221815:1"
+        key = "tdx:route:v1:sta1:hub1:dep:202610221815:1"  # 預設版本
         assert 0 < r.ttl(key) <= 6 * 3600
 
     def test_rounded_results_still_meet_the_request(self, r):

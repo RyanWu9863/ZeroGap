@@ -62,3 +62,27 @@ def test_to_route_rounds_walks_up():
 def test_empty_or_error_response():
     assert parse_routes({"result": "success", "data": {"routes": []}}) == []
     assert parse_routes({"result": "fail", "error": {"code": 20001, "msg": "x"}}) == []
+
+
+def test_legs_keep_mode_and_endpoints():
+    r = parse_routes(load("routing_mixed_arrival"))
+    two_legs = [x for x in r if x.transfers == 1][0]
+    assert [leg.mode for leg in two_legs.legs] == ["Bus", "TRA"]
+    tra = two_legs.legs[1]
+    assert (tra.from_name, tra.to_name) == ("桃園", "中壢")
+    assert 9_000 < tra.straight_meters < 10_500
+
+
+def test_fare_estimate():
+    from app.tdx import FareRates, estimate_fare
+
+    rates = FareRates()
+    tra_only = parse_routes(load("routing_tra"))[0]
+    # 中壢→桃園：直線約 9.8 公里 × 繞路 1.15 × 每公里 1.46 元 ≈ 16.5 → 16（最低 15）
+    assert estimate_fare(tra_only, rates) == 16
+    mixed = [x for x in parse_routes(load("routing_mixed_arrival")) if x.transfers == 1][0]
+    # 公車段 18 ＋ 台鐵段 16
+    assert estimate_fare(mixed, rates) == 18 + 16
+    # 全程公車時有 TDX 的車資，不用估
+    bus = parse_routes(load("routing_bus_depart"))[0]
+    assert bus.fare == 18

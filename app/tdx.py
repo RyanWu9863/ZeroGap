@@ -24,7 +24,7 @@ import redis
 
 from app.planning.types import Route
 from app.redis_utils.lock import acquire, release
-from app.transit import Endpoint, TimeMode, valid_routes
+from app.transit import Endpoint, TimeMode, haversine_m, valid_routes
 
 log = logging.getLogger(__name__)
 
@@ -59,6 +59,41 @@ class TdxError(Exception):
 
 
 @dataclass(frozen=True)
+class TdxLeg:
+    """一段搭車（transit section）。估車資用。"""
+
+    mode: str
+    from_name: str | None
+    to_name: str | None
+    from_lat: float
+    from_lng: float
+    to_lat: float
+    to_lng: float
+
+    @property
+    def straight_meters(self) -> float:
+        return haversine_m(self.from_lat, self.from_lng, self.to_lat, self.to_lng)
+
+
+@dataclass(frozen=True)
+class FareRates:
+    """TDX 沒給車資時的估計（2026-10-20 決定先自己估，之後改查 TDX 票價 API）。
+
+    軌道依直線距離 × 繞路係數 × 每公里單價，四捨五入到 1 元，不低於起跳價；公車每段一個固定價。
+    數字是【預設】的粗估，結果會標成估計值。
+    """
+
+    detour: float = 1.15
+    tra_per_km: float = 1.46
+    tra_min: int = 15
+    thsr_per_km: float = 3.8
+    thsr_min: int = 40
+    metro_per_km: float = 2.4
+    metro_min: int = 20
+    bus_per_leg: int = 18
+
+
+@dataclass(frozen=True)
 class TdxRoute:
     start_at: datetime  # 從起點出發
     end_at: datetime  # 走到終點
@@ -69,8 +104,9 @@ class TdxRoute:
     summary: str
     transfers: int
     fare: int | None  # TDX 只在全程公車時給車資
+    legs: tuple[TdxLeg, ...] = ()
 
-    def to_route(self, fare: int) -> Route:
+    def to_route(self, fare: int, fare_estimated: bool = False) -> Route:
         walk_before = math.ceil((self.depart_at - self.start_at).total_seconds() / 60)
         walk_after = math.ceil((self.end_at - self.arrive_at).total_seconds() / 60)
         return Route(
@@ -83,7 +119,23 @@ class TdxRoute:
             walk_before=max(0, walk_before),
             walk_after=max(0, walk_after),
             transfers=self.transfers,
+            fare_estimated=fare_estimated,
         )
+
+
+def estimate_fare(route: "TdxRoute", rates: FareRates) -> int:
+    total = 0
+    for leg in route.legs:
+        km = leg.straight_meters / 1000 * rates.detour
+        if leg.mode == "Bus":
+            total += rates.bus_per_leg
+        elif leg.mode == "TRA":
+            total += max(rates.tra_min, round(km * rates.tra_per_km))
+        elif leg.mode == "THSR":
+            total += max(rates.thsr_min, round(km * rates.thsr_per_km))
+        else:  # 捷運、機捷、輕軌……
+            total += max(rates.metro_min, round(km * rates.metro_per_km))
+    return total
 
 
 def _time(value: str) -> datetime:
@@ -117,8 +169,21 @@ def parse_routes(payload: dict[str, Any]) -> list[TdxRoute]:
             board = first["departure"]["place"].get("name")
             alight = last["arrival"]["place"].get("name")
             summary = " → ".join(_label(s.get("transport", {})) for s in transits)
+            legs = tuple(
+                TdxLeg(
+                    mode=s.get("transport", {}).get("mode") or "",
+                    from_name=s["departure"]["place"].get("name"),
+                    to_name=s["arrival"]["place"].get("name"),
+                    from_lat=s["departure"]["place"]["location"]["lat"],
+                    from_lng=s["departure"]["place"]["location"]["lng"],
+                    to_lat=s["arrival"]["place"]["location"]["lat"],
+                    to_lng=s["arrival"]["place"]["location"]["lng"],
+                )
+                for s in transits
+            )
         else:  # 全程走路
             depart, arrive, board, alight, summary = start, end, None, None, "步行"
+            legs = ()
         price = rt.get("total_price")
         out.append(
             TdxRoute(
@@ -131,13 +196,11 @@ def parse_routes(payload: dict[str, Any]) -> list[TdxRoute]:
                 summary=summary,
                 transfers=int(rt.get("transfers") or 0),
                 fare=int(price) if price is not None else None,
+                legs=legs,
             )
         )
     out.sort(key=lambda r: (r.start_at, r.end_at))
     return out
-
-
-FareFallback = Callable[[TdxRoute, Endpoint, Endpoint], int]
 
 
 class TdxTransit:
@@ -148,7 +211,7 @@ class TdxTransit:
         client_id: str,
         client_secret: str,
         r: redis.Redis,
-        fare_fallback: FareFallback,
+        rates: FareRates | None = None,
         timeout: float = 10.0,
         retries: int = 2,
         http: httpx.Client | None = None,
@@ -158,7 +221,7 @@ class TdxTransit:
             raise TdxError("TDX_MODE=real 要先在 .env 填 TDX_CLIENT_ID、TDX_CLIENT_SECRET")
         self.client_id, self.client_secret = client_id, client_secret
         self.r = r
-        self.fare_fallback = fare_fallback
+        self.rates = rates or FareRates()
         self.retries = retries
         self.http = http or httpx.Client(timeout=timeout)
         self.sleep = sleep
@@ -236,8 +299,12 @@ class TdxTransit:
             mode: at.astimezone(TZ).strftime("%Y-%m-%dT%H:%M:%S"),
         }
         parsed = parse_routes(self._get(params))
-        routes = [p.to_route(p.fare if p.fare is not None else self.fare_fallback(p, origin, dest))
-                  for p in parsed]  # fmt: skip
+        routes = [
+            p.to_route(p.fare)
+            if p.fare is not None
+            else p.to_route(estimate_fare(p, self.rates), fare_estimated=True)
+            for p in parsed
+        ]
         routes = valid_routes(routes, at, mode)
         if mode == "arrival":  # 抵達期限：最晚的那班排第一（跟模擬版一樣）
             routes.sort(key=lambda r: r.reach_at, reverse=True)

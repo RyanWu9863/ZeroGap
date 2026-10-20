@@ -247,7 +247,7 @@ def test_jev_quota_used_up_hands_everything_to_llm(session, r):
 
 def test_tdx_routes_are_cached(session, r):
     run(session, r, request(session))
-    assert r.keys("tdx:route:v1:*")
+    assert r.keys("tdx:route:v1mock:*")
     calls_before = r.zcard("rl:tdx")
     run(session, r, request(session))
     assert r.zcard("rl:tdx") == calls_before  # 第二次全部命中快取
@@ -335,3 +335,24 @@ def test_unparseable_hours_are_planned_but_marked_unverified(session, engine, r)
             assert plan["restaurant"]["last_order"] is None
     finally:
         reseed(engine, DAY)
+
+
+def test_estimated_fares_are_flagged(session, r):
+    class EstimatedFares(MockTransit):
+        def route(self, origin, dest, at, mode, top=1):
+            from dataclasses import replace as dc_replace
+
+            return [
+                dc_replace(x, fare_estimated=True)
+                for x in super().route(origin, dest, at, mode, top)
+            ]
+
+    deps = Deps(
+        session=session, redis=r, transit=EstimatedFares(), jev=MockJev(), llm=MockLlm(),
+        places=MockPlaces(), settings=Settings(_env_file=None, tdx_per_minute=1000),
+    )  # fmt: skip
+    result = run_plan(request(session), "job-test", deps, lambda *a, **k: None)
+    plans = PlanResult.model_validate(result).to_json()["plans"]
+    assert plans[0]["estimated"] == ["ticket", "meal", "fare_go", "fare_return"]
+    # 模擬版和真的 TDX 的路線快取分開存
+    assert r.keys("tdx:route:v1mock:*") and not r.keys("tdx:route:v1:*")

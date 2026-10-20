@@ -94,7 +94,12 @@ class Planner:
     def __init__(self, req: PlanRequest, job_id: str, deps: Deps, progress: Progress):
         self.req, self.job_id, self.d, self.progress = req, job_id, deps, progress
         self.s = deps.settings
-        self.transit = CachedTransit(deps.transit, deps.redis, before_call=self._wait_tdx)
+        self.transit = CachedTransit(
+            deps.transit,
+            deps.redis,
+            before_call=self._wait_tdx,
+            version="v1" if self.s.tdx_mode == "real" else "v1mock",
+        )
         self.earliest, self.latest_home = req.resolved_times()
         self.cond = Conditions(
             order=req.order,
@@ -567,7 +572,12 @@ class Planner:
                 for i, r in enumerate(routes)
                 if i != index
             ][: self.s.plan_alternatives_max]
-        return routes[index], {"llm": by_llm, "alternatives": alternatives}
+        info = {
+            "llm": by_llm,
+            "alternatives": alternatives,
+            "fare_estimated": routes[index].fare_estimated,
+        }
+        return routes[index], info
 
     def _places(self, c: _Candidate) -> TimelinePlaces:
         row = self.restaurant_rows[c.combo.restaurant.id]
@@ -710,7 +720,10 @@ class Planner:
                         "fare_return": tl.cost.fare_return,
                         "total": tl.cost.total,
                     },
-                    "estimated": ["ticket", "meal"],
+                    # 車資是 TDX 給的就不算估計；沒給、自己估的要標出來（2026-10-20 決定）
+                    "estimated": ["ticket", "meal"]
+                    + (["fare_go"] if routes["route_go"]["fare_estimated"] else [])
+                    + (["fare_return"] if routes["route_return"]["fare_estimated"] else []),
                     "alternatives": alternatives,
                 }
             )

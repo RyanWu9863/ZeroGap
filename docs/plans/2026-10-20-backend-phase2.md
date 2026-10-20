@@ -8,7 +8,7 @@
 
 ### H. TDX
 - [x] **H1 token**：`POST .../auth/realms/TDXConnect/protocol/openid-connect/token`，存在 Redis `tdx:access_token`（有效期限減 5 分鐘），換 token 用 `lock:tdx:token`（5.3）。
-- [~] **H2 旅運規劃**：`GET /api/maas/routing`。已實測並照實際格式寫好解析和用戶端（`app/tdx.py`）。**車資的補法待使用者決定**，決定後才接到 `TDX_MODE=real`。
+- [x] **H2 旅運規劃**：`GET /api/maas/routing`，照實測格式寫好解析和用戶端（`app/tdx.py`），車資沒給時自己估。`TDX_MODE=real` 已可用，2026-10-20 用真的 TDX 排出一次行程（62 秒）。
 - [ ] **H3 車站匯入**：v2 的台鐵、高鐵、捷運（含機捷 TYMC）車站，UPSERT 到 `stations`，取代示意的出發站。
 - [ ] **H4 地理編碼**：影城地址轉座標（`$format=JSON`，`Geometry` 照實測的格式解析），用每月點數額度。
 

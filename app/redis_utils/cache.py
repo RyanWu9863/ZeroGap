@@ -36,12 +36,15 @@ def round_slot(at: datetime, mode: TimeMode, minutes: int = SLOT_MINUTES) -> dat
     return floor + step
 
 
-def route_cache_key(origin: str, dest: str, slot: datetime, mode: TimeMode, top: int) -> str:
+def route_cache_key(
+    origin: str, dest: str, slot: datetime, mode: TimeMode, top: int, version: str = VERSION
+) -> str:
     m = "dep" if mode == "depart" else "arr"
-    return f"tdx:route:{VERSION}:{origin}:{dest}:{m}:{slot.astimezone(TZ):%Y%m%d%H%M}:{top}"
+    return f"tdx:route:{version}:{origin}:{dest}:{m}:{slot.astimezone(TZ):%Y%m%d%H%M}:{top}"
 
 
-_FIELDS = ("summary", "fare", "board_name", "alight_name", "walk_before", "walk_after", "transfers")
+_FIELDS = ("summary", "fare", "board_name", "alight_name", "walk_before", "walk_after", "transfers",
+           "fare_estimated")  # fmt: skip
 
 
 def dump_routes(routes: list[Route]) -> str:
@@ -61,7 +64,7 @@ def dump_routes(routes: list[Route]) -> str:
 def load_routes(raw: str) -> list[Route]:
     return [
         Route(
-            **{f: d[f] for f in _FIELDS},
+            **{f: d[f] for f in _FIELDS if f in d},
             depart_at=datetime.fromisoformat(d["depart_at"]),
             arrive_at=datetime.fromisoformat(d["arrive_at"]),
         )
@@ -81,16 +84,19 @@ class CachedTransit:
         client: redis.Redis,
         before_call: Callable[[], None] | None = None,
         ttl_seconds: int = TTL_SECONDS,
+        version: str = VERSION,
     ):
         self.inner, self.client = inner, client
         self.before_call = before_call
         self.ttl_seconds = ttl_seconds
+        # 模擬版和真的 TDX 分開存，切換模式時才不會拿到另一邊的路線
+        self.version = version
 
     def route(
         self, origin: Endpoint, dest: Endpoint, at: datetime, mode: TimeMode, top: int = 1
     ) -> list[Route]:
         slot = round_slot(at, mode)
-        key = route_cache_key(origin.key, dest.key, slot, mode, top)
+        key = route_cache_key(origin.key, dest.key, slot, mode, top, self.version)
         cached = self._get(key)
         if cached is not None:
             routes = cached
