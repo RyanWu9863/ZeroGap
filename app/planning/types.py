@@ -4,8 +4,8 @@
 """
 
 from dataclasses import dataclass
-from datetime import datetime
-from typing import Literal
+from datetime import datetime, timedelta
+from typing import Any, Literal
 
 from app.planning.opening_hours import OpeningHours
 
@@ -39,6 +39,7 @@ class Restaurant:
     meal_minutes: int
     meal_cost: int
     hours: OpeningHours | None = None  # None：不知道（Google 來源要到步驟 5 才驗證）
+    meal_duration: str = "normal"  # fast、normal、slow
 
 
 @dataclass(frozen=True)
@@ -126,3 +127,60 @@ class Combo:
 @dataclass(frozen=True)
 class Rejected:
     reason: Reason
+
+
+@dataclass(frozen=True)
+class Route:
+    """步驟 6 的精確路線（TDX 回傳的一條）。
+
+    `depart_at`、`arrive_at` 是上車和下車的時間；頭尾走路的分鐘數另外記。
+    """
+
+    summary: str  # 例如「台鐵」「公車 5 → 台鐵」
+    fare: int
+    depart_at: datetime
+    arrive_at: datetime
+    board_name: str
+    alight_name: str
+    walk_before: int = 0
+    walk_after: int = 0
+    transfers: int = 0
+
+    @property
+    def leave_at(self) -> datetime:
+        """最晚幾點要從起點出發，才趕得上這班車。"""
+        return self.depart_at - timedelta(minutes=self.walk_before)
+
+    @property
+    def reach_at(self) -> datetime:
+        """走到終點的時間。"""
+        return self.arrive_at + timedelta(minutes=self.walk_after)
+
+    @property
+    def ride_minutes(self) -> int:
+        """不含等車的交通時間。"""
+        ride = int((self.arrive_at - self.depart_at).total_seconds() // 60)
+        return ride + self.walk_before + self.walk_after
+
+
+PlaceKind = Literal["station", "hub", "cinema", "restaurant"]
+
+
+@dataclass(frozen=True)
+class Place:
+    """時間軸每一步的地點。Google 來源的餐廳只給 place_id，不給座標（規格書 3.3、6.5）。"""
+
+    kind: PlaceKind
+    id: int
+    name: str | None
+    lat: float | None = None
+    lng: float | None = None
+    place_id: str | None = None
+
+    def to_dict(self) -> dict[str, Any]:
+        d: dict[str, Any] = {"kind": self.kind, "id": self.id, "name": self.name}
+        if self.place_id is not None:
+            d["place_id"] = self.place_id
+        else:
+            d["lat"], d["lng"] = self.lat, self.lng
+        return d
