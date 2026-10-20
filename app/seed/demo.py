@@ -127,13 +127,28 @@ def seed(session: Session, today: date | None = None) -> dict[str, int]:
     today = today or datetime.now(TZ).date()
     counties = _ids(session, County, "code")
     areas = _ids(session, Area, "code")
+    # 已經匯入真的車站、餐廳時，示意的只寫入、不啟用，免得跟真資料混在一起
+    real_stations = bool(
+        session.scalar(
+            select(func.count())
+            .select_from(Station)
+            .where(Station.is_active, Station.station_uid.not_like("demo-%"))
+        )
+    )
+    real_restaurants = bool(
+        session.scalar(
+            select(func.count())
+            .select_from(Restaurant)
+            .where(Restaurant.is_active, Restaurant.source != "demo")
+        )
+    )
 
     _upsert(
         session,
         Station,
         [
             {"station_uid": uid, "operator": op, "name": name, "county_id": counties[county],
-             "geom": _ewkt(lat, lng), "is_active": True}
+             "geom": _ewkt(lat, lng), "is_active": not real_stations}
             for uid, op, name, county, lat, lng in STATIONS
         ],
         ["station_uid"],
@@ -185,7 +200,10 @@ def seed(session: Session, today: date | None = None) -> dict[str, int]:
         delete(Showtime).where(Showtime.starts_at < datetime.combine(today, time(0), TZ))
     )
 
-    _upsert(session, Restaurant, _restaurants(areas), ["source", "external_id"])
+    restaurants = _restaurants(areas)
+    for row in restaurants:
+        row["is_active"] = not real_restaurants
+    _upsert(session, Restaurant, restaurants, ["source", "external_id"])
 
     now = datetime.now(TZ)
     for job in ("atmovies", "osm"):

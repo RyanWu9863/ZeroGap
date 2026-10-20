@@ -11,3 +11,5 @@ __pycache__/
 # 前端有自己的 git；交接用的補丁不進版本控制
 frontend/
 frontend-patches/
+# 換電腦用的 git bundle
+handoff/

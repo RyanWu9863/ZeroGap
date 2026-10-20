@@ -36,7 +36,10 @@ def refresh_stations_job() -> dict | None:
 
 
 def geocode_hubs_job() -> dict | None:
-    """商圈代表點的座標（只補還沒有座標的）。"""
+    """商圈代表點的座標。每次都重新整理：示意資料會先填上大概的座標。
+
+    車站代表點用 TDX 車站座標，不花點數；其他的查地標，每個 15 單位。
+    """
     s, r = get_settings(), sync_redis()
     tdx = TdxTransit(s.tdx_client_id, s.tdx_client_secret, r, timeout=s.http_timeout_seconds)
     with sync_session()() as session:
@@ -45,7 +48,7 @@ def geocode_hubs_job() -> dict | None:
             r,
             "geocode_hubs",
             "geocode",
-            lambda keep_alive: geocode_hubs(session, Geocoder(tdx, r, s), True, keep_alive),
+            lambda keep_alive: geocode_hubs(session, Geocoder(tdx, r, s), False, keep_alive),
         )
 
 
