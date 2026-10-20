@@ -39,6 +39,28 @@ test('日期過期：舊網址先提示再一鍵重排；精靈把舊日期換�
   await expect(page.getByRole('button', { name: '下一步' })).toBeEnabled()
 })
 
+test('找不到頁面：亂打網址顯示中文說明，導覽列還在，可以回首頁（P0-2）', async ({ page }) => {
+  await page.goto('/no-such-page')
+  await expect(page.getByRole('heading', { name: '找不到這一頁' })).toBeVisible()
+  await expect(page.getByRole('banner').getByRole('link', { name: '系統幕後' })).toBeVisible()
+  await page.getByRole('main').getByRole('link', { name: '回首頁' }).click()
+  await expect(page).toHaveURL(/\/$/)
+})
+
+test('頁面出錯：暫存的條件壞掉時顯示中文錯誤頁，清掉後恢復（P0-2）', async ({ page }) => {
+  // 只在第一次載入時塞壞資料，按「清掉」重新整理後就不再塞
+  await page.addInitScript(() => {
+    if (sessionStorage.getItem('seeded')) return
+    sessionStorage.setItem('seeded', '1')
+    localStorage.setItem('zg-plan', JSON.stringify({ state: { request: null }, version: 0 }))
+  })
+  await page.goto('/plan/1')
+  await expect(page.getByRole('heading', { name: '這一頁出了點問題' })).toBeVisible()
+  await expect(page.getByRole('banner').getByRole('link', { name: '系統幕後' })).toBeVisible()
+  await page.getByRole('button', { name: '清掉這台裝置記住的條件' }).click()
+  await expect(page.getByRole('heading', { name: '從哪裡出發，去哪裡玩？' })).toBeVisible()
+})
+
 test('無解：停在卡住的關卡，一鍵放寬預算後有解（Q23）', async ({ page }) => {
   await page.goto(resultUrl('budget=500&mock=no_solution').replace('budget=1000&', ''))
   await expect(page.getByRole('heading', { name: '這組條件，找不到每段都接得上的行程' })).toBeVisible()
