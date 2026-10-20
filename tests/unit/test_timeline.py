@@ -182,3 +182,17 @@ def test_meal_first_gates():
     assert tl.home_at == t(21, 40)
     assert tl.min_buffer == 14
     assert tl.walk_minutes_total == 5 + 3 + 4
+
+
+def test_wait_step_includes_waiting_for_opening():
+    rest = replace(REST, hours=OpeningHours.parse("Mo-Su 20:30-23:00"))
+    combo = check_movie_first(
+        SHOW, rest, 3, Leg(at=t(17, 30), fare=25), Leg(at=t(23, 30), fare=25), COND
+    )
+    late_ret = replace(RET, depart_at=t(21, 25), arrive_at=t(21, 45))
+    tl = build_timeline(combo, GO, late_ret, PLACES, COND)
+    wait = next(s for s in tl.steps if s["type"] == "wait")
+    assert wait["minutes"] == 33  # 19:57 到店，20:30 開門
+    assert wait["note"] == "等開門"
+    meal = next(s for s in tl.steps if s["type"] == "meal")
+    assert meal["starts_at"] == t(20, 30)

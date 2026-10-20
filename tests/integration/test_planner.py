@@ -248,3 +248,38 @@ def test_falls_back_to_step2_routes(session, r):
     # 只有一條路線可選，機率是 1，不會交給 LLM
     assert all(p["decided_by"]["route_go"] == "jev" for p in data["plans"])
     assert stages.count("verifying_hours") == 1  # 第一批就全部成功，不用換下一組
+
+
+def test_restaurants_without_jev_attributes_are_skipped(session, r):
+    from app.planner import Planner
+
+    ids = session.scalars(
+        text(
+            "SELECT r.id FROM restaurants r JOIN areas a ON a.id = r.area_id "
+            "WHERE a.code = 'taoyuan' ORDER BY r.id LIMIT 2"
+        )
+    ).all()
+    session.execute(text("UPDATE restaurants SET price_range = NULL WHERE id = :i"), {"i": ids[0]})
+    session.execute(
+        text("UPDATE restaurants SET meal_duration = NULL WHERE id = :i"), {"i": ids[1]}
+    )
+    session.commit()
+    try:
+        deps = Deps(
+            session=session, redis=r, transit=MockTransit(), jev=MockJev(), llm=MockLlm(),
+            places=MockPlaces(), settings=Settings(_env_file=None, tdx_per_minute=1000),
+        )  # fmt: skip
+        planner = Planner(request(session), "job-test", deps, lambda *a, **k: None)
+        planner._load()
+        assert ids[0] not in planner.restaurant_rows
+        assert ids[1] not in planner.restaurant_rows
+        assert len(planner.restaurant_rows) == 13
+    finally:
+        session.execute(
+            text(
+                "UPDATE restaurants SET price_range = '200_500', meal_duration = 'normal' "
+                "WHERE id = ANY(:ids) AND (price_range IS NULL OR meal_duration IS NULL)"
+            ),
+            {"ids": list(ids)},
+        )
+        session.commit()

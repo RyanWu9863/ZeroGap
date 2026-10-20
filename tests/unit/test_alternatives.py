@@ -72,6 +72,18 @@ def test_restaurant_alternatives_keep_plan_movie():
     ]
 
 
+def test_restaurant_alternatives_fill_up_to_two_beyond_top3():
+    # Jev 前 3 名是 1、2、3；選了 1，2 號接不上 → 用機率次高、接得上的 4 號補
+    plan = combo(1, 1)
+    feasible = {c.pair: c for c in [plan, combo(1, 3), combo(1, 4), combo(1, 5)]}
+    alts = restaurant_alternatives(
+        plan, [2, 3, 4, 5], feasible,
+        probs={1: 0.4, 2: 0.3, 3: 0.15, 4: 0.1, 5: 0.05},
+        names={}, cuisines={}, plan_fare_go=25,
+    )  # fmt: skip
+    assert [a["restaurant_id"] for a in alts] == [3, 4]
+
+
 def test_movie_alternative_with_same_restaurant():
     plan = combo(1, 1)
     feasible = {c.pair: c for c in [plan, combo(2, 1, leave_min=200)]}

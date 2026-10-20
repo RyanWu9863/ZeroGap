@@ -29,18 +29,26 @@ def _minutes(n: int) -> timedelta:
 
 
 def _check_hours(
-    rest: Restaurant, meal_start: datetime, cond: Conditions
-) -> tuple[datetime | None, Reason | None]:
-    """回傳 (最後點餐時間, 被排除的原因)。不知道營業時間時兩個都是 None。"""
+    rest: Restaurant, ready: datetime, cond: Conditions
+) -> tuple[datetime, datetime | None, Reason | None]:
+    """`ready` 是到店加候位、最早能開始吃的時間。
+
+    回傳 (開始用餐, 最後點餐時間, 被排除的原因)。不知道營業時間時最後點餐是 None。
+    比開門早到時，`max_wait_for_opening` 分鐘內就等開門，開始用餐改成開門時間。
+    """
     if rest.hours is None:
-        return None, None
-    interval = rest.hours.interval_containing(meal_start)
+        return ready, None, None
+    meal_start = ready
+    interval = rest.hours.interval_containing(ready)
     if interval is None:
-        return None, "opening_hours"
+        interval = rest.hours.next_opening(ready, cond.max_wait_for_opening)
+        if interval is None:
+            return ready, None, "opening_hours"
+        meal_start = interval[0]
     last_order_at = interval[1] - _minutes(cond.last_order_before_close)
     if meal_start > last_order_at:
-        return last_order_at, "last_order"
-    return last_order_at, None
+        return meal_start, last_order_at, "last_order"
+    return meal_start, last_order_at, None
 
 
 def check_movie_first(
@@ -61,8 +69,8 @@ def check_movie_first(
         return Rejected("walk")
 
     arrive_restaurant = show.ends_at + _minutes(walk)
-    meal_start = arrive_restaurant + _minutes(cond.wait_minutes)
-    last_order_at, reason = _check_hours(rest, meal_start, cond)
+    ready = arrive_restaurant + _minutes(cond.wait_minutes)
+    meal_start, last_order_at, reason = _check_hours(rest, ready, cond)
     if reason:
         return Rejected(reason)
 
@@ -112,7 +120,9 @@ def check_meal_first(
     if go is None:
         return Rejected("showtime")
     arrive_restaurant = go.at + _minutes(rest.walk_to_hub)
-    meal_start = arrive_restaurant + _minutes(cond.wait_minutes)
+    ready = arrive_restaurant + _minutes(cond.wait_minutes)
+    # 開門時間會影響後面全部的時間，所以先算；排除的原因還是照 6.4 的順序判斷
+    meal_start, last_order_at, hours_reason = _check_hours(rest, ready, cond)
     meal_end = meal_start + _minutes(rest.meal_minutes)
     arrive_cinema = meal_end + _minutes(walk or 0)
     gate = show.starts_at - _minutes(cond.arrive_before_showtime)
@@ -121,9 +131,8 @@ def check_meal_first(
     if walk is None or walk > cond.max_walk_minutes:
         return Rejected("walk")
 
-    last_order_at, reason = _check_hours(rest, meal_start, cond)
-    if reason:
-        return Rejected(reason)
+    if hours_reason:
+        return Rejected(hours_reason)
 
     if ret is None or show.ends_at > ret.at:
         return Rejected("last_train")

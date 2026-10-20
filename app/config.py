@@ -44,6 +44,7 @@ class Settings(BaseSettings):
     wait_minutes: int = 10
     meal_minutes: dict[str, int] = {"fast": 45, "normal": 75, "slow": 105}
     last_order_before_close_minutes: int = 30
+    max_wait_for_opening_minutes: int = 30  # 比開門早到，30 分鐘內就等開門（2026-10-20 決定）
     walk_detour_factor: float = 1.3
     walk_meters_per_minute: float = 75
     walk_limit_options: list[int] = [5, 8, 12, 15, 20]

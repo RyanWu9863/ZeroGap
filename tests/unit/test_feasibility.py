@@ -74,6 +74,19 @@ class TestMovieFirst:
         rest = replace(REST, hours=OpeningHours.parse("Mo-Su 11:00-14:00"))
         assert check_movie_first(SHOW, rest, WALK, GO, RET, COND) == Rejected("opening_hours")
 
+    def test_waits_for_opening_up_to_30_minutes(self):
+        # 19:57 到店、候位到 20:07；店 20:30 才開 → 等到 20:30 開始吃
+        rest = replace(REST, hours=OpeningHours.parse("Mo-Su 20:30-23:00"))
+        c = check_movie_first(SHOW, rest, WALK, GO, RET, COND)
+        assert not isinstance(c, Rejected)
+        assert c.meal_start == t(20, 30)
+        assert c.meal_end == t(21, 15)
+        assert c.buffers.last_order == 2 * 60  # 22:30 − 20:30
+
+    def test_opening_more_than_30_minutes_later_is_rejected(self):
+        rest = replace(REST, hours=OpeningHours.parse("Mo-Su 20:38-23:00"))
+        assert check_movie_first(SHOW, rest, WALK, GO, RET, COND) == Rejected("opening_hours")
+
     def test_last_order(self):
         # 20:07 開始用餐，20:30 打烊 → 最後點餐 20:00
         rest = replace(REST, hours=OpeningHours.parse("Mo-Su 11:00-20:30"))
@@ -159,8 +172,16 @@ class TestMealFirst:
         result = check_meal_first(self.SHOW, REST, WALK, self.GO, ret, self.COND)
         assert result == Rejected("last_train")
 
+    def test_waits_for_opening_shifts_everything_later(self):
+        # 17:25 到店、候位到 17:35；店 17:45 開 → 17:45 開始吃，18:30 吃完，18:33 到影城
+        rest = replace(REST, hours=OpeningHours.parse("Mo-Su 17:45-22:00"))
+        c = check_meal_first(self.SHOW, rest, WALK, self.GO, self.RET, self.COND)
+        assert c.meal_start == t(17, 45)
+        assert c.arrive_cinema == t(18, 33)
+        assert c.buffers.showtime == 2
+
     def test_opening_hours(self):
-        rest = replace(REST, hours=OpeningHours.parse("Mo-Su 18:00-22:00"))
+        rest = replace(REST, hours=OpeningHours.parse("Mo-Su 18:10-22:00"))
         result = check_meal_first(self.SHOW, rest, WALK, self.GO, self.RET, self.COND)
         assert result == Rejected("opening_hours")
 

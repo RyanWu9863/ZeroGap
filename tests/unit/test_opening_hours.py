@@ -47,3 +47,16 @@ def test_unparseable_returns_none():
     assert OpeningHours.parse("sunrise-sunset") is None
     assert OpeningHours.parse("") is None
     assert OpeningHours.parse(None) is None
+
+
+def test_next_opening_within_limit():
+    oh = OpeningHours.parse("Mo-Su 11:30-14:00,17:00-21:00")
+    assert oh.next_opening(at(22, 16, 50), within_minutes=30) == (at(22, 17), at(22, 21))
+    assert oh.next_opening(at(22, 16, 29), within_minutes=30) is None
+    # 已經開著就不算「等開門」
+    assert oh.next_opening(at(22, 18), within_minutes=30) is None
+
+
+def test_next_opening_after_midnight():
+    oh = OpeningHours.parse("Mo-Su 00:10-03:00")
+    assert oh.next_opening(at(22, 23, 50), within_minutes=30) == (at(23, 0, 10), at(23, 3))

@@ -105,6 +105,7 @@ class Planner:
             arrive_before_showtime=self.s.arrive_before_showtime_minutes,
             wait_minutes=self.s.wait_minutes,
             last_order_before_close=self.s.last_order_before_close_minutes,
+            max_wait_for_opening=self.s.max_wait_for_opening_minutes,
         )
 
     # ── 外部服務的限流與額度 ──────────────────────────────────────
@@ -304,7 +305,14 @@ class Planner:
             self.cinema_chain[r.cinema_id] = r.chain
 
     def _load_restaurants(self) -> None:
-        where = ["area_id = :area", "is_active", "geom IS NOT NULL"]
+        # Jev 還沒判斷出價位或用餐時間的店不排：預算和時間會算錯（2026-10-20 決定）
+        where = [
+            "area_id = :area",
+            "is_active",
+            "geom IS NOT NULL",
+            "price_range IS NOT NULL",
+            "meal_duration IS NOT NULL",
+        ]
         params: dict[str, Any] = {"area": self.area_id}
         if self.req.cuisine is not None:
             where.append("category_code = :cuisine")
@@ -331,7 +339,7 @@ class Planner:
             if r.id not in hubs or hubs[r.id][0] not in self.hubs:
                 continue
             hub_id, hub_meters = hubs[r.id]
-            duration = r.meal_duration or "normal"
+            duration = r.meal_duration
             self.restaurants.append(
                 Restaurant(
                     id=r.id,
@@ -614,7 +622,13 @@ class Planner:
                     plan_fare_go=tl.cost.fare_go,
                 )
             if rest_llm:
-                alt_ids = choose.llm_alternatives(rest_pick["probs"], rest_pick["id"])
+                # 依 Jev 機率排序，挑接得上的補滿 2 家，可以超出前 3 名（2026-10-20 決定）
+                probs = rest_pick["probs"]
+                alt_ids = [
+                    rid
+                    for rid in sorted(self.restaurant_rows, key=lambda k: (-probs.get(k, 0.0), k))
+                    if rid != rest_pick["id"] and (combo.showtime.movie_id, rid) in self.feasible
+                ][: self.s.plan_alternatives_max]
                 alternatives["restaurant"] = restaurant_alternatives(
                     c.ranked.combo,
                     alt_ids,

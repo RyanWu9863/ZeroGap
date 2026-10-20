@@ -100,8 +100,11 @@ def build_timeline(
 
     p = places
     show, rest, b = exact.showtime, exact.restaurant, exact.buffers
+    # 比開門早到時，這一步會比候位的 10 分鐘長
+    wait_minutes = minutes_between(exact.arrive_restaurant, exact.meal_start)
     wait = _step("wait", p.restaurant, "last_order" if b.last_order is not None else None,
-                 b.last_order, minutes=cond.wait_minutes, note="候位")  # fmt: skip
+                 b.last_order, minutes=wait_minutes,
+                 note="候位" if wait_minutes <= cond.wait_minutes else "等開門")  # fmt: skip
     meal = _step("meal", p.restaurant, starts_at=exact.meal_start, ends_at=exact.meal_end,
                  duration=rest.meal_duration)  # fmt: skip
     home = _step("home", p.station, "latest_return",

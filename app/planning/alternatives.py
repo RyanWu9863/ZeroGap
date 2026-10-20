@@ -28,11 +28,15 @@ def restaurant_alternatives(
     names: Mapping[int, str | None],
     cuisines: Mapping[int, str | None],
     plan_fare_go: int,
+    max_alternatives: int = 2,
 ) -> list[dict[str, Any]]:
-    """換一家：電影不變，只列跟方案的電影接得上的餐廳【預設】。"""
+    """換一家：電影不變，依 `restaurant_ids` 的順序（Jev 機率高的在前），
+    挑跟方案的電影接得上的，補滿 `max_alternatives` 家（2026-10-20 決定）。"""
     movie_id = plan.showtime.movie_id
     result = []
     for rid in restaurant_ids:
+        if len(result) >= max_alternatives:
+            break
         combo = feasible.get((movie_id, rid))
         if combo is None:
             continue

@@ -65,6 +65,7 @@ class Conditions:
     arrive_before_showtime: int = 15
     wait_minutes: int = 10
     last_order_before_close: int = 30
+    max_wait_for_opening: int = 30  # 早到時最多等幾分鐘開門
 
 
 @dataclass(frozen=True)

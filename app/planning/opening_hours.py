@@ -55,6 +55,19 @@ class OpeningHours:
                     return start, end
         return None
 
+    def next_opening(self, at: datetime, within_minutes: int) -> tuple[datetime, datetime] | None:
+        """`at` 之後 `within_minutes` 分鐘內開門的時段（早到時等開門用）。已經開著回傳 None。"""
+        if self.interval_containing(at) is not None:
+            return None
+        limit = at + timedelta(minutes=within_minutes)
+        best = None
+        for day in (at.date(), at.date() + timedelta(days=1)):
+            for start_min, end_min in self.by_weekday[day.weekday()]:
+                start = _at_minutes(day, start_min, at)
+                if at < start <= limit and (best is None or start < best[0]):
+                    best = (start, _at_minutes(day, end_min, at))
+        return best
+
 
 def _at_minutes(day: date, minutes: int, like: datetime) -> datetime:
     return datetime.combine(day, time(0), tzinfo=like.tzinfo) + timedelta(minutes=minutes)
