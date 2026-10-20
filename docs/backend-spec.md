@@ -2,7 +2,7 @@
 
 | 項目 | 內容 |
 |---|---|
-| 版本 | v0.11（`restaurants.source` 新增 `demo`；修正 5.3 路線快取的取整範例。v0.10：補上前端對照時發現的缺口：下拉選單的回應範例、跨午夜的判斷、`reasons` 的 key、排隊順位的意思、備選欄位、OSM 出處。v0.9：備選只附估計值、第一名固定「最推薦」、回程緩衝加 `return_window`。v0.8 起前端 ZeroGap 照這份規格串接、飲食限制延後；架構與 v0.4 相同） |
+| 版本 | v0.11（`restaurants.source` 新增 `demo`；修正 5.3 路線快取的取整範例；7.3 補上價位區間的代碼。v0.10：補上前端對照時發現的缺口：下拉選單的回應範例、跨午夜的判斷、`reasons` 的 key、排隊順位的意思、備選欄位、OSM 出處。v0.9：備選只附估計值、第一名固定「最推薦」、回程緩衝加 `return_window`。v0.8 起前端 ZeroGap 照這份規格串接、飲食限制延後；架構與 v0.4 相同） |
 | 日期 | 2026-10-20 |
 | 狀態 | 草稿 |
 | 討論紀錄 | [spec-discussion.md](spec-discussion.md) |
@@ -1082,7 +1082,7 @@ worker 完成 → PUBLISH result（完整結果）→ API 推送後關閉串流
 | 餐廳 | `cuisine` | choice | `categories` 中的料理類別＋`other` |
 | 餐廳 | `date_suitability` | score | 不適合約會／普通／適合約會 |
 | 餐廳 | `meal_duration` | choice | `fast` 快速／`normal` 一般／`slow` 慢食 |
-| 餐廳 | `price_range` | choice | 每人 200 元以下／200～500／500～1,000／1,000 元以上【預設】 |
+| 餐廳 | `price_range` | choice | 每人 200 元以下 `under_200`／200～500 `200_500`／500～1,000 `500_1000`／1,000 元以上 `over_1000`【預設】 |
 
 - 一家餐廳的所有題目放在同一次 Jev 請求裡。
 - `state` 的內容：
