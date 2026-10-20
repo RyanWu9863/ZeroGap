@@ -86,24 +86,25 @@ tests/
 
 ### A. 骨架
 
-- [ ] **A1 建 git 與 .gitignore**
+- [x] **A1 建 git 與 .gitignore**
   - 檔案：`.gitignore`（`.venv/`、`.env`、`__pycache__/`、`frontend/`、`frontend-patches/`、`.pytest_cache/`）
   - 驗證：`git status` 看不到 `frontend/`
   - commit：`chore: 建立 git 與 .gitignore`
-- [ ] **A2 pyproject 與套件**
+- [x] **A2 pyproject 與套件**
   - 相依套件：`fastapi`、`uvicorn[standard]`、`pydantic-settings`、`sqlalchemy[asyncio]>=2`、`geoalchemy2`、`alembic`、`psycopg[binary]>=3`、`redis>=5`、`rq==2.12.*`、`httpx`。
   - 開發用：`pytest`、`pytest-asyncio`、`respx`、`ruff`。
   - 驗證：`uv sync`、`uv run python -c "import fastapi, rq, geoalchemy2"`
   - commit：`chore: pyproject 與相依套件`
-- [ ] **A3 設定** `app/config.py`
+- [x] **A3 設定** `app/config.py`
   - `Settings` 讀 8.2 的環境變數，另外加 `TDX_MODE`、`GOOGLE_MODE`（`real|mock`，預設 `mock`）和 `LLM_MODE`（`ollama|mock`）。時間規則的預設值照規格書 10.1。
   - 測試 `tests/unit/test_config.py`：沒設環境變數時，`settings.wait_minutes == 10`、`settings.meal_minutes == {"fast": 45, "normal": 75, "slow": 105}`、`settings.jev_min_top_probability == 0.6`。
   - commit：`feat(config): 環境變數與時間規則預設值`
-- [ ] **A4 Docker Compose 與 Dockerfile**
+- [x] **A4 Docker Compose 與 Dockerfile**
   - 服務：`postgres`（`postgis/postgis:16-3.4`）、`redis`（`redis:7`，照 5.1 設定）、`api`、`worker`、`proxy`。
   - `ollama` 放在 `demo` profile：開發時用本機 Ollama，`OLLAMA_BASE_URL=http://host.docker.internal:11434`。
   - `cron` 第二階段才加。
   - 驗證：`docker compose config` 沒有錯；`docker compose up -d postgres redis` 後兩個都是 healthy。
+  - 實作備註：本機的 5432 已經有別的 PostgreSQL，compose 的 PostgreSQL 對外改用 5433；proxy 對外開 8000，對上前端 Vite 的 `/api` 轉發。PostGIS 用 `16-3.5`。
   - commit：`chore(docker): compose 與 Dockerfile`
 
 ### B. 規劃的純邏輯（TDD，不需要 Docker）

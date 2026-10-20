@@ -16,7 +16,7 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
 
     # --- 連線 ---
-    database_url: str = "postgresql+psycopg://zerogap:zerogap@localhost:5432/zerogap"
+    database_url: str = "postgresql+psycopg://zerogap:zerogap@localhost:5433/zerogap"
     redis_url: str = "redis://localhost:6379/0"
     cors_origins: Annotated[list[str], NoDecode] = ["http://localhost:5173"]
     timezone: str = "Asia/Taipei"

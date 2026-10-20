@@ -1,0 +1,91 @@
+# 固定專案名稱：資料夾改名也不會換掉 volume
+name: zerogap
+
+x-app: &app
+  build: .
+  env_file:
+    - path: .env
+      required: false
+  environment:
+    DATABASE_URL: postgresql+psycopg://zerogap:zerogap@postgres:5432/zerogap
+    REDIS_URL: redis://redis:6379/0
+    # 開發時用本機的 Ollama；Demo 時用 --profile demo 並設成 http://ollama:11434
+    OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://host.docker.internal:11434}
+    TZ: Asia/Taipei
+  extra_hosts:
+    - "host.docker.internal:host-gateway"
+  depends_on:
+    postgres:
+      condition: service_healthy
+    redis:
+      condition: service_healthy
+  restart: unless-stopped
+
+services:
+  postgres:
+    image: postgis/postgis:16-3.5
+    environment:
+      POSTGRES_USER: zerogap
+      POSTGRES_PASSWORD: zerogap
+      POSTGRES_DB: zerogap
+      TZ: Asia/Taipei
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    # 本機的 5432 已經有別的 PostgreSQL
+    ports:
+      - "5433:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U zerogap -d zerogap"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    restart: unless-stopped
+
+  redis:
+    image: redis:7
+    # 規格書 5.1：256 MB、滿了拒絕寫入、每 60 秒有變動就存 RDB
+    command: ["redis-server", "--maxmemory", "256mb", "--maxmemory-policy", "noeviction",
+              "--save", "60", "1", "--appendonly", "no"]
+    volumes:
+      - redisdata:/data
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    restart: unless-stopped
+
+  api:
+    <<: *app
+    expose:
+      - "8000"
+
+  worker:
+    <<: *app
+    # 先處理規劃，再處理抓取（5.6）
+    command: ["rq", "worker", "--url", "redis://redis:6379/0", "plans", "crawl"]
+
+  proxy:
+    image: nginx:1.27
+    volumes:
+      - ./deploy/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    # 前端開發時 Vite 把 /api 轉給 localhost:8000
+    ports:
+      - "8000:80"
+    depends_on:
+      - api
+    restart: unless-stopped
+
+  ollama:
+    image: ollama/ollama
+    profiles: ["demo"]
+    volumes:
+      - ollama:/root/.ollama
+    restart: unless-stopped
+
+volumes:
+  pgdata:
+  redisdata:
+  ollama:
