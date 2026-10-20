@@ -522,7 +522,8 @@ rq cron（只負責觸發）── 每天 06:00 ──▶ 抓取佇列 ──▶
   - compose 的 PostgreSQL 對外用 5433，因為本機的 5432 已經有別的 PostgreSQL；proxy 對外開 8000，對上前端 Vite 的轉發。
   - C（模擬版 TDX、模擬版 Jev、Ollama 代選）完成，102 個單元測試。使用者對 B 新增的預設值說「先照預設」。
   - Ollama 實測（本機 0.40.4，`qwen3:1.7b`）：結構化輸出（`format` 帶 JSON schema）可以用；第一次呼叫要載入模型，花了 61 秒，熱機後 4.6 秒，關掉思考（`think: false`）2.5 秒。所以請求一律帶 `keep_alive: 30m`，並新增 `OLLAMA_THINK` 設定（預設不送）。
-  - 本機的 Ollama 沒有規格書指定的 `qwen2.5:3b`，只有 `qwen3:1.7b`、`qwen3:4b`。要下載還是改用現有的模型，待問使用者。
+  - 本機的 Ollama 原本沒有規格書指定的 `qwen2.5:3b`，使用者選擇下載（選項 A），已下載完成。
+  - D（資料表、migration、示意種子資料、PostGIS 查詢）完成，11 個整合測試。整合測試每次重建 `zerogap_test` 資料庫。compose 新增只跑一次的 `migrate` 服務。
   - Docker 容器用 `host.docker.internal` 連得到本機的 Ollama。
   - 實作 B 時遇到規格書沒寫清楚的地方，先照最直接的做法寫，全部標【預設】加進規格書 10.1（標「實作時新增」）：Jev 還沒判斷的屬性、營業時間的格式和判斷、`stats.feasible` 的基準、排名同分、兩題都由 LLM 代選、餐廳備選只列接得上的、`minutes_to_planned` 的算法、特色標籤的文字。**這些要找時間跟使用者確認。**
 

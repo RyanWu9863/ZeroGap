@@ -2,7 +2,7 @@
 
 | 項目 | 內容 |
 |---|---|
-| 版本 | v0.11（`restaurants.source` 新增 `demo`；修正 5.3 路線快取的取整範例；7.3 補上價位區間的代碼。v0.10：補上前端對照時發現的缺口：下拉選單的回應範例、跨午夜的判斷、`reasons` 的 key、排隊順位的意思、備選欄位、OSM 出處。v0.9：備選只附估計值、第一名固定「最推薦」、回程緩衝加 `return_window`。v0.8 起前端 ZeroGap 照這份規格串接、飲食限制延後；架構與 v0.4 相同） |
+| 版本 | v0.11（`restaurants.source` 新增 `demo`；修正 5.3 路線快取的取整範例；7.3 補上價位區間的代碼；實作時的小調整：`areas.sort_order`、`area_hubs.geom` 可以是 null、migration 一併寫入類別和票價。v0.10：補上前端對照時發現的缺口：下拉選單的回應範例、跨午夜的判斷、`reasons` 的 key、排隊順位的意思、備選欄位、OSM 出處。v0.9：備選只附估計值、第一名固定「最推薦」、回程緩衝加 `return_window`。v0.8 起前端 ZeroGap 照這份規格串接、飲食限制延後；架構與 v0.4 相同） |
 | 日期 | 2026-10-20 |
 | 狀態 | 草稿 |
 | 討論紀錄 | [spec-discussion.md](spec-discussion.md) |
@@ -233,7 +233,7 @@ docker-compose.yml
 - 主鍵：`id bigint generated always as identity`
 - 時間一律用 `timestamptz`。每張表都有 `created_at`、`updated_at`。
 - 座標：`geography(Point, 4326)`，距離單位是公尺。
-- 第一個 migration 執行 `CREATE EXTENSION postgis`，並寫入縣市清單、4 個商圈和商圈代表點的名稱。代表點的座標由地理編碼補上。
+- 第一個 migration 執行 `CREATE EXTENSION postgis`，並寫入縣市清單（22 個，TDX 代碼）、4 個商圈和商圈代表點的名稱，以及 `categories`、`ticket_prices` 的初始資料。代表點的座標由地理編碼補上。
 
 ### 4.3 資料表
 
@@ -255,6 +255,7 @@ docker-compose.yml
 | `code` | text, unique | `taoyuan`、`zhongli`、`qingpu`、`bade` |
 | `name` | text | 桃園區、中壢、青埔、八德 |
 | `is_open` | boolean | 是否開放約會規劃；目前只有桃園市的 4 個開放 |
+| `sort_order` | integer | 下拉選單的順序（實作時新增） |
 
 #### `area_hubs` 商圈代表點
 
@@ -265,7 +266,7 @@ docker-compose.yml
 | `id` | bigint | 主鍵 |
 | `area_id` | bigint FK → areas | |
 | `name` | text | 例如桃園站 |
-| `geom` | geography(Point) | 可用 TDX 的地標名稱轉座標取得（見 3.4） |
+| `geom` | geography(Point), null | 可用 TDX 的地標名稱轉座標取得（見 3.4）；migration 只寫名稱，所以地理編碼前是 null |
 
 唯一鍵：`(area_id, name)`。索引：`area_id`、`geom`（GiST）。
 
@@ -420,6 +421,7 @@ CHECK 約束：`source = 'google'` 時，`osm_*` 欄位必須是 null。這樣�
 
 **`movie_genre` 片型**：
 - Jev 依片名、簡介、出品國，從下面的主清單選一個【預設】：`action` 動作、`adventure` 冒險、`comedy` 喜劇、`romance` 愛情、`drama` 劇情、`horror` 恐怖、`thriller` 驚悚懸疑、`scifi` 科幻、`fantasy` 奇幻、`animation` 動畫、`family` 家庭、`documentary` 紀錄片、`music` 音樂、`other` 其他。
+- 給 Jev 的片型說明是實作時補的【預設】，例如 `thriller`：懸疑、犯罪、推理、心理驚悚；完整內容在 `migrations/versions/0001_initial.py`。
 - API 一律回傳代碼；需要顯示的地方另外附上名稱（`*_label`）。
 - 下拉選單**只顯示目前有場次的片型**：由 `GET /api/coverage` 依商圈和日期，從最近上映的電影整理出來。
 

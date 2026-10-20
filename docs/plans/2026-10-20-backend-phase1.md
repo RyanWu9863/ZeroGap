@@ -171,15 +171,15 @@ tests/
 
 ### D. 資料庫與種子資料（需要 Docker）
 
-- [ ] **D1 models 與第一個 migration**
+- [x] **D1 models 與第一個 migration**
   - 資料表照規格書 4.3。`restaurants.source` 允許 `demo`。加上 CHECK 約束、唯一鍵、GiST 索引。
   - 驗證：`docker compose up -d postgres`、`uv run alembic upgrade head`、`uv run alembic downgrade base` 都成功。
   - commit：`feat(db): 資料表與第一個 migration`
-- [ ] **D2 種子資料** `app/seed/demo.py`
+- [x] **D2 種子資料** `app/seed/demo.py`
   - 驗證：執行兩次結果一樣（UPSERT）；`SELECT count(*) FROM showtimes` 大於 0。
   - 整合測試：`source = 'google'` 的餐廳寫入 `osm_name` 時，會被 CHECK 約束擋下。
   - commit：`feat(seed): 示意種子資料`
-- [ ] **D3 PostGIS 查詢**：步行範圍內的餐廳、每家餐廳最近的代表點（4.4 的兩個 SQL）。
+- [x] **D3 PostGIS 查詢**：步行範圍內的餐廳、每家餐廳最近的代表點（4.4 的兩個 SQL）。
   - 整合測試：用種子資料驗證距離和對應的代表點。
   - commit：`feat(db): PostGIS 查詢`
 
