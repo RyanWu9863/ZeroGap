@@ -1,11 +1,12 @@
 """資料更新的工作（規格書 5.6、7.2）。RQ 的「抓取」佇列會呼叫這些函式；也可以手動執行：
 
-    python -m app.jobs.refresh stations
+python -m app.jobs.refresh stations
 """
 
 import logging
 import sys
 
+from app.collectors.tdx_geocode import Geocoder, geocode_hubs
 from app.collectors.tdx_stations import refresh_stations
 from app.config import get_settings
 from app.db import sync_session
@@ -30,7 +31,21 @@ def refresh_stations_job() -> dict | None:
         )
 
 
-JOBS = {"stations": refresh_stations_job}
+def geocode_hubs_job() -> dict | None:
+    """商圈代表點的座標（只補還沒有座標的）。"""
+    s, r = get_settings(), sync_redis()
+    tdx = TdxTransit(s.tdx_client_id, s.tdx_client_secret, r, timeout=s.http_timeout_seconds)
+    with sync_session()() as session:
+        return run_crawl(
+            session,
+            r,
+            "geocode_hubs",
+            "geocode",
+            lambda keep_alive: geocode_hubs(session, Geocoder(tdx, r, s), True, keep_alive),
+        )
+
+
+JOBS = {"stations": refresh_stations_job, "hubs": geocode_hubs_job}
 
 
 def main(argv: list[str]) -> None:

@@ -32,6 +32,7 @@ TZ = ZoneInfo("Asia/Taipei")
 TOKEN_URL = "https://tdx.transportdata.tw/auth/realms/TDXConnect/protocol/openid-connect/token"
 ROUTING_URL = "https://tdx.transportdata.tw/api/maas/routing"
 BASIC_URL = "https://tdx.transportdata.tw/api/basic"
+ADVANCED_URL = "https://tdx.transportdata.tw/api/advanced"
 TOKEN_KEY = "tdx:access_token"
 TOKEN_LOCK = "tdx:token"
 # 固定參數（3.2）：高鐵、台鐵、公車、捷運、輕軌；偏好最快；頭尾一定要明確設成走路，
@@ -265,6 +266,10 @@ class TdxTransit:
     def get_basic(self, path: str, params: dict[str, str] | None = None) -> Any:
         """基礎服務，例如車站（3.5）。限流和點數由呼叫端處理。"""
         return self._get({"$format": "JSON", **(params or {})}, url=BASIC_URL + path)
+
+    def get_advanced(self, path: str, params: dict[str, str] | None = None) -> Any:
+        """進階服務，例如地理編碼（3.4）。限流和點數由呼叫端處理。"""
+        return self._get({"$format": "JSON", **(params or {})}, url=ADVANCED_URL + path)
 
     def _get(self, params: dict[str, str], url: str = ROUTING_URL) -> Any:
         """8.3：逾時或 5xx 最多重試 2 次（間隔 1、2 秒）；4xx 不重試；401 換一次 token。"""

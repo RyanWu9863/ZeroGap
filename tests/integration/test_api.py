@@ -132,8 +132,12 @@ async def test_counties(client):
 
 async def test_areas(client):
     res = await client.get("/api/areas", params={"county": "Taoyuan"})
-    assert [a["code"] for a in res.json()] == ["taoyuan", "zhongli", "qingpu", "bade"]
+    assert [a["code"] for a in res.json()] == ["taoyuan", "zhongli", "qingpu", "bade", "luzhu"]
     assert res.json()[0] == {"code": "taoyuan", "name": "桃園區", "is_open": True}
+    by_code = {a["code"]: a for a in res.json()}
+    # 2026-10-20 決定：青埔先不開放，新增蘆竹（南崁）
+    assert by_code["qingpu"]["is_open"] is False
+    assert by_code["luzhu"] == {"code": "luzhu", "name": "蘆竹（南崁）", "is_open": True}
 
 
 async def test_unknown_county_is_404_with_error_format(client):
