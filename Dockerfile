@@ -16,6 +16,7 @@ WORKDIR /app
 COPY pyproject.toml uv.lock .python-version ./
 RUN uv sync --frozen --no-dev --no-install-project
 
+COPY alembic.ini ./
 COPY migrations ./migrations
 COPY app ./app
 

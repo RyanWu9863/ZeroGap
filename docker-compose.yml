@@ -19,9 +19,22 @@ x-app: &app
       condition: service_healthy
     redis:
       condition: service_healthy
+    migrate:
+      condition: service_completed_successfully
   restart: unless-stopped
 
 services:
+  # 只跑一次：api、worker 等它跑完才啟動，避免開多個 api 時同時跑 migration
+  migrate:
+    build: .
+    command: ["alembic", "upgrade", "head"]
+    environment:
+      DATABASE_URL: postgresql+psycopg://zerogap:zerogap@postgres:5432/zerogap
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: "no"
+
   postgres:
     image: postgis/postgis:16-3.5
     environment:
