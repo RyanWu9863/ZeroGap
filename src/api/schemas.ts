@@ -1,164 +1,212 @@
 import { z } from 'zod'
 
 /*
- * API 合約（照 docs/API.md）。
+ * API 合約（照後端規格書 v0.9 第 6 章；舊的 docs/API.md 已停用）。
  * 比喻：這是「驗貨單」。後端送來的資料先照這張單檢查，
  * 少欄位或型態不對就立刻報錯，不會讓畫面默默顯示錯的東西。
- * 標「API 變更提案 #n」的欄位是前端提案新增的，後端還沒加之前都是選填。
+ * 規格書沒寫出 JSON 範例的欄位（縣市、商圈、車站、類別）標「推測」，後端好了要對一次。
  */
 
 const HHMM = z.string().regex(/^\d{2}:\d{2}$/)
+const DATE = z.string().regex(/^\d{4}-\d{2}-\d{2}$/)
+/** ISO 8601，後端一律帶 +08:00 */
+const ISO = z.string()
 
-export const BufferGate = z.enum(['showtime', 'last_order', 'return_trip', 'latest_return'])
-export const CostItemKey = z.enum(['movie_ticket', 'dining', 'transit_outbound', 'transit_inbound'])
-export const StepType = z.enum(['交通', '步行', '電影', '晚餐', '到家'])
+/** 清單端點可能直接回陣列，也可能包一層 {key: [...]}；兩種都收（推測） */
+function listOf<T extends z.ZodType>(item: T, key: string) {
+  return z.union([z.array(item), z.object({ [key]: z.array(item) })]).transform((v) => (Array.isArray(v) ? v : (v[key] as z.infer<T>[])))
+}
 
-export const Place = z.object({
-  name: z.string(),
-  kind: z.enum(['station', 'theater', 'restaurant']),
-  lat: z.number().optional(),
-  lng: z.number().optional(),
+// ── 下拉選單（6.2） ─────────────────────────────────────────────
+
+/** GET /api/counties（推測）：has_open_areas＝有開放約會的商圈 */
+export const County = z.object({ code: z.string(), name: z.string(), has_open_areas: z.boolean().optional() })
+export const CountiesResponse = listOf(County, 'counties')
+
+/** GET /api/areas?county=（推測欄位，對應 areas 表） */
+export const Area = z.object({ code: z.string(), name: z.string(), is_open: z.boolean().optional() })
+export const AreasResponse = listOf(Area, 'areas')
+
+/** GET /api/stations?county=（推測欄位，對應 stations 表） */
+export const Station = z.object({ id: z.number().int(), name: z.string(), operator: z.string().optional() })
+export const StationsResponse = listOf(Station, 'stations')
+
+/** GET /api/categories?kind=movie_genre|cuisine（推測欄位，對應 categories 表） */
+export const Category = z.object({ code: z.string(), label: z.string() })
+export const CategoriesResponse = listOf(Category, 'categories')
+
+const CodeLabel = z.object({ code: z.string(), label: z.string() })
+export const RestaurantSource = z.enum(['google', 'osm'])
+
+/** GET /api/coverage?area=&date=（6.3）。沒帶日期時，電影和片型等清單可能不給 */
+export const CoverageResponse = z.object({
+  area: z.string(),
+  showtime_from: DATE.nullish(),
+  showtime_to: DATE.nullish(),
+  available_dates: z.array(DATE),
+  movies: z.array(z.object({ id: z.number().int(), title: z.string(), genre: z.string().nullish(), runtime_min: z.number().int() })).default([]),
+  genres: z.array(CodeLabel).default([]),
+  hall_types: z.array(CodeLabel).default([]),
+  languages: z.array(z.string()).default([]),
+  restaurant_source: RestaurantSource.optional(),
 })
 
-export const TimelineStep = z.object({
-  time: HHMM,
-  type: StepType,
-  desc: z.string(),
-  place: Place.nullish(), // 提案 #2
-  cost_item: CostItemKey.nullish(), // 提案 #9
-  buffer_minutes: z.number().int().nullish(), // 提案 #1
-  buffer_gate: BufferGate.nullish(), // 提案 #1
+/** GET /api/status（6.3） */
+export const StatusResponse = z.object({
+  jev: z.object({ mode: z.enum(['real', 'mock']), model: z.string().nullish() }),
+  llm: z.object({ connected: z.boolean(), model: z.string().nullish() }),
+  data_updated_at: z.record(z.string(), z.string().nullable()),
+  restaurant_source: RestaurantSource,
 })
 
-const CostLine = z.object({ amount: z.number().int(), is_estimated: z.boolean() })
+// ── 規劃請求（6.4） ─────────────────────────────────────────────
 
-export const Proposal = z.object({
-  rank: z.number().int().min(1).max(3),
-  rank_label: z.string(),
-  highlight: z // 提案 #3
-    .object({ key: z.string(), label: z.string(), reason: z.string() })
-    .nullish(),
-  confidence_breakdown: z.object({
-    movie_prob: z.number(),
-    restaurant_prob: z.number(),
-    combined: z.number(),
-  }),
-  summary: z.object({
-    departure_time: HHMM,
-    return_time: HHMM,
-    early_return_buffer_minutes: z.number().int(),
-    min_buffer_minutes: z.number().int(),
-    total_cost_per_person: z.number().int(),
-  }),
-  cost_breakdown: z.record(CostItemKey, CostLine),
-  timeline_steps: z.array(TimelineStep),
-  refs: z.object({
-    showtime_id: z.number().int(),
-    restaurant_id: z.number().int(),
-    outbound_trip_id: z.number().int(),
-    inbound_trip_id: z.number().int(),
-  }),
-})
-
-export const ItineraryRequest = z.object({
-  target_city: z.string(),
-  district_hub: z.string(),
-  origin_city: z.string(),
-  origin_station: z.string(),
-  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+/** 一律送代碼或 id；「不限」「幫我挑」都送 null */
+export const PlanRequest = z.object({
+  area: z.string().min(1),
+  origin_station_id: z.number().int().positive(),
+  date: DATE,
   earliest_departure: HHMM,
-  latest_return: HHMM,
-  dining_order: z.enum(['看完電影再吃', '先吃再看']),
-  movie_title: z.string(),
-  movie_genre: z.string(),
-  theater_type: z.string(),
-  language: z.string(),
-  cuisine_type: z.string(),
-  dietary_restriction: z.string(),
+  /** 可以跨到隔天凌晨 02:00 前，例如 "01:30" */
+  latest_home: HHMM,
+  order: z.enum(['movie_first', 'meal_first']),
+  movie_id: z.number().int().nullable(),
+  movie_genre: z.string().nullable(),
+  hall_type: z.string().nullable(),
+  language: z.string().nullable(),
+  cuisine: z.string().nullable(),
   budget_per_person: z.number().int().positive(),
   max_walk_minutes: z.number().int().positive(),
-  restaurant_name: z.string().optional(), // 提案 #6：低信心時使用者指定的餐廳
 })
 
-export const ItineraryResponse = z.object({
-  result_status: z.enum(['ok', 'no_solution']),
-  system_status: z.object({
-    jev_mode: z.string(),
-    llm_status: z.string(),
-    data_freshness: z.record(z.string(), z.string()),
+// ── 規劃結果（6.5） ─────────────────────────────────────────────
+
+export const BufferGate = z.enum(['showtime', 'last_order', 'return_trip', 'latest_return'])
+
+/** 這一步的地點。Google 來源的餐廳沒有座標，只有 place_id */
+export const Place = z.object({
+  kind: z.enum(['station', 'hub', 'cinema', 'restaurant']),
+  id: z.number().int(),
+  name: z.string(),
+  lat: z.number().nullish(),
+  lng: z.number().nullish(),
+  place_id: z.string().nullish(),
+})
+
+/** 回程的兩個時間：離預定那班車幾分鐘、最晚幾點前還有車（v0.9） */
+export const ReturnWindow = z.object({
+  planned_depart_at: ISO,
+  minutes_to_planned: z.number().int(),
+  latest_depart_at: ISO,
+  minutes_to_latest: z.number().int(),
+})
+
+const StepCommon = {
+  place: Place.nullish(),
+  buffer_minutes: z.number().int().nullish(),
+  buffer_gate: BufferGate.nullish(),
+  return_window: ReturnWindow.nullish(),
+}
+
+export const TimelineStep = z.discriminatedUnion('type', [
+  z.object({ type: z.literal('transit'), from: z.string(), to: z.string(), summary: z.string(), depart_at: ISO, arrive_at: ISO, fare_per_person: z.number().int(), ...StepCommon }),
+  z.object({ type: z.literal('walk'), from: z.string(), to: z.string(), minutes: z.number().int(), arrive_at: ISO, note: z.string().nullish(), ...StepCommon }),
+  z.object({ type: z.literal('movie'), starts_at: ISO, ends_at: ISO, ...StepCommon }),
+  z.object({ type: z.literal('wait'), minutes: z.number().int(), note: z.string().nullish(), ...StepCommon }),
+  z.object({ type: z.literal('meal'), starts_at: ISO, ends_at: ISO, duration: z.enum(['fast', 'normal', 'slow']), ...StepCommon }),
+  z.object({ type: z.literal('home'), station: z.string(), arrive_at: ISO, ...StepCommon }),
+])
+
+const Decider = z.enum(['jev', 'llm'])
+export const CostKey = z.enum(['ticket', 'meal', 'fare_go', 'fare_return'])
+
+/** 電影、餐廳的備選只有估計值（v0.9） */
+export const MovieAlternative = z.object({ movie_id: z.number().int(), title: z.string(), probability: z.number(), home_at: ISO, cost_per_person_total: z.number().int(), estimated: z.boolean() })
+/** name 可能是 null：Google Pro 額度用完時備選只顯示類別 */
+export const RestaurantAlternative = z.object({ restaurant_id: z.number().int(), name: z.string().nullable(), cuisine: z.string().nullish(), probability: z.number(), home_at: ISO, cost_per_person_total: z.number().int(), estimated: z.boolean() })
+/** 路線的備選是 TDX 查到的另外幾條，所以是精確值 */
+export const RouteAlternative = z.object({ summary: z.string(), depart_at: ISO, arrive_at: ISO, fare_per_person: z.number().int(), probability: z.number() })
+
+export const Plan = z.object({
+  rank: z.number().int().min(1).max(3),
+  highlight: z.object({ key: z.string(), label: z.string(), reason: z.string() }).nullable(),
+  score: z.number(),
+  probabilities: z.object({ movie: z.number().nullish(), restaurant: z.number().nullish() }),
+  decided_by: z.object({ movie: Decider, restaurant: Decider, route_go: Decider, route_return: Decider }),
+  depart_at: ISO,
+  home_at: ISO,
+  minutes_before_deadline: z.number().int(),
+  min_buffer_minutes: z.number().int(),
+  movie: z.object({
+    id: z.number().int(),
+    title: z.string(),
+    genre: z.string().nullish(),
+    genre_label: z.string().nullish(),
+    runtime_min: z.number().int(),
+    cinema: z.string(),
+    chain: z.string().nullish(),
+    hall_type: z.string().nullish(),
+    hall_type_label: z.string().nullish(),
+    language: z.string().nullish(),
   }),
-  funnel_stats: z.object({
-    total_checked: z.number().int(),
-    feasible_count: z.number().int(),
-    returned_count: z.number().int(),
-    by_filter: z // 提案 #7
-      .array(z.object({ id: z.number().int(), name: z.string(), eliminated: z.number().int() }))
-      .optional(),
+  restaurant: z.object({
+    id: z.number().int(),
+    name: z.string(),
+    cuisine: z.string().nullish(),
+    cuisine_label: z.string().nullish(),
+    address: z.string().nullish(),
+    price_range: z.string().nullish(),
+    last_order: HHMM.nullish(),
+    source: RestaurantSource,
+    place_id: z.string().nullish(),
   }),
-  confidence_gate: z.object({
-    threshold: z.number(),
-    passed: z.boolean(),
-    uncertain_field: z.enum(['movie', 'restaurant']).nullish(), // 提案 #6
-    choices: z.array(z.object({ id: z.number().int(), label: z.string() })).optional(),
-  }),
-  top_3_proposals: z.array(Proposal),
-  alternatives: z.array(Proposal),
-  no_solution: z
+  timeline: z.array(TimelineStep),
+  cost_per_person: z.object({ ticket: z.number().int(), meal: z.number().int(), fare_go: z.number().int(), fare_return: z.number().int(), total: z.number().int() }),
+  estimated: z.array(CostKey),
+  alternatives: z
     .object({
-      blocking_filter: z.object({ id: z.number().int(), name: z.string() }),
-      relax_suggestions: z.array(
-        z.object({
-          field: z.string(),
-          current_value: z.number(),
-          suggested_value: z.number(),
-          feasible_count_after: z.number().int(),
-        }),
-      ),
+      movie: z.array(MovieAlternative).optional(),
+      restaurant: z.array(RestaurantAlternative).optional(),
+      route_go: z.array(RouteAlternative).optional(),
+      route_return: z.array(RouteAlternative).optional(),
     })
-    .nullable(),
+    .nullish()
+    .transform((v) => v ?? {}),
 })
 
-export const StatusResponse = z.object({
-  jev_mode: z.string(),
-  llm_status: z.string(),
-  data_freshness: z.record(
-    z.string(),
-    z.object({ last_success_at: z.string().nullable(), last_status: z.enum(['ok', 'failed']) }),
-  ),
+export const PlanResult = z.object({
+  job_id: z.string(),
+  restaurant_source: RestaurantSource,
+  stats: z.object({ combinations: z.number().int(), feasible: z.number().int() }),
+  plans: z.array(Plan),
 })
 
-export const OptionsResponse = z.object({
-  cities: z.array(z.string()),
-  districts: z.array(
-    z.object({
-      id: z.number().int(),
-      city: z.string(),
-      name: z.string(),
-      theater_names: z.array(z.string()).optional(), // 提案 #8
-      restaurant_count: z.number().int().optional(), // 提案 #8
-    }),
-  ),
-  stations: z.array(z.object({ id: z.number().int(), name: z.string(), operator: z.string() })),
-  dining_orders: z.array(z.string()),
-  movies: z.array(z.object({ id: z.number().int(), title: z.string(), runtime_minutes: z.number().int() })),
-  movie_genres: z.array(z.string()),
-  theater_types: z.array(z.string()),
-  languages: z.array(z.string()),
-  cuisine_types: z.array(z.string()),
-  dietary_restrictions: z.array(z.string()),
-  budget_options: z.array(z.number().int()),
-  walk_minutes_options: z.array(z.number().int()),
-  available_dates: z.array(z.string()).optional(), // 提案 #4
-})
+// ── SSE 事件（6.4） ─────────────────────────────────────────────
 
-/** API 規定「讓系統幫我挑電影」時 movie_title 要送這個固定字串；畫面上顯示成「幫我挑」 */
-export const PICK_FOR_ME = '交給 Jev 決定'
+export const Stage = z.enum(['loading_data', 'checking_feasibility', 'filtering', 'choosing', 'llm_fallback', 'verifying_hours', 'routing', 'waiting_quota', 'building_result'])
+export const QueuedEvent = z.object({ job_id: z.string(), position: z.number().int() })
+export const ProgressEvent = z.object({ stage: Stage, combinations: z.number().int().nullish(), feasible: z.number().int().nullish() })
+/** error 事件和 HTTP 錯誤共用；reasons 只有 NO_FEASIBLE 才有：各條件排除了幾組 */
+export const PlanErrorBody = z.object({ code: z.string(), message: z.string().default(''), reasons: z.record(z.string(), z.number()).nullish() })
 
-export type OptionsResponse = z.infer<typeof OptionsResponse>
-export type TimelineStep = z.infer<typeof TimelineStep>
-export type Proposal = z.infer<typeof Proposal>
-export type ItineraryRequest = z.infer<typeof ItineraryRequest>
-export type ItineraryResponse = z.infer<typeof ItineraryResponse>
+export type County = z.infer<typeof County>
+export type Area = z.infer<typeof Area>
+export type Station = z.infer<typeof Station>
+export type Category = z.infer<typeof Category>
+export type CoverageResponse = z.infer<typeof CoverageResponse>
 export type StatusResponse = z.infer<typeof StatusResponse>
+export type PlanRequest = z.infer<typeof PlanRequest>
 export type BufferGate = z.infer<typeof BufferGate>
-export type CostItemKey = z.infer<typeof CostItemKey>
+export type Place = z.infer<typeof Place>
+export type ReturnWindow = z.infer<typeof ReturnWindow>
+export type TimelineStep = z.infer<typeof TimelineStep>
+export type CostKey = z.infer<typeof CostKey>
+export type MovieAlternative = z.infer<typeof MovieAlternative>
+export type RestaurantAlternative = z.infer<typeof RestaurantAlternative>
+export type RouteAlternative = z.infer<typeof RouteAlternative>
+export type Plan = z.infer<typeof Plan>
+export type PlanResult = z.infer<typeof PlanResult>
+export type Stage = z.infer<typeof Stage>
+export type QueuedEvent = z.infer<typeof QueuedEvent>
+export type ProgressEvent = z.infer<typeof ProgressEvent>
+export type PlanErrorBody = z.infer<typeof PlanErrorBody>

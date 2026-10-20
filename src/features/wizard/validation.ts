@@ -1,5 +1,6 @@
-import type { ItineraryRequest } from '@/api/schemas'
+import type { PlanRequest } from '@/api/schemas'
 import { MIN_COMFORT_HOURS } from '@/shared/lib/config'
+import { taipeiNow } from '@/shared/lib/time'
 
 /** 四步精靈（Q13、Q17）：對應專題簡介的四組條件 */
 export const STEPS = [
@@ -14,17 +15,32 @@ export const toMinutes = (hhmm: string) => {
   return h * 60 + m
 }
 
-export const toHHMM = (min: number) => `${String(Math.floor(min / 60)).padStart(2, '0')}:${String(min % 60).padStart(2, '0')}`
+export const toHHMM = (min: number) => `${String(Math.floor(min / 60) % 24).padStart(2, '0')}:${String(min % 60).padStart(2, '0')}`
+
+/** 最晚回到站可以跨到隔天凌晨 02:00（規格書 6.4）：凌晨 06:00 以前都當成隔天 */
+const NEXT_DAY_BEFORE = 6 * 60
+export const homeMinutes = (hhmm: string) => {
+  const m = toMinutes(hhmm)
+  return m < NEXT_DAY_BEFORE ? m + 24 * 60 : m
+}
+
+/** "01:30" → 「隔天 01:30」；"23:00" → 「23:00」 */
+export const homeLabel = (hhmm: string) => (toMinutes(hhmm) < NEXT_DAY_BEFORE ? `隔天 ${hhmm}` : hhmm)
+
+/** 選了今天，出門時間要晚於現在（規格書 6.4） */
+export function departureInPast(r: PlanRequest, now = taipeiNow()): boolean {
+  return r.date === now.date && toMinutes(r.earliest_departure) <= now.minutes
+}
 
 /** 這一步填完了沒？沒填完「下一步」不能按 */
-export function stepComplete(n: number, r: ItineraryRequest): boolean {
+export function stepComplete(n: number, r: PlanRequest): boolean {
   switch (n) {
     case 1:
-      return Boolean(r.district_hub && r.origin_station)
+      return Boolean(r.area && r.origin_station_id > 0)
     case 2:
-      return Boolean(r.date) && toMinutes(r.latest_return) > toMinutes(r.earliest_departure)
+      return Boolean(r.date) && minutesAvailable(r) > 0 && !departureInPast(r)
     case 3:
-      return Boolean(r.movie_title)
+      return true // 「幫我挑」也算選好了
     case 4:
       return r.budget_per_person > 0 && r.max_walk_minutes > 0
     default:
@@ -33,12 +49,12 @@ export function stepComplete(n: number, r: ItineraryRequest): boolean {
 }
 
 /** 第一個還沒填完的步驟；全部填完回傳 null */
-export function firstIncomplete(r: ItineraryRequest): number | null {
+export function firstIncomplete(r: PlanRequest): number | null {
   return STEPS.find((s) => !stepComplete(s.n, r))?.n ?? null
 }
 
 /** 出門到回到站有幾分鐘 */
-export const minutesAvailable = (r: ItineraryRequest) => toMinutes(r.latest_return) - toMinutes(r.earliest_departure)
+export const minutesAvailable = (r: PlanRequest) => homeMinutes(r.latest_home) - toMinutes(r.earliest_departure)
 
 /** 「6 小時」「2 小時 15 分」 */
 export function durationLabel(min: number): string {
@@ -48,4 +64,4 @@ export function durationLabel(min: number): string {
 }
 
 /** 時間太短就柔性提醒（Q70），但不擋送出 */
-export const tooTight = (r: ItineraryRequest) => minutesAvailable(r) < MIN_COMFORT_HOURS * 60
+export const tooTight = (r: PlanRequest) => minutesAvailable(r) < MIN_COMFORT_HOURS * 60

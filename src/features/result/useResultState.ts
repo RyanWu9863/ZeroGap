@@ -1,7 +1,8 @@
 import { useEffect } from 'react'
 import { useLocation, useSearchParams } from 'react-router'
-import type { ItineraryRequest } from '@/api/schemas'
-import { requestKey, usePlanStore } from '@/store/planStore'
+import { requestKey } from '@/api/planRuns'
+import type { PlanRequest } from '@/api/schemas'
+import { usePlanStore } from '@/store/planStore'
 import { readRank, readRequest, writeRequest } from './urlState'
 
 /**
@@ -23,11 +24,11 @@ export function useResultState() {
     if (!urlKey) {
       setParams((p) => writeRequest(p, stored, selectedRank), { replace: true, state: location.state })
     } else if (urlKey !== requestKey(stored)) {
-      replaceRequest(JSON.parse(urlKey) as ItineraryRequest)
+      replaceRequest(JSON.parse(urlKey) as PlanRequest)
     }
   }, [urlKey]) // eslint-disable-line react-hooks/exhaustive-deps -- 只在網址條件改變時同步一次
 
-  const update = (patch: Partial<ItineraryRequest>) => {
+  const update = (patch: Partial<PlanRequest>) => {
     const next = { ...request, ...patch }
     replaceRequest(next)
     setParams((p) => writeRequest(p, next, 1), { replace: true })

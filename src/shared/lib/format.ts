@@ -17,9 +17,10 @@ export function formatCost(amount: number, isEstimated: boolean): string {
   return `${isEstimated ? '約 ' : ''}${formatMoney(amount)}`
 }
 
-/** 「中壢站」→「中壢站」；「中壢車站」→「中壢站」：畫面統一用「XX 站」 */
+/** 「中壢車站」「中壢站」「中壢」→「中壢站」：畫面統一用「XX 站」（TDX 的站名沒有「站」字） */
 export function stationLabel(name: string): string {
-  return name.replace(/車站$/, '站')
+  const n = name.replace(/車站$/, '站')
+  return n.endsWith('站') ? n : `${n}站`
 }
 
 /** 步行分鐘換成生活化距離（一般人一分鐘約走 80 公尺，Q52）：12 → 約 1 公里、5 → 約 400 公尺 */

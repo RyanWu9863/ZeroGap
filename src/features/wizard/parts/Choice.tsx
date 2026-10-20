@@ -48,8 +48,8 @@ export function ChoiceCard({ selected, onClick, title, desc, icon, disabled, cla
 
 export type ChipOption<T> = { value: T; label: ReactNode; disabled?: boolean }
 
-/** 一排小按鈕單選（料理、預算、步行、片型…） */
-export function Chips<T extends string | number>({ options, value, onChange, label }: {
+/** 一排小按鈕單選（料理、預算、步行、片型…）。值可以是 null：「不限」就是 null（規格書 6.4） */
+export function Chips<T extends string | number | null>({ options, value, onChange, label }: {
   options: ChipOption<T>[]
   value: T
   onChange: (v: T) => void

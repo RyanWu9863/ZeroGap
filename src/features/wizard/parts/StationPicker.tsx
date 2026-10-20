@@ -1,15 +1,19 @@
 import { Search } from 'lucide-react'
 import { useState } from 'react'
 import { cn } from '@/lib/utils'
+import { stationLabel } from '@/shared/lib/format'
 
-/** 出發站：可搜尋的清單（Q45）。站多的時候打一兩個字就找得到。 */
+/**
+ * 出發站：可搜尋的清單（Q45）。站多的時候打一兩個字就找得到。
+ * 送給後端的是車站 id（規格書 6.4）。目前只開放桃園市的車站（2026-10-20 決定）。
+ */
 export function StationPicker({ stations, value, onChange }: {
   stations: { id: number; name: string }[]
-  value: string
-  onChange: (name: string) => void
+  value: number
+  onChange: (id: number) => void
 }) {
   const [q, setQ] = useState('')
-  const shown = stations.filter((s) => s.name.includes(q.trim()))
+  const shown = stations.filter((s) => stationLabel(s.name).includes(q.trim()))
   return (
     <div className="zg-surface overflow-hidden">
       <label className="flex items-center gap-2 border-b px-3">
@@ -28,11 +32,11 @@ export function StationPicker({ stations, value, onChange }: {
             key={s.id}
             type="button"
             role="radio"
-            aria-checked={s.name === value}
-            onClick={() => onChange(s.name)}
-            className={cn('rounded-md px-3 py-2 text-left text-sm hover:bg-muted pointer-coarse:min-h-11', s.name === value && 'bg-primary text-primary-foreground hover:bg-primary')}
+            aria-checked={s.id === value}
+            onClick={() => onChange(s.id)}
+            className={cn('rounded-md px-3 py-2 text-left text-sm hover:bg-muted pointer-coarse:min-h-11', s.id === value && 'bg-primary text-primary-foreground hover:bg-primary')}
           >
-            {s.name}
+            {stationLabel(s.name)}
           </button>
         ))}
         {shown.length === 0 && <p className="col-span-full px-3 py-2 text-sm text-muted-foreground">找不到「{q}」，目前只有桃園市的車站。</p>}

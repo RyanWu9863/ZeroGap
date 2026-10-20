@@ -1,21 +1,24 @@
-import { PICK_FOR_ME, type ItineraryRequest } from '@/api/schemas'
+import type { PlanRequest } from '@/api/schemas'
 
-/** 基準案例（AI_CONTEXT §8），日期改成 Demo 週。也是情境卡 ① 的條件。 */
-export const benchmarkRequest: ItineraryRequest = {
-  target_city: '桃園市',
-  district_hub: '桃園區',
-  origin_city: '桃園市',
-  origin_station: '中壢站',
+/**
+ * 基準案例（AI_CONTEXT §8），日期改成 Demo 週。也是情境卡 ① 的條件。
+ * 欄位照後端規格書 6.4：一律送代碼或 id。
+ * 車站 id 是假資料裡「中壢」的 id；接真後端時由 api/benchmark.ts 依站名換成真的 id。
+ */
+export const BENCHMARK_STATION_NAME = '中壢'
+
+export const benchmarkRequest: PlanRequest = {
+  area: 'taoyuan',
+  origin_station_id: 103,
   date: '2026-10-30',
   earliest_departure: '17:00',
-  latest_return: '23:00',
-  dining_order: '看完電影再吃',
-  movie_title: PICK_FOR_ME,
-  movie_genre: '不限',
-  theater_type: '不限',
-  language: '不限',
-  cuisine_type: '日式',
-  dietary_restriction: '沒有',
+  latest_home: '23:00',
+  order: 'movie_first',
+  movie_id: null,
+  movie_genre: null,
+  hall_type: null,
+  language: null,
+  cuisine: 'japanese',
   budget_per_person: 1000,
   max_walk_minutes: 12,
 }

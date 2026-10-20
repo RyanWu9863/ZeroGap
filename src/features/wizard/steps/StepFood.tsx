@@ -1,26 +1,35 @@
-import { useOptions } from '@/api/queries'
+import { useCategories } from '@/api/queries'
+import { BUDGET_OPTIONS, WALK_OPTIONS } from '@/shared/lib/config'
 import { formatMoney, walkDistance } from '@/shared/lib/format'
 import { usePlanStore } from '@/store/planStore'
-import { Chips, Disclosure, Field } from '../parts/Choice'
+import { Chips, Field } from '../parts/Choice'
 import { StepShell } from './StepShell'
 
-/** ④ 餐飲與預算（Q51、Q52） */
+/**
+ * ④ 餐飲與預算（Q51、Q52）。料理類別來自 /api/categories?kind=cuisine，「不限」送 null。
+ * 飲食限制這一版不做（2026-10-20 決定，設計留在後端規格書附錄 A）。
+ */
 export function StepFood() {
   const { request, setRequest } = usePlanStore()
-  const { data } = useOptions()
+  const { data } = useCategories('cuisine')
   return (
     <StepShell title="想吃什麼、預算多少？" loading={!data}>
       {data && (
         <>
           <Field title="想吃哪一類？">
-            <Chips label="料理類型" value={request.cuisine_type} onChange={(cuisine_type) => setRequest({ cuisine_type })} options={data.cuisine_types.map((v) => ({ value: v, label: v }))} />
+            <Chips
+              label="料理類型"
+              value={request.cuisine}
+              onChange={(cuisine) => setRequest({ cuisine })}
+              options={[{ value: null, label: '不限' }, ...data.map((c) => ({ value: c.code, label: c.label }))]}
+            />
           </Field>
           <Field title="每人預算" hint="含來回車資、電影票、一餐。">
             <Chips
               label="每人預算"
               value={request.budget_per_person}
               onChange={(budget_per_person) => setRequest({ budget_per_person })}
-              options={data.budget_options.map((v) => ({ value: v, label: formatMoney(v) }))}
+              options={BUDGET_OPTIONS.map((v) => ({ value: v, label: formatMoney(v) }))}
             />
           </Field>
           <Field title="影城到餐廳，最多走幾分鐘？" hint={`${request.max_walk_minutes} 分鐘 ≈ ${walkDistance(request.max_walk_minutes).replace('約 ', '')}`}>
@@ -28,17 +37,9 @@ export function StepFood() {
               label="步行上限"
               value={request.max_walk_minutes}
               onChange={(max_walk_minutes) => setRequest({ max_walk_minutes })}
-              options={data.walk_minutes_options.map((v) => ({ value: v, label: `${v} 分` }))}
+              options={WALK_OPTIONS.map((v) => ({ value: v, label: `${v} 分` }))}
             />
           </Field>
-          <Disclosure title="飲食限制">
-            <Chips
-              label="飲食限制"
-              value={request.dietary_restriction}
-              onChange={(dietary_restriction) => setRequest({ dietary_restriction })}
-              options={data.dietary_restrictions.map((v) => ({ value: v, label: v }))}
-            />
-          </Disclosure>
         </>
       )}
     </StepShell>
