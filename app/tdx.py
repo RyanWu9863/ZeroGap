@@ -31,6 +31,7 @@ log = logging.getLogger(__name__)
 TZ = ZoneInfo("Asia/Taipei")
 TOKEN_URL = "https://tdx.transportdata.tw/auth/realms/TDXConnect/protocol/openid-connect/token"
 ROUTING_URL = "https://tdx.transportdata.tw/api/maas/routing"
+BASIC_URL = "https://tdx.transportdata.tw/api/basic"
 TOKEN_KEY = "tdx:access_token"
 TOKEN_LOCK = "tdx:token"
 # 固定參數（3.2）：高鐵、台鐵、公車、捷運、輕軌；偏好最快；頭尾一定要明確設成走路，
@@ -261,13 +262,17 @@ class TdxTransit:
 
     # ── 旅運規劃 ─────────────────────────────────────────────
 
-    def _get(self, params: dict[str, str]) -> dict[str, Any]:
+    def get_basic(self, path: str, params: dict[str, str] | None = None) -> Any:
+        """基礎服務，例如車站（3.5）。限流和點數由呼叫端處理。"""
+        return self._get({"$format": "JSON", **(params or {})}, url=BASIC_URL + path)
+
+    def _get(self, params: dict[str, str], url: str = ROUTING_URL) -> Any:
         """8.3：逾時或 5xx 最多重試 2 次（間隔 1、2 秒）；4xx 不重試；401 換一次 token。"""
         refreshed = False
         for attempt in range(self.retries + 1):
             try:
                 resp = self.http.get(
-                    ROUTING_URL,
+                    url,
                     params=params,
                     headers={"authorization": f"Bearer {self.token()}", "Accept-Encoding": "gzip"},
                 )
@@ -284,7 +289,7 @@ class TdxTransit:
                 self.sleep(attempt + 1)
                 continue
             if resp.status_code != 200:
-                raise TdxError(f"TDX 旅運規劃 HTTP {resp.status_code}：{resp.text[:200]}")
+                raise TdxError(f"TDX HTTP {resp.status_code}：{resp.text[:200]}")
             return resp.json()
         raise TdxError("TDX 旅運規劃失敗")
 

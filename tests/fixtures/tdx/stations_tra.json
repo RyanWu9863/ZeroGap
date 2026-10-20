@@ -1,0 +1,301 @@
+[
+ {
+  "StationUID": "TRA-0980",
+  "StationID": "0980",
+  "StationName": {
+   "Zh_tw": "南港",
+   "En": "Nangang",
+   "Ja": null,
+   "Ko": null
+  },
+  "StationAddress": "115018臺北市南港區南港里南港路一段 313 號 B2",
+  "StationPhone": "02-27838645",
+  "OperatorID": "TRA",
+  "StationClass": "1",
+  "StationPosition": {
+   "PositionLon": 121.60706,
+   "PositionLat": 25.05348,
+   "GeoHash": "wsqqx0ze1"
+  },
+  "LocationCity": "臺北市",
+  "LocationCityCode": "TPE",
+  "LocationTown": "南港區",
+  "LocationTownCode": "63000090",
+  "UpdateTime": "2026-10-20T05:22:49+08:00",
+  "VersionID": 1797
+ },
+ {
+  "StationUID": "TRA-0990",
+  "StationID": "0990",
+  "StationName": {
+   "Zh_tw": "松山",
+   "En": "Songshan",
+   "Ja": null,
+   "Ko": null
+  },
+  "StationAddress": "110417臺北市信義區松山路 11 號B1",
+  "StationPhone": "02-27673819",
+  "OperatorID": "TRA",
+  "StationClass": "1",
+  "StationPosition": {
+   "PositionLon": 121.57906,
+   "PositionLat": 25.04927,
+   "GeoHash": "wsqqw854t"
+  },
+  "LocationCity": "臺北市",
+  "LocationCityCode": "TPE",
+  "LocationTown": "松山區",
+  "LocationTownCode": "63000010",
+  "UpdateTime": "2026-10-20T05:22:49+08:00",
+  "VersionID": 1797
+ },
+ {
+  "StationUID": "TRA-1000",
+  "StationID": "1000",
+  "StationName": {
+   "Zh_tw": "臺北",
+   "En": "Taipei",
+   "Ja": null,
+   "Ko": null
+  },
+  "StationAddress": "100230臺北市中正區黎明里北平西路 3 號",
+  "StationPhone": "02-23713558",
+  "OperatorID": "TRA",
+  "StationClass": "0",
+  "StationPosition": {
+   "PositionLon": 121.51711,
+   "PositionLat": 25.04775,
+   "GeoHash": "wsqqmpy19"
+  },
+  "LocationCity": "臺北市",
+  "LocationCityCode": "TPE",
+  "LocationTown": "中正區",
+  "LocationTownCode": "63000050",
+  "UpdateTime": "2026-10-20T05:22:49+08:00",
+  "VersionID": 1797
+ },
+ {
+  "StationUID": "TRA-1001",
+  "StationID": "1001",
+  "StationName": {
+   "Zh_tw": "臺北-環島",
+   "En": "Taipei Surround Island",
+   "Ja": "台北サラウンドアイランド",
+   "Ko": "타이베이 서라운드 아일랜드"
+  },
+  "StationAddress": "100230臺北市中正區",
+  "OperatorID": "TRA",
+  "StationClass": "4",
+  "StationPosition": {
+   "PositionLon": 121.51711,
+   "PositionLat": 25.04774,
+   "GeoHash": "wsqqmpy19"
+  },
+  "LocationCity": "臺北市",
+  "LocationCityCode": "TPE",
+  "LocationTown": "中正區",
+  "LocationTownCode": "63000050",
+  "UpdateTime": "2026-10-20T05:22:49+08:00",
+  "VersionID": 1797
+ },
+ {
+  "StationUID": "TRA-1010",
+  "StationID": "1010",
+  "StationName": {
+   "Zh_tw": "萬華",
+   "En": "Wanhua",
+   "Ja": null,
+   "Ko": null
+  },
+  "StationAddress": "108220臺北市萬華區富福里康定路 382 號",
+  "StationPhone": "02-23020481",
+  "OperatorID": "TRA",
+  "StationClass": "1",
+  "StationPosition": {
+   "PositionLon": 121.49996,
+   "PositionLat": 25.03339,
+   "GeoHash": "wsqqkv1w4"
+  },
+  "LocationCity": "臺北市",
+  "LocationCityCode": "TPE",
+  "LocationTown": "萬華區",
+  "LocationTownCode": "63000070",
+  "UpdateTime": "2026-10-20T05:22:49+08:00",
+  "VersionID": 1797
+ },
+ {
+  "StationUID": "TRA-1080",
+  "StationID": "1080",
+  "StationName": {
+   "Zh_tw": "桃園",
+   "En": "Taoyuan",
+   "Ja": null,
+   "Ko": null
+  },
+  "StationAddress": "330002桃園市桃園區武陵里中正路 1 號",
+  "StationPhone": "03-3767050",
+  "OperatorID": "TRA",
+  "StationClass": "1",
+  "StationPosition": {
+   "PositionLon": 121.31449,
+   "PositionLat": 24.98888,
+   "GeoHash": "wsqq0t4db"
+  },
+  "LocationCity": "桃園市",
+  "LocationCityCode": "TAO",
+  "LocationTown": "桃園區",
+  "LocationTownCode": "68000010",
+  "UpdateTime": "2026-10-20T05:22:49+08:00",
+  "VersionID": 1797
+ },
+ {
+  "StationUID": "TRA-1090",
+  "StationID": "1090",
+  "StationName": {
+   "Zh_tw": "內壢",
+   "En": "Neili",
+   "Ja": null,
+   "Ko": null
+  },
+  "StationAddress": "320070桃園市中壢區中原里中華路一段 267 號",
+  "StationPhone": "03-4559725",
+  "OperatorID": "TRA",
+  "StationClass": "3",
+  "StationPosition": {
+   "PositionLon": 121.25826,
+   "PositionLat": 24.97281,
+   "GeoHash": "wsqnp61t4"
+  },
+  "LocationCity": "桃園市",
+  "LocationCityCode": "TAO",
+  "LocationTown": "中壢區",
+  "LocationTownCode": "68000020",
+  "UpdateTime": "2026-10-20T05:22:49+08:00",
+  "VersionID": 1797
+ },
+ {
+  "StationUID": "TRA-1100",
+  "StationID": "1100",
+  "StationName": {
+   "Zh_tw": "中壢",
+   "En": "Zhongli_Taoyuan",
+   "Ja": null,
+   "Ko": null
+  },
+  "StationAddress": "320001桃園市中壢區石頭里中和路 139 號",
+  "StationPhone": "03-4223235",
+  "OperatorID": "TRA",
+  "StationClass": "1",
+  "StationPosition": {
+   "PositionLon": 121.22589,
+   "PositionLat": 24.95374,
+   "GeoHash": "wsqjyw9yp"
+  },
+  "LocationCity": "桃園市",
+  "LocationCityCode": "TAO",
+  "LocationTown": "中壢區",
+  "LocationTownCode": "68000020",
+  "UpdateTime": "2026-10-20T05:22:49+08:00",
+  "VersionID": 1797
+ },
+ {
+  "StationUID": "TRA-1105",
+  "StationID": "1105",
+  "StationName": {
+   "Zh_tw": "平鎮",
+   "En": "Pingzhen",
+   "Ja": "平鎮",
+   "Ko": "핑전"
+  },
+  "StationAddress": "324003桃園市平鎮區新富一街 66 號",
+  "StationPhone": "03-2840668",
+  "OperatorID": "TRA",
+  "StationClass": "4",
+  "StationPosition": {
+   "PositionLon": 121.21481,
+   "PositionLat": 24.94301,
+   "GeoHash": "wsqjyk9zt"
+  },
+  "LocationCity": "桃園市",
+  "LocationCityCode": "TAO",
+  "LocationTown": "平鎮區",
+  "LocationTownCode": "68000100",
+  "UpdateTime": "2026-10-20T05:22:49+08:00",
+  "VersionID": 1797
+ },
+ {
+  "StationUID": "TRA-1110",
+  "StationID": "1110",
+  "StationName": {
+   "Zh_tw": "埔心",
+   "En": "Puxin",
+   "Ja": null,
+   "Ko": null
+  },
+  "StationAddress": "326009桃園市楊梅區埔心里永美路 208 號",
+  "StationPhone": "03-4827100",
+  "OperatorID": "TRA",
+  "StationClass": "3",
+  "StationPosition": {
+   "PositionLon": 121.18363,
+   "PositionLat": 24.91939,
+   "GeoHash": "wsqjv87jz"
+  },
+  "LocationCity": "桃園市",
+  "LocationCityCode": "TAO",
+  "LocationTown": "楊梅區",
+  "LocationTownCode": "68000040",
+  "UpdateTime": "2026-10-20T05:22:49+08:00",
+  "VersionID": 1797
+ },
+ {
+  "StationUID": "TRA-1120",
+  "StationID": "1120",
+  "StationName": {
+   "Zh_tw": "楊梅",
+   "En": "Yangmei",
+   "Ja": null,
+   "Ko": null
+  },
+  "StationAddress": "326101桃園市楊梅區楊梅里大成路 256 號",
+  "StationPhone": "03-4782893",
+  "OperatorID": "TRA",
+  "StationClass": "3",
+  "StationPosition": {
+   "PositionLon": 121.14637,
+   "PositionLat": 24.91427,
+   "GeoHash": "wsqjsz805"
+  },
+  "LocationCity": "桃園市",
+  "LocationCityCode": "TAO",
+  "LocationTown": "楊梅區",
+  "LocationTownCode": "68000040",
+  "UpdateTime": "2026-10-20T05:22:49+08:00",
+  "VersionID": 1797
+ },
+ {
+  "StationUID": "TRA-1130",
+  "StationID": "1130",
+  "StationName": {
+   "Zh_tw": "富岡",
+   "En": "Fugang",
+   "Ja": null,
+   "Ko": null
+  },
+  "StationAddress": "326019桃園市楊梅區富岡里成功路 37 號",
+  "StationPhone": "03-4723754",
+  "OperatorID": "TRA",
+  "StationClass": "3",
+  "StationPosition": {
+   "PositionLon": 121.08309,
+   "PositionLat": 24.93436,
+   "GeoHash": "wsqjg74j0"
+  },
+  "LocationCity": "桃園市",
+  "LocationCityCode": "TAO",
+  "LocationTown": "楊梅區",
+  "LocationTownCode": "68000040",
+  "UpdateTime": "2026-10-20T05:22:49+08:00",
+  "VersionID": 1797
+ }
+]
