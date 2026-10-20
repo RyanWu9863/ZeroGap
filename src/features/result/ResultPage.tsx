@@ -92,7 +92,7 @@ export function ResultPage() {
           <RouteSketch plan={plan} />
           <CostPanel plan={plan} budget={request.budget_per_person} />
           <CopyButton request={request} plan={plan} className="hidden lg:block" />
-          <Link to="/behind" className="flex items-center justify-center gap-1 text-sm text-muted-foreground hover:text-foreground">
+          <Link to="/behind" className="flex items-center justify-center gap-1 py-2 text-sm text-muted-foreground hover:text-foreground">
             看系統怎麼挑的 <ArrowRight className="size-3.5" />
           </Link>
         </aside>

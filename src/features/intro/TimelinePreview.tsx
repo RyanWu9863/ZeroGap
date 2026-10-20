@@ -19,7 +19,7 @@ export function TimelinePreview() {
           </p>
         </div>
         <motion.ol
-          className="zg-surface relative space-y-1 p-5 sm:p-6"
+          className="zg-surface relative min-w-0 space-y-1 p-5 sm:p-6"
           initial="hidden"
           whileInView="show"
           viewport={{ once: true, amount: 0.4 }}
@@ -37,7 +37,7 @@ export function TimelinePreview() {
               <span className="min-w-0 flex-1 truncate text-sm">{s.desc}</span>
               {s.buffer_minutes != null && s.buffer_gate && (
                 <motion.span
-                  className="basis-full pl-[5.5rem]"
+                  className="basis-full sm:pl-[5.5rem]"
                   variants={{ hidden: { opacity: 0, scale: 0.9 }, show: { opacity: 1, scale: 1 } }}
                 >
                   <BufferChip minutes={s.buffer_minutes} text={bufferSentence(s.buffer_gate, s.buffer_minutes, '中壢站')} />

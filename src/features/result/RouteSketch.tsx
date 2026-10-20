@@ -47,6 +47,8 @@ export function RouteSketch({ plan }: { plan: Proposal }) {
         })}
         {nodes.map((n, i) => (
           <a key={i} href={placeUrl(n)} target="_blank" rel="noreferrer">
+            {/* 透明的大圓：手指比較好點到站點（看不到，只是放大點擊範圍） */}
+            <circle cx={pos[i].x} cy={pos[i].y} r={16} fill="transparent" />
             <circle cx={pos[i].x} cy={pos[i].y} r={n.kind === 'station' ? 7 : 5.5} className={n.kind === 'station' ? 'fill-background stroke-foreground' : 'fill-zg-ok stroke-background cine:fill-primary'} strokeWidth="2.5" />
             <text x={pos[i].x + (i % 2 === 0 ? -14 : 14)} y={pos[i].y + 4} textAnchor={i % 2 === 0 ? 'end' : 'start'} className="fill-foreground text-[12px]">
               {n.name}

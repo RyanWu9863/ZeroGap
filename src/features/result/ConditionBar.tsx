@@ -29,7 +29,7 @@ function ConditionChip({ kind, label, req, onApply }: { kind: ConditionKind; lab
   const changed = Object.entries(draft).some(([k, v]) => req[k as keyof ItineraryRequest] !== v)
   return (
     <Popover open={open} onOpenChange={(o) => { setOpen(o); setDraft({}) }}>
-      <PopoverTrigger className="zg-num rounded-full border bg-card px-3 py-1 text-xs transition-colors hover:border-foreground/50 data-[popup-open]:border-primary lin:rounded-md">
+      <PopoverTrigger className="zg-num rounded-full border bg-card px-3 py-1 text-xs transition-colors pointer-coarse:min-h-9 pointer-coarse:px-3.5 pointer-coarse:text-sm hover:border-foreground/50 data-[popup-open]:border-primary lin:rounded-md">
         {label}
       </PopoverTrigger>
       <PopoverContent align="start" className="w-[min(24rem,calc(100vw-2rem))] gap-4 p-4">

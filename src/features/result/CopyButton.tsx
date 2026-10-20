@@ -44,7 +44,7 @@ export function CopyButton({ request, plan, className }: { request: ItineraryReq
       {state === 'manual' && (
         <div className="zg-surface p-3 text-xs">
           <p className="mb-2 text-muted-foreground">這個瀏覽器不讓網頁自動複製，請長按下面的文字手動複製：</p>
-          <textarea readOnly value={text} rows={8} className="w-full resize-none rounded-md border bg-background p-2 font-mono text-[11px]" onFocus={(e) => e.currentTarget.select()} />
+          <textarea readOnly value={text} rows={8} className="w-full resize-none rounded-md border bg-background p-2 font-mono text-base sm:text-[11px]" onFocus={(e) => e.currentTarget.select()} />
         </div>
       )}
     </div>

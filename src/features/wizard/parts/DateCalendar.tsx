@@ -35,7 +35,7 @@ export function DateCalendar({ available, value, onChange }: { available: string
             disabled={!ok.has(q.d)}
             aria-pressed={value === q.d}
             onClick={() => onChange(q.d)}
-            className="rounded-full border bg-card px-3.5 py-1.5 text-sm hover:border-foreground/40 disabled:cursor-not-allowed disabled:opacity-40 aria-pressed:border-primary aria-pressed:bg-primary aria-pressed:text-primary-foreground lin:rounded-md"
+            className="rounded-full border bg-card px-3.5 py-1.5 text-sm hover:border-foreground/40 pointer-coarse:min-h-10 disabled:cursor-not-allowed disabled:opacity-40 aria-pressed:border-primary aria-pressed:bg-primary aria-pressed:text-primary-foreground lin:rounded-md"
           >
             {q.label} <span className="zg-num text-xs opacity-70">{formatDate(q.d)}</span>
           </button>
@@ -43,11 +43,11 @@ export function DateCalendar({ available, value, onChange }: { available: string
       </div>
       <div className="zg-surface max-w-sm p-3">
         <div className="mb-2 flex items-center justify-between">
-          <button type="button" aria-label="上個月" className="rounded-md p-1.5 hover:bg-muted" onClick={() => setMonth(new Date(month.getFullYear(), month.getMonth() - 1, 1))}>
+          <button type="button" aria-label="上個月" className="rounded-md p-1.5 hover:bg-muted pointer-coarse:p-2.5" onClick={() => setMonth(new Date(month.getFullYear(), month.getMonth() - 1, 1))}>
             <ChevronLeft className="size-4" />
           </button>
           <span className="zg-num text-sm font-medium">{month.getFullYear()} 年 {month.getMonth() + 1} 月</span>
-          <button type="button" aria-label="下個月" className="rounded-md p-1.5 hover:bg-muted" onClick={() => setMonth(new Date(month.getFullYear(), month.getMonth() + 1, 1))}>
+          <button type="button" aria-label="下個月" className="rounded-md p-1.5 hover:bg-muted pointer-coarse:p-2.5" onClick={() => setMonth(new Date(month.getFullYear(), month.getMonth() + 1, 1))}>
             <ChevronRight className="size-4" />
           </button>
         </div>
@@ -65,7 +65,7 @@ export function DateCalendar({ available, value, onChange }: { available: string
                 aria-label={formatDate(iso(d))}
                 onClick={() => onChange(iso(d))}
                 className={cn(
-                  'zg-num h-9 rounded-md text-sm hover:bg-muted disabled:cursor-not-allowed disabled:text-muted-foreground/40 disabled:hover:bg-transparent',
+                  'zg-num h-9 rounded-md text-sm pointer-coarse:h-11 hover:bg-muted disabled:cursor-not-allowed disabled:text-muted-foreground/40 disabled:hover:bg-transparent',
                   'aria-pressed:bg-primary aria-pressed:text-primary-foreground',
                   iso(d) === iso(today) && 'font-semibold underline underline-offset-4',
                 )}

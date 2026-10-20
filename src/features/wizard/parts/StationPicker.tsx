@@ -19,7 +19,7 @@ export function StationPicker({ stations, value, onChange }: {
           onChange={(e) => setQ(e.target.value)}
           placeholder="搜尋車站，例如：中壢"
           aria-label="搜尋出發站"
-          className="h-11 flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
+          className="h-11 min-w-0 flex-1 bg-transparent text-base outline-none placeholder:text-muted-foreground sm:text-sm"
         />
       </label>
       <div role="radiogroup" aria-label="出發站" className="grid max-h-56 grid-cols-2 gap-1 overflow-y-auto p-2 sm:grid-cols-3">
@@ -30,7 +30,7 @@ export function StationPicker({ stations, value, onChange }: {
             role="radio"
             aria-checked={s.name === value}
             onClick={() => onChange(s.name)}
-            className={cn('rounded-md px-3 py-2 text-left text-sm hover:bg-muted', s.name === value && 'bg-primary text-primary-foreground hover:bg-primary')}
+            className={cn('rounded-md px-3 py-2 text-left text-sm hover:bg-muted pointer-coarse:min-h-11', s.name === value && 'bg-primary text-primary-foreground hover:bg-primary')}
           >
             {s.name}
           </button>

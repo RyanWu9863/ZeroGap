@@ -48,7 +48,7 @@ export function WizardProgress({ current }: { current: number }) {
             <button className="text-muted-foreground underline underline-offset-2" onClick={() => setConfirming(false)}>取消</button>
           </span>
         ) : (
-          <button className="text-muted-foreground underline-offset-2 hover:underline" onClick={() => setConfirming(true)}>
+          <button className="text-muted-foreground underline-offset-2 hover:underline pointer-coarse:py-2" onClick={() => setConfirming(true)}>
             清空重來
           </button>
         )}

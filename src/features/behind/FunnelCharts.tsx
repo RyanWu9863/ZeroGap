@@ -15,7 +15,7 @@ function Bars({ rows }: { rows: Row[] }) {
     <ResponsiveContainer width="100%" height={rows.length * 40 + 16}>
       <BarChart data={rows} layout="vertical" margin={{ top: 4, right: 64, bottom: 4, left: 0 }}>
         <XAxis type="number" hide domain={[0, rows[0].remaining]} />
-        <YAxis type="category" dataKey="label" width={132} tickLine={false} axisLine={false} tick={{ fill: 'var(--muted-foreground)', fontSize: 12 }} />
+        <YAxis type="category" dataKey="label" width={116} tickLine={false} axisLine={false} tick={{ fill: 'var(--muted-foreground)', fontSize: 12 }} />
         <Tooltip
           cursor={{ fill: 'var(--muted)' }}
           content={({ active, payload }) => {
@@ -103,7 +103,16 @@ export function FunnelCharts({ total, stages }: { total: number; stages: FunnelS
           </button>
         ))}
       </div>
-      {view === 'bars' ? <Bars rows={rows} /> : <Flow rows={rows} />}
+      {view === 'bars' ? (
+        <Bars rows={rows} />
+      ) : (
+        // 桑基圖的文字在右側，手機上寬度不夠就讓它左右滑，不擠壓
+        <div className="-mx-1 overflow-x-auto px-1">
+          <div className="min-w-[30rem]">
+            <Flow rows={rows} />
+          </div>
+        </div>
+      )}
       <details className="mt-3 text-xs">
         <summary className="cursor-pointer text-muted-foreground">用表格看</summary>
         <table className="zg-num mt-2 w-full text-left">

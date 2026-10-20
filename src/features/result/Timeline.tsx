@@ -46,7 +46,7 @@ export function Timeline({ plan, stationName }: { plan: Proposal; stationName: s
                         href={placeUrl(s.place)}
                         target="_blank"
                         rel="noreferrer"
-                        className="inline-flex items-center gap-1 underline decoration-border underline-offset-4 hover:decoration-foreground"
+                        className="inline-flex items-center gap-1 underline decoration-border underline-offset-4 hover:decoration-foreground pointer-coarse:py-1.5"
                       >
                         {s.place.name}
                         <ExternalLink className="size-3 text-muted-foreground" aria-label="在 Google 地圖開啟" />

@@ -46,7 +46,7 @@ export function BehindPage() {
           <div className="grid place-items-center py-16 text-muted-foreground"><LogoMark size={40} spinning /></div>
         ) : (
           <div className="mt-6 grid gap-6 lg:grid-cols-2">
-            <div className="zg-surface p-5">
+            <div className="zg-surface min-w-0 p-5">
               <h3 className="font-semibold">五道關卡漏斗</h3>
               <p className="mb-4 text-xs text-muted-foreground">
                 {data.funnel_stats.total_checked.toLocaleString()} 種組合，最後 {data.funnel_stats.feasible_count} 種每段都接得上。
@@ -57,7 +57,7 @@ export function BehindPage() {
                 <p className="text-sm text-muted-foreground">後端還沒回傳每一關的剔除數（API 變更提案 #7）。</p>
               )}
             </div>
-            <div className="zg-surface p-5">
+            <div className="zg-surface min-w-0 p-5">
               <h3 className="mb-4 font-semibold">Jev 怎麼排序</h3>
               <ProbabilityTable data={data} />
             </div>

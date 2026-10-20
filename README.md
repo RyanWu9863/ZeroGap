@@ -8,10 +8,11 @@
 npm install
 npm run dev        # http://localhost:5173
 npm test           # 單元測試（Vitest，37 個）
-npm run e2e        # 流程測試（Playwright，Chromium＋WebKit，12 個；第一次要先 npx playwright install chromium webkit）
+npm run e2e        # 流程測試（Playwright：桌機 Chromium、桌機 WebKit、iPhone 13；第一次要先 npx playwright install chromium webkit）
 npm run build      # 正式打包到 dist/
 npm run build:pages  # GitHub Pages 版（PAGES_BASE=/repo名稱/）
 npm run og         # 重新產生連結預覽圖 public/og.png
+npm run icons      # 重新產生 iOS 主畫面圖示 public/apple-touch-icon.png
 npm run predemo    # Demo 前一鍵檢查：型別＋單元測試＋流程測試＋打包
 ```
 
@@ -59,7 +60,7 @@ nginx 提供打包好的網頁，`/api/` 轉給 `BACKEND_URL`（預設 `http://b
 
 - `docs/前端決策紀錄.md`：102 題問答定下來的所有決定
 - `docs/API變更提案_前端需求.md`：要請後端加的欄位
-- `docs/導讀_01～04`：每一版程式的白話說明
+- `docs/導讀_01～05`：每一版程式的白話說明（05 是 iPhone 適配）
 - `docs/試用計畫_第13天.md`、`docs/彩排腳本_第14天.md`：試用與上台用
 
 ## 技術

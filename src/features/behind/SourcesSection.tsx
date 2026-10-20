@@ -9,7 +9,7 @@ export function SourcesSection() {
   const { data } = useStatus()
   const { demo, setDemo } = useDemoStore()
   return (
-    <div className="grid gap-4 md:grid-cols-2">
+    <div className="grid gap-4 md:grid-cols-2 [&>*]:min-w-0">
       <div className="zg-surface p-5">
         <h3 className="font-semibold">資料來源</h3>
         {data && (

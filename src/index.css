@@ -191,6 +191,7 @@
   border: 1px solid var(--border);
   border-radius: var(--radius-xl);
   [data-proto="cinematic"] & {
+    -webkit-backdrop-filter: blur(14px) saturate(140%); /* iOS Safari 17 以前需要前綴 */
     backdrop-filter: blur(14px) saturate(140%);
     box-shadow: 0 1px 0 rgb(255 255 255 / 0.06) inset, 0 20px 40px -20px rgb(0 0 0 / 0.6);
   }
@@ -213,6 +214,16 @@
   html {
     @apply antialiased;
     font-family: var(--zg-body-font);
+    /* iOS 橫放時不要自動把字放大 */
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+    /* 點按時不要出現灰色方塊，改用各元件自己的按下效果 */
+    -webkit-tap-highlight-color: transparent;
+  }
+  /* iPhone 橫放時左右有瀏海：內容避開安全區域 */
+  body {
+    padding-left: env(safe-area-inset-left, 0px);
+    padding-right: env(safe-area-inset-right, 0px);
   }
   body {
     @apply bg-background text-foreground;
@@ -255,6 +266,11 @@
   background: var(--background);
   border: 2px solid var(--primary);
   cursor: grab;
+}
+/* 手指操作（手機、平板）時圓鈕放大到 30px，比較好按 */
+@media (pointer: coarse) {
+  .zg-range::-webkit-slider-thumb { width: 30px; height: 30px; }
+  .zg-range::-moz-range-thumb { width: 26px; height: 26px; }
 }
 .zg-range:focus-visible::-webkit-slider-thumb {
   outline: 3px solid var(--ring);

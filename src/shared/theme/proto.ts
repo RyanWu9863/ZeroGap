@@ -30,6 +30,8 @@ export function useApplyProto() {
     const root = document.documentElement
     root.dataset.proto = proto
     root.classList.toggle('dark', proto !== 'timetable')
+    const bg = getComputedStyle(root).getPropertyValue('--background').trim()
+    document.querySelector('meta[name="theme-color"]')?.setAttribute('content', bg)
   }, [proto])
   return proto
 }

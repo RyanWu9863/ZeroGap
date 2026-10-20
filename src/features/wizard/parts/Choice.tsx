@@ -5,7 +5,7 @@ import { cn } from '@/lib/utils'
 /** 一題的標題區（竹老師：一頁專心問一件事） */
 export function Field({ title, hint, children }: { title: string; hint?: ReactNode; children: ReactNode }) {
   return (
-    <fieldset className="space-y-3">
+    <fieldset className="min-w-0 space-y-3">
       <legend className="text-sm font-medium">{title}</legend>
       {children}
       {hint && <p className="text-xs text-muted-foreground">{hint}</p>}
@@ -65,7 +65,7 @@ export function Chips<T extends string | number>({ options, value, onChange, lab
           aria-checked={o.value === value}
           disabled={o.disabled}
           onClick={() => onChange(o.value)}
-          className="zg-num rounded-full border bg-card px-3.5 py-1.5 text-sm transition-colors hover:border-foreground/40 disabled:cursor-not-allowed disabled:opacity-40 aria-checked:border-primary aria-checked:bg-primary aria-checked:text-primary-foreground lin:rounded-md"
+          className="zg-num rounded-full border bg-card px-3.5 py-1.5 text-sm transition-colors pointer-coarse:min-h-10 hover:border-foreground/40 disabled:cursor-not-allowed disabled:opacity-40 aria-checked:border-primary aria-checked:bg-primary aria-checked:text-primary-foreground lin:rounded-md"
         >
           {o.label}
         </button>
