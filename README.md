@@ -7,14 +7,41 @@
 ```bash
 npm install
 npm run dev        # http://localhost:5173
-npm test           # 單元測試（Vitest，37 個）
+npm test           # 單元測試（Vitest，45 個）
 npm run e2e        # 流程測試（Playwright：桌機 Chromium、桌機 WebKit、iPhone 13；第一次要先 npx playwright install chromium webkit）
 npm run build      # 正式打包到 dist/
-npm run build:pages  # GitHub Pages 版（PAGES_BASE=/repo名稱/）
+npm run build:pages  # GitHub Pages 版（預設網址多一層 /zerogap/，可用環境變數 PAGES_BASE 改）
 npm run og         # 重新產生連結預覽圖 public/og.png
 npm run icons      # 重新產生 iOS 主畫面圖示 public/apple-touch-icon.png
 npm run predemo    # Demo 前一鍵檢查：型別＋單元測試＋流程測試＋打包
 ```
+
+## Mac 和 Windows 都能開發
+
+所有指令在 Mac（終端機）和 Windows（PowerShell 或 VS Code 的終端機）上都一樣。
+
+| 項目 | 說明 |
+|---|---|
+| Node.js | 版本 24（寫在 `.nvmrc`，最低 22.12）。到 nodejs.org 下載 LTS 安裝即可；用 nvm 的人執行 `nvm use` |
+| 換行字元 | `.gitattributes` 規定 repo 裡一律用 LF，Windows 的 Git 不會再把整個檔案改成 CRLF |
+| 編輯器 | `.editorconfig` 統一縮排 2 格、UTF-8、LF；VS Code 會提示安裝 EditorConfig 擴充套件 |
+| 流程測試瀏覽器 | 第一次執行 `npx playwright install chromium webkit`，Mac 和 Windows 都支援 |
+| 腳本 | `package.json` 的指令都不用 Mac 專屬語法；需要檔案操作的寫成 `scripts/*.mjs`（用 Node 跑） |
+| 自動檢查 | 推上 GitHub 後，`.github/workflows/ci.yml` 會在 macOS、Windows、Linux 各跑一次型別、lint、測試、打包 |
+
+設定環境變數的寫法不一樣（只有 `build:pages` 換 repo 名稱時才需要）：
+
+```bash
+PAGES_BASE=/my-repo/ npm run build:pages
+```
+
+```powershell
+$env:PAGES_BASE="/my-repo/"; npm run build:pages
+```
+
+複製設定檔：Mac 用 `cp .env.example .env`，Windows 用 `copy .env.example .env`。
+
+## 假資料與後端
 
 預設使用假資料（`VITE_USE_MOCK=true`）。要接後端時複製 `.env.example` 成 `.env`，把 `VITE_USE_MOCK` 改成 `false`。開發時 `/api` 會自動轉給 `localhost:8000`。
 
@@ -62,6 +89,7 @@ nginx 提供打包好的網頁，`/api/` 轉給 `BACKEND_URL`（預設 `http://b
 - `docs/API變更提案_前端需求.md`：要請後端加的欄位
 - `docs/導讀_01～05`：每一版程式的白話說明（05 是 iPhone 適配）
 - `docs/試用計畫_第13天.md`、`docs/彩排腳本_第14天.md`：試用與上台用
+- `docs/前端後續優化計畫.md`：下一階段的盤點與 Roadmap（P0～P3）
 
 ## 技術
 
