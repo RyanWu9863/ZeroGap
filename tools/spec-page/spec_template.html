@@ -1,0 +1,185 @@
+<title>ZeroGap 零空檔｜後端規格書</title>
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&family=Noto+Serif+TC:wght@600;700&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: plum title band like the team's deck, then a sticky table of contents beside a single reading column. */
+:root {
+  --bg: #FBF8F6;
+  --surface: #FFFFFF;
+  --ink: #2B2230;
+  --muted: #6E6372;
+  --line: #E7DFDA;
+  --accent: #B5462C;
+  --accent-soft: #F7E4DD;
+  --band: #2B2230;
+  --band-ink: #F6EEE9;
+  --band-muted: #C9BCC4;
+  --band-accent: #F0906C;
+  --code-bg: #F4EFEC;
+  --c-default-bg: #FBEFD5; --c-default-fg: #7A4F00;
+  --c-todo-bg: #E2EDF8;    --c-todo-fg: #24527F;
+  --c-verify-bg: #ECE8FA;  --c-verify-fg: #4F3F9E;
+  --c-done-bg: #E1F1E7;    --c-done-fg: #22603F;
+  --font-display: "Noto Serif TC", "Songti TC", "PMingLiU", serif;
+  --font-body: "Noto Sans TC", "Microsoft JhengHei", "PingFang TC", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", "Consolas", "Menlo", monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #1E1821; --surface: #282029; --ink: #EFE6EB; --muted: #B4A8B2; --line: #3B3140;
+    --accent: #F2906D; --accent-soft: #3B2A2A; --band: #140F16; --band-ink: #F6EEE9; --band-muted: #B9ABB4;
+    --band-accent: #F2906D; --code-bg: #231C26;
+    --c-default-bg: #3A2E14; --c-default-fg: #F1CD7E;
+    --c-todo-bg: #1C2C3E;    --c-todo-fg: #9CC4EE;
+    --c-verify-bg: #2B2541;  --c-verify-fg: #C2B6F4;
+    --c-done-bg: #193325;    --c-done-fg: #96D9B1;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #1E1821; --surface: #282029; --ink: #EFE6EB; --muted: #B4A8B2; --line: #3B3140;
+  --accent: #F2906D; --accent-soft: #3B2A2A; --band: #140F16; --band-ink: #F6EEE9; --band-muted: #B9ABB4;
+  --band-accent: #F2906D; --code-bg: #231C26;
+  --c-default-bg: #3A2E14; --c-default-fg: #F1CD7E;
+  --c-todo-bg: #1C2C3E;    --c-todo-fg: #9CC4EE;
+  --c-verify-bg: #2B2541;  --c-verify-fg: #C2B6F4;
+  --c-done-bg: #193325;    --c-done-fg: #96D9B1;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+body { background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 16px; line-height: 1.75; margin: 0; }
+
+.band { background: var(--band); color: var(--band-ink); }
+.band-inner {
+  max-width: 1180px; margin: 0 auto;
+  padding-block: 48px 40px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 32px; align-items: end;
+}
+.eyebrow.brand { display: flex; align-items: center; gap: 10px; color: var(--band-ink); letter-spacing: .12em; }
+.eyebrow.brand .logo { flex: none; }
+.eyebrow { color: var(--band-accent); font-weight: 700; letter-spacing: .08em; font-size: 13px; margin: 0 0 10px; }
+.band h1 { font-family: var(--font-display); font-size: clamp(30px, 5vw, 46px); line-height: 1.2; margin: 0 0 14px; text-wrap: balance; }
+.band .lede { color: var(--band-muted); margin: 0; max-width: 62ch; }
+.meta { display: flex; flex-wrap: wrap; gap: 8px 18px; margin-top: 18px; color: var(--band-muted); font-size: 14px; }
+.meta b { color: var(--band-ink); font-weight: 500; }
+.timeline { list-style: none; margin: 0; padding: 0 0 0 18px; border-left: 2px solid color-mix(in srgb, var(--band-accent) 45%, transparent); display: grid; gap: 14px; font-size: 15px; }
+.timeline li { position: relative; display: flex; gap: 14px; align-items: baseline; white-space: nowrap; }
+.timeline li::before { content: ""; position: absolute; left: -25px; top: .55em; width: 10px; height: 10px; border-radius: 50%; background: var(--band-accent); }
+.timeline time { font-family: var(--font-mono); color: var(--band-accent); font-variant-numeric: tabular-nums; }
+.timeline-cap { color: var(--band-muted); font-size: 12px; margin: 10px 0 0; }
+
+.wrap {
+  max-width: 1180px; margin: 0 auto;
+  padding-block: 32px 80px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  display: grid; grid-template-columns: 240px minmax(0, 1fr); gap: 48px;
+}
+.toc { position: sticky; top: calc(env(safe-area-inset-top, 0px) + 20px); align-self: start; max-height: calc(100vh - 40px); overflow: auto; font-size: 14px; }
+.toc-title { font-weight: 700; color: var(--muted); letter-spacing: .08em; font-size: 12px; margin: 0 0 10px; }
+.toc ol { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; }
+.toc a { display: block; padding: 5px 10px; border-radius: 6px; color: var(--ink); text-decoration: none; border-left: 2px solid transparent; }
+.toc a:hover { background: var(--accent-soft); }
+.toc a:focus-visible, a:focus-visible, summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.toc-mobile { display: none; }
+
+.legend { display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: center; padding: 14px 16px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); font-size: 14px; color: var(--muted); margin-bottom: 28px; }
+.legend strong { color: var(--ink); font-variant-numeric: tabular-nums; }
+
+main { min-width: 0; max-width: 820px; }
+main h2 { font-family: var(--font-display); font-size: 28px; line-height: 1.35; margin: 56px 0 16px; padding-top: 18px; border-top: 1px solid var(--line); text-wrap: balance; scroll-margin-top: 16px; }
+main h2:first-child { margin-top: 0; border-top: 0; padding-top: 0; }
+main h3 { font-size: 20px; font-weight: 700; margin: 36px 0 10px; text-wrap: balance; scroll-margin-top: 16px; }
+main h4 { font-size: 17px; font-weight: 700; margin: 28px 0 8px; font-family: var(--font-mono); color: var(--accent); scroll-margin-top: 16px; }
+main p, main li { max-width: 68ch; }
+main ul, main ol { padding-left: 1.4em; }
+main li + li { margin-top: 4px; }
+main a { color: var(--accent); }
+main hr { display: none; }
+main img { display: block; width: 100%; height: auto; border: 1px solid var(--line); border-radius: 10px; background: #FFFFFF; margin: 8px 0 12px; }
+main strong { font-weight: 700; }
+
+code { font-family: var(--font-mono); font-size: .88em; background: var(--code-bg); padding: .1em .35em; border-radius: 4px; overflow-wrap: anywhere; }
+pre.code { background: var(--code-bg); border: 1px solid var(--line); border-radius: 8px; padding: 14px 16px; overflow-x: auto; line-height: 1.55; font-size: 14px; }
+pre.code code { background: none; padding: 0; font-size: inherit; overflow-wrap: normal; }
+
+.scroll { overflow-x: auto; margin: 14px 0 18px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); }
+table { border-collapse: collapse; width: 100%; font-size: 14.5px; line-height: 1.6; }
+th, td { text-align: left; vertical-align: top; padding: 9px 12px; border-bottom: 1px solid var(--line); }
+th { background: var(--accent-soft); font-weight: 700; white-space: nowrap; }
+tr:last-child td { border-bottom: 0; }
+td { font-variant-numeric: tabular-nums; }
+
+.chip { display: inline-block; font-size: 12px; line-height: 1.5; font-weight: 700; padding: 1px 8px; border-radius: 999px; white-space: nowrap; vertical-align: 1px; font-family: var(--font-body); }
+.chip-default { background: var(--c-default-bg); color: var(--c-default-fg); }
+.chip-todo { background: var(--c-todo-bg); color: var(--c-todo-fg); }
+.chip-verify { background: var(--c-verify-bg); color: var(--c-verify-fg); }
+.chip-done { background: var(--c-done-bg); color: var(--c-done-fg); }
+
+@media (max-width: 1000px) {
+  .wrap { grid-template-columns: minmax(0, 1fr); gap: 0; }
+  .toc { display: none; }
+  .toc-mobile { display: block; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); padding: 10px 14px; margin-bottom: 20px; font-size: 14px; }
+  .toc-mobile summary { cursor: pointer; font-weight: 700; }
+  .toc-mobile ol { list-style: none; padding: 8px 0 0; margin: 0; display: grid; gap: 2px; }
+  .toc-mobile a { color: var(--ink); text-decoration: none; display: block; padding: 4px 0; }
+}
+@media (max-width: 720px) {
+  .band-inner { grid-template-columns: minmax(0, 1fr); padding-block: 36px 28px; }
+  main h2 { font-size: 24px; }
+}
+</style>
+
+<header class="band">
+  <div class="band-inner">
+    <div>
+      <p class="eyebrow brand"><svg class="logo" width="30" height="30" viewBox="0 0 100 100" aria-hidden="true"><circle cx="50" cy="50" r="46" fill="none" stroke="currentColor" stroke-width="1.5"/><line x1="50" y1="1.5" x2="50" y2="8.5" stroke="currentColor" stroke-width="2" opacity="1" transform="rotate(0 50 50)"/><line x1="50" y1="4" x2="50" y2="6.5" stroke="currentColor" stroke-width="0.8" opacity="0.5" transform="rotate(6 50 50)"/><line x1="50" y1="4" x2="50" y2="6.5" stroke="currentColor" stroke-width="0.8" opacity="0.5" transform="rotate(12 50 50)"/><line x1="50" y1="4" x2="50" y2="6.5" stroke="currentColor" stroke-width="0.8" opacity="0.5" transform="rotate(18 50 50)"/><line x1="50" y1="4" x2="50" y2="6.5" stroke="currentColor" stroke-width="0.8" opacity="0.5" transform="rotate(24 50 50)"/><line x1="50" y1="4" x2="50" y2="8.5" stroke="currentColor" stroke-width="0.8" opacity="1" transform="rotate(30 50 50)"/><line x1="50" y1="4" x2="50" y2="6.5" stroke="currentColor" stroke-width="0.8" opacity="0.5" transform="rotate(36 50 50)"/><line x1="50" y1="4" x2="50" y2="6.5" stroke="currentColor" stroke-width="0.8" opacity="0.5" transform="rotate(42 50 50)"/><line x1="50" y1="4" x2="50" y2="6.5" stroke="currentColor" stroke-width="0.8" opacity="0.5" transform="rotate(48 50 50)"/><line x1="50" y1="4" x2="50" y2="6.5" stroke="currentColor" stroke-width="0.8" opacity="0.5" transform="rotate(54 50 50)"/><line x1="50" y1="4" x2="50" y2="8.5" stroke="currentColor" stroke-width="0.8" opacity="1" transform="rotate(60 50 50)"/><line x1="50" y1="4" x2="50" y2="6.5" stroke="currentColor" stroke-width="0.8" opacity="0.5" transform="rotate(66 50 50)"/><line x1="50" y1="4" x2="50" y2="6.5" stroke="currentColor" stroke-width="0.8" opacity="0.5" transform="rotate(72 50 50)"/><line x1="50" y1="4" x2="50" y2="6.5" stroke="currentColor" stroke-width="0.8" opacity="0.5" transform="rotate(78 50 50)"/><line x1="50" y1="4" x2="50" y2="6.5" stroke="currentColor" stroke-width="0.8" opacity="0.5" transform="rotate(84 50 50)"/><line x1="50" y1="1.5" x2="50" y2="8.5" stroke="currentColor" stroke-width="2" opacity="1" transform="rotate(90 50 50)"/><line x1="50" y1="4" x2="50" y2="6.5" stroke="currentColor" stroke-width="0.8" opacity="0.5" transform="rotate(96 50 50)"/><line x1="50" y1="4" x2="50" y2="6.5" stroke="currentColor" stroke-width="0.8" opacity="0.5" transform="rotate(102 50 50)"/><line x1="50" y1="4" x2="50" y2="6.5" stroke="currentColor" stroke-width="0.8" opacity="0.5" transform="rotate(108 50 50)"/><line x1="50" y1="4" x2="50" y2="6.5" stroke="currentColor" stroke-width="0.8" opacity="0.5" transform="rotate(114 50 50)"/><line x1="50" y1="4" x2="50" y2="8.5" stroke="currentColor" stroke-width="0.8" opacity="1" transform="rotate(120 50 50)"/><line x1="50" y1="4" x2="50" y2="6.5" stroke="currentColor" stroke-width="0.8" opacity="0.5" transform="rotate(126 50 50)"/><line x1="50" y1="4" x2="50" y2="6.5" stroke="currentColor" stroke-width="0.8" opacity="0.5" transform="rotate(132 50 50)"/><line x1="50" y1="4" x2="50" y2="6.5" stroke="currentColor" stroke-width="0.8" opacity="0.5" transform="rotate(138 50 50)"/><line x1="50" y1="4" x2="50" y2="6.5" stroke="currentColor" stroke-width="0.8" opacity="0.5" transform="rotate(144 50 50)"/><line x1="50" y1="4" x2="50" y2="8.5" stroke="currentColor" stroke-width="0.8" opacity="1" transform="rotate(150 50 50)"/><line x1="50" y1="4" x2="50" y2="6.5" stroke="currentColor" stroke-width="0.8" opacity="0.5" transform="rotate(156 50 50)"/><line x1="50" y1="4" x2="50" y2="6.5" stroke="currentColor" stroke-width="0.8" opacity="0.5" transform="rotate(162 50 50)"/><line x1="50" y1="4" x2="50" y2="6.5" stroke="currentColor" stroke-width="0.8" opacity="0.5" transform="rotate(168 50 50)"/><line x1="50" y1="4" x2="50" y2="6.5" stroke="currentColor" stroke-width="0.8" opacity="0.5" transform="rotate(174 50 50)"/><line x1="50" y1="1.5" x2="50" y2="8.5" stroke="currentColor" stroke-width="2" opacity="1" transform="rotate(180 50 50)"/><line x1="50" y1="4" x2="50" y2="6.5" stroke="currentColor" stroke-width="0.8" opacity="0.5" transform="rotate(186 50 50)"/><line x1="50" y1="4" x2="50" y2="6.5" stroke="currentColor" stroke-width="0.8" opacity="0.5" transform="rotate(192 50 50)"/><line x1="50" y1="4" x2="50" y2="6.5" stroke="currentColor" stroke-width="0.8" opacity="0.5" transform="rotate(198 50 50)"/><line x1="50" y1="4" x2="50" y2="6.5" stroke="currentColor" stroke-width="0.8" opacity="0.5" transform="rotate(204 50 50)"/><line x1="50" y1="4" x2="50" y2="8.5" stroke="currentColor" stroke-width="0.8" opacity="1" transform="rotate(210 50 50)"/><line x1="50" y1="4" x2="50" y2="6.5" stroke="currentColor" stroke-width="0.8" opacity="0.5" transform="rotate(216 50 50)"/><line x1="50" y1="4" x2="50" y2="6.5" stroke="currentColor" stroke-width="0.8" opacity="0.5" transform="rotate(222 50 50)"/><line x1="50" y1="4" x2="50" y2="6.5" stroke="currentColor" stroke-width="0.8" opacity="0.5" transform="rotate(228 50 50)"/><line x1="50" y1="4" x2="50" y2="6.5" stroke="currentColor" stroke-width="0.8" opacity="0.5" transform="rotate(234 50 50)"/><line x1="50" y1="4" x2="50" y2="8.5" stroke="currentColor" stroke-width="0.8" opacity="1" transform="rotate(240 50 50)"/><line x1="50" y1="4" x2="50" y2="6.5" stroke="currentColor" stroke-width="0.8" opacity="0.5" transform="rotate(246 50 50)"/><line x1="50" y1="4" x2="50" y2="6.5" stroke="currentColor" stroke-width="0.8" opacity="0.5" transform="rotate(252 50 50)"/><line x1="50" y1="4" x2="50" y2="6.5" stroke="currentColor" stroke-width="0.8" opacity="0.5" transform="rotate(258 50 50)"/><line x1="50" y1="4" x2="50" y2="6.5" stroke="currentColor" stroke-width="0.8" opacity="0.5" transform="rotate(264 50 50)"/><line x1="50" y1="1.5" x2="50" y2="8.5" stroke="currentColor" stroke-width="2" opacity="1" transform="rotate(270 50 50)"/><line x1="50" y1="4" x2="50" y2="6.5" stroke="currentColor" stroke-width="0.8" opacity="0.5" transform="rotate(276 50 50)"/><line x1="50" y1="4" x2="50" y2="6.5" stroke="currentColor" stroke-width="0.8" opacity="0.5" transform="rotate(282 50 50)"/><line x1="50" y1="4" x2="50" y2="6.5" stroke="currentColor" stroke-width="0.8" opacity="0.5" transform="rotate(288 50 50)"/><line x1="50" y1="4" x2="50" y2="6.5" stroke="currentColor" stroke-width="0.8" opacity="0.5" transform="rotate(294 50 50)"/><line x1="50" y1="4" x2="50" y2="8.5" stroke="currentColor" stroke-width="0.8" opacity="1" transform="rotate(300 50 50)"/><line x1="50" y1="4" x2="50" y2="6.5" stroke="currentColor" stroke-width="0.8" opacity="0.5" transform="rotate(306 50 50)"/><line x1="50" y1="4" x2="50" y2="6.5" stroke="currentColor" stroke-width="0.8" opacity="0.5" transform="rotate(312 50 50)"/><line x1="50" y1="4" x2="50" y2="6.5" stroke="currentColor" stroke-width="0.8" opacity="0.5" transform="rotate(318 50 50)"/><line x1="50" y1="4" x2="50" y2="6.5" stroke="currentColor" stroke-width="0.8" opacity="0.5" transform="rotate(324 50 50)"/><line x1="50" y1="4" x2="50" y2="8.5" stroke="currentColor" stroke-width="0.8" opacity="1" transform="rotate(330 50 50)"/><line x1="50" y1="4" x2="50" y2="6.5" stroke="currentColor" stroke-width="0.8" opacity="0.5" transform="rotate(336 50 50)"/><line x1="50" y1="4" x2="50" y2="6.5" stroke="currentColor" stroke-width="0.8" opacity="0.5" transform="rotate(342 50 50)"/><line x1="50" y1="4" x2="50" y2="6.5" stroke="currentColor" stroke-width="0.8" opacity="0.5" transform="rotate(348 50 50)"/><line x1="50" y1="4" x2="50" y2="6.5" stroke="currentColor" stroke-width="0.8" opacity="0.5" transform="rotate(354 50 50)"/><path d="M27 34h22L30 66h20M70 40a14 14 0 1 0 2 16h-12" fill="none" stroke="currentColor" stroke-width="5" stroke-linecap="square"/></svg><span>ZEROGAP 零空檔｜後端規格書</span></p>
+      <h1>娛樂、餐廳、交通，一次排到剛剛好</h1>
+      <p class="lede">FastAPI、PostgreSQL、Redis 三大亮點的後端設計。這份是給組員確認用的草稿，標成「預設」的地方都可以提出修改。</p>
+      <div class="meta">
+        <span>版本 <b>{{VERSION}}</b></span>
+        <span>日期 <b>{{DATE}}</b></span>
+        <span>狀態 <b>草稿・待組員確認</b></span>
+      </div>
+    </div>
+    <div aria-label="規格書中的範例行程">
+      <ol class="timeline">
+        <li><time>17:55</time><span>看電影</span></li>
+        <li><time>20:07</time><span>吃晚餐</span></li>
+        <li><time>21:25</time><span>回到中壢站</span></li>
+      </ol>
+      <p class="timeline-cap">規格書 6.5 的範例方案</p>
+    </div>
+  </div>
+</header>
+
+<div class="wrap">
+  <nav class="toc" aria-label="目錄">
+    <p class="toc-title">目錄</p>
+    <ol>
+{{TOC}}
+    </ol>
+  </nav>
+  <main>
+    <details class="toc-mobile">
+      <summary>目錄</summary>
+      <ol>
+{{TOC}}
+      </ol>
+    </details>
+    <div class="legend" role="note">
+      <span><span class="chip chip-default">預設</span> 先填的預設值，可以修改（<strong>{{N_DEFAULT}}</strong> 處）</span>
+      <span><span class="chip chip-todo">待提供</span> 要由團隊提供的資料（<strong>{{N_TODO}}</strong> 處）</span>
+      <span><span class="chip chip-verify">實作前確認</span> 寫程式前要查證（<strong>{{N_VERIFY}}</strong> 處）</span>
+    </div>
+{{BODY}}
+  </main>
+</div>

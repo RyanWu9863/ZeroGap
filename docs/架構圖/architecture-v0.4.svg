@@ -1,0 +1,176 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1340" height="1320" viewBox="0 0 1340 1320" font-family="'Microsoft JhengHei','PingFang TC','Noto Sans TC','Noto Sans CJK TC',sans-serif">
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M1 1 L9 5 L1 9" fill="none" stroke="#6B6A65" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+    </marker>
+    <style>
+      .p { fill: #EEEDFE; stroke: #7F77DD; stroke-width: 1.4; }
+      .g { fill: #E1F5EE; stroke: #1D9E75; stroke-width: 1.4; }
+      .n { fill: #F1EFE8; stroke: #888780; stroke-width: 1.4; }
+      .box { fill: none; stroke: #B4B2A9; stroke-width: 1.4; stroke-dasharray: 7 5; }
+      .pt { fill: #3C3489; font-size: 18px; font-weight: 600; text-anchor: middle; }
+      .ps { fill: #534AB7; font-size: 14px; text-anchor: middle; }
+      .gt { fill: #085041; font-size: 17px; font-weight: 600; text-anchor: middle; }
+      .gs { fill: #0F6E56; font-size: 13.5px; text-anchor: middle; }
+      .nt { fill: #2C2C2A; font-size: 18px; font-weight: 600; text-anchor: middle; }
+      .ns { fill: #5F5E5A; font-size: 14px; text-anchor: middle; }
+      .step { fill: #534AB7; font-size: 14px; }
+      .lbl { fill: #5F5E5A; font-size: 13px; }
+      .cap { fill: #5F5E5A; font-size: 14px; font-weight: 600; }
+      .ln { fill: none; stroke: #6B6A65; stroke-width: 1.5; }
+      .dash { fill: none; stroke: #6B6A65; stroke-width: 1.5; stroke-dasharray: 6 4; }
+    </style>
+  </defs>
+
+  <rect width="1340" height="1320" fill="#FFFFFF"/>
+
+  <!-- 用戶端 -->
+  <rect class="n" x="360" y="40" width="300" height="76" rx="12"/>
+  <text class="nt" x="510" y="72">網頁 ZeroGap</text>
+  <text class="ns" x="510" y="98">下拉條件・前三名方案・SSE 進度</text>
+
+  <rect class="n" x="720" y="40" width="300" height="76" rx="12"/>
+  <text class="nt" x="870" y="72">外部 MCP 用戶端</text>
+  <text class="ns" x="870" y="98">例：MCP Inspector</text>
+
+  <!-- 反向代理 -->
+  <rect class="n" x="360" y="146" width="580" height="44" rx="10"/>
+  <text class="ns" x="650" y="173">nginx 反向代理：SSE 與 /mcp 不緩衝・輪流分配</text>
+
+  <line class="ln" x1="510" y1="116" x2="510" y2="144" marker-end="url(#arrow)"/>
+  <line class="ln" x1="850" y1="116" x2="850" y2="144" marker-end="url(#arrow)"/>
+  <line class="ln" x1="510" y1="190" x2="510" y2="264" marker-end="url(#arrow)"/>
+  <line class="ln" x1="850" y1="190" x2="850" y2="264" marker-end="url(#arrow)"/>
+
+
+  <g transform="translate(0,80)">
+    <!-- FastAPI 程式 -->
+    <rect class="box" x="200" y="150" width="860" height="246" rx="14"/>
+    <text class="cap" x="218" y="200">★ FastAPI 程式</text>
+    <text class="lbl" x="218" y="224">api 容器・非同步</text>
+    <text class="lbl" x="218" y="246">可多實例</text>
+
+    <rect class="p" x="360" y="186" width="300" height="76" rx="12"/>
+    <text class="pt" x="510" y="218">REST API /api</text>
+    <text class="ps" x="510" y="244">api.py：選單資料・狀態列・規劃（SSE）</text>
+
+    <rect class="p" x="720" y="186" width="300" height="76" rx="12"/>
+    <text class="pt" x="870" y="218">MCP 伺服器 /mcp</text>
+    <text class="ps" x="870" y="244">mcp.py：5 個工具（官方 SDK・無狀態）</text>
+
+    <rect class="p" x="360" y="300" width="660" height="76" rx="12"/>
+    <text class="pt" x="690" y="332">服務層 services.py</text>
+    <text class="ps" x="690" y="358">API 與 MCP 共用：驗證輸入・限流・送出規劃・讀取選項</text>
+
+    <line class="ln" x1="510" y1="262" x2="510" y2="298" marker-end="url(#arrow)"/>
+    <line class="ln" x1="870" y1="262" x2="870" y2="298" marker-end="url(#arrow)"/>
+
+    <!-- 排程 -->
+    <rect class="p" x="1100" y="186" width="210" height="76" rx="12"/>
+    <text class="pt" x="1205" y="218">rq cron</text>
+    <text class="ps" x="1205" y="244">cron 容器・定時排工作</text>
+    <line class="ln" x1="1205" y1="262" x2="1205" y2="438" marker-end="url(#arrow)"/>
+
+    <!-- Redis -->
+    <rect class="n" x="50" y="440" width="1260" height="96" rx="12"/>
+    <text class="nt" x="680" y="472">★ Redis（單一實例・RDB 快照）</text>
+    <text class="ns" x="680" y="498">RQ 佇列 plans／crawl・排程鎖・滑動窗口限流・每月額度計數</text>
+    <text class="ns" x="680" y="521">TDX token 與路線快取・Pub/Sub 推播進度・規劃佇列上限 5 個</text>
+
+    <line class="ln" x1="690" y1="378" x2="690" y2="438" marker-start="url(#arrow)" marker-end="url(#arrow)"/>
+    <text class="lbl" x="702" y="413">排入佇列・訂閱進度・限流</text>
+
+    <!-- RQ worker -->
+    <rect class="box" x="50" y="576" width="1010" height="454" rx="14"/>
+    <text class="cap" x="68" y="602">RQ worker（worker 容器・同步・可多個）</text>
+
+    <rect class="p" x="70" y="616" width="360" height="288" rx="12"/>
+    <text class="pt" x="250" y="648">規劃 planner.py</text>
+    <text class="step" x="92" y="682">1. 讀場次、餐廳</text>
+    <text class="step" x="92" y="712">2. 查 TDX 求可行時間（2～5 次）</text>
+    <text class="step" x="92" y="742">3. 程式篩出所有接得上的組合</text>
+    <text class="step" x="92" y="772">4. Jev 選片、選餐廳，沒把握交 LLM</text>
+    <text class="step" x="92" y="802">5. 驗營業時間、查精確路線、選車</text>
+    <text class="step" x="92" y="832">6. 算時間軸與每人花費，排前三名</text>
+
+    <rect class="p" x="600" y="616" width="440" height="60" rx="12"/>
+    <text class="pt" x="820" y="641">app/jev/</text>
+    <text class="ps" x="820" y="664">Jev 選擇與判斷（正式版／模擬版）</text>
+
+    <rect class="p" x="600" y="692" width="440" height="60" rx="12"/>
+    <text class="pt" x="820" y="717">llm.py</text>
+    <text class="ps" x="820" y="740">Jev 沒把握時代為選擇（Ollama）</text>
+
+    <rect class="p" x="600" y="844" width="440" height="60" rx="12"/>
+    <text class="pt" x="820" y="869">transit.py</text>
+    <text class="ps" x="820" y="892">步行估算・查 TDX・路線快取</text>
+
+    <rect class="p" x="70" y="940" width="360" height="70" rx="12"/>
+    <text class="pt" x="250" y="969">匯入 ingest.py</text>
+    <text class="ps" x="250" y="994">UPSERT 寫入・Jev 預判</text>
+
+    <rect class="p" x="600" y="940" width="440" height="70" rx="12"/>
+    <text class="pt" x="820" y="969">爬蟲 collectors/</text>
+    <text class="ps" x="820" y="994">開眼・OSM・Google 找店・TDX 車站與地理編碼</text>
+
+    <line class="ln" x1="430" y1="646" x2="598" y2="646" marker-end="url(#arrow)"/>
+    <line class="dash" x1="430" y1="722" x2="598" y2="722" marker-end="url(#arrow)"/>
+    <text class="lbl" x="514" y="714" text-anchor="middle">沒把握</text>
+    <line class="ln" x1="430" y1="798" x2="1098" y2="798" marker-end="url(#arrow)"/>
+    <text class="lbl" x="820" y="790" text-anchor="middle">驗營業時間、取店名</text>
+    <line class="ln" x1="430" y1="874" x2="598" y2="874" marker-end="url(#arrow)"/>
+    <line class="ln" x1="600" y1="975" x2="432" y2="975" marker-end="url(#arrow)"/>
+
+    <!-- 外部服務 -->
+    <rect class="g" x="1100" y="616" width="210" height="60" rx="12"/>
+    <text class="gt" x="1205" y="641">TypeSafe Jev</text>
+    <text class="gs" x="1205" y="664">決策模型</text>
+
+    <rect class="g" x="1100" y="692" width="210" height="60" rx="12"/>
+    <text class="gt" x="1205" y="717">Ollama</text>
+    <text class="gs" x="1205" y="740">本機 qwen2.5:3b</text>
+
+    <rect class="g" x="1100" y="768" width="210" height="60" rx="12"/>
+    <text class="gt" x="1205" y="793">Google Places</text>
+    <text class="gs" x="1205" y="816">店家資料（不能存）</text>
+
+    <rect class="g" x="1100" y="844" width="210" height="60" rx="12"/>
+    <text class="gt" x="1205" y="869">TDX</text>
+    <text class="gs" x="1205" y="892">旅運規劃・每分鐘 5 次</text>
+
+    <rect class="g" x="1100" y="940" width="210" height="70" rx="12"/>
+    <text class="gt" x="1205" y="969">開眼電影網・OSM</text>
+    <text class="gs" x="1205" y="994">場次・備案餐廳</text>
+
+    <line class="ln" x1="1040" y1="646" x2="1098" y2="646" marker-end="url(#arrow)"/>
+    <line class="ln" x1="1040" y1="722" x2="1098" y2="722" marker-end="url(#arrow)"/>
+    <line class="ln" x1="1040" y1="874" x2="1098" y2="874" marker-end="url(#arrow)"/>
+    <line class="ln" x1="1040" y1="975" x2="1098" y2="975" marker-end="url(#arrow)"/>
+
+    <!-- PostgreSQL -->
+    <rect class="n" x="50" y="1070" width="1260" height="96" rx="12"/>
+    <text class="nt" x="680" y="1102">★ PostgreSQL ＋ PostGIS</text>
+    <text class="ns" x="680" y="1128">counties・areas・stations・cinemas・movies・showtimes・restaurants（Google 只存 place_id）</text>
+    <text class="ns" x="680" y="1151">categories・jev_judgments（JSONB 機率）・crawl_runs　｜　UPSERT・GiST 空間索引</text>
+
+    <line class="ln" x1="250" y1="1010" x2="250" y2="1068" marker-end="url(#arrow)"/>
+
+    <!-- 讀取匯流線：services、planner → PostgreSQL -->
+    <polyline class="ln" points="360,338 24,338 24,1118 48,1118" marker-end="url(#arrow)"/>
+    <line class="ln" x1="70" y1="760" x2="24" y2="760"/>
+    <text class="lbl" x="40" y="330">讀取</text>
+  </g>
+
+  <!-- 圖例 -->
+  <rect class="p" x="50" y="1278" width="20" height="20" rx="4"/>
+  <text class="lbl" x="78" y="1293" font-size="14">後端程式 app/</text>
+  <rect class="g" x="210" y="1278" width="20" height="20" rx="4"/>
+  <text class="lbl" x="238" y="1293" font-size="14">外部服務</text>
+  <rect class="n" x="340" y="1278" width="20" height="20" rx="4"/>
+  <text class="lbl" x="368" y="1293" font-size="14">前端、用戶端、資料庫、代理</text>
+  <rect class="box" x="580" y="1278" width="20" height="20" rx="4"/>
+  <text class="lbl" x="608" y="1293" font-size="14">Docker 容器</text>
+  <line class="dash" x1="720" y1="1288" x2="760" y2="1288"/>
+  <text class="lbl" x="768" y="1293" font-size="14">備援</text>
+  <text class="lbl" x="880" y="1293" font-size="14">★ 三大亮點　｜　對應規格書 v0.8</text>
+</svg>
