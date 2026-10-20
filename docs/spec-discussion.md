@@ -619,6 +619,16 @@ rq cron（只負責觸發）── 每天 06:00 ──▶ 抓取佇列 ──▶
 5. OSM 餐廳的屬性：**B**，有 OSM 標籤的先照標籤對應，其他交給 Ollama；Jev 金鑰到了再換 Jev。（「餐廳屬於哪個商圈改用距離算」是建議，使用者沒有明確回答，待確認。）
 6. 工作順序照提案：TDX 用戶端 → TDX 車站與地理編碼 → OSM 餐廳 → 開眼爬蟲 → rq cron → MCP → Google、Jev。真資料進來後**取代示意資料**，示意資料只留給測試。
 
+### 2026-10-20 TDX 旅運規劃實測（用使用者的金鑰）
+
+查了 5 次（中壢站→桃園站、中壢站→台茂，`depart` 和 `arrival` 各一）。回應存在 `tests/fixtures/tdx/`。
+- `sections[]` 的 `type`：`pedestrian`、`waiting`、`transit`；`transit` 段的 `transport.mode` 是 `Bus`、`TRA`……，`name` 是公車號碼（台鐵是起訖站，例如「嘉義-基隆」），`headsign` 是往哪裡；上下車站名在 `departure.place.name`、`arrival.place.name`。
+- 時間沒有時區（台北時間）；`travel_time` 是秒。
+- **車資**：只有全程公車時，路線層級才有 `total_price`（例：703 公車 18 元）；用到台鐵時 `total_price` 是空的，每段的 `fareTW` 是 0。
+- **沒帶 `first_mile_mode`、`last_mile_mode` 時，TDX 會自己安排騎車和叫計程車（YOXI）**，一定要明確設成 0（走路）。
+- **回傳的時間比要求的寬鬆**：要 17:00 出發會給 16:48 出門的；要 23:00 前到會給 23:01 到的。所以每次都多要幾條（至少 5 條）再篩；不然步驟 2 只要 1 條、剛好不合格時，整個商圈會被誤判成「趕不上」。
+- 回傳的路線不照時間排序。
+
 ## 6. 剩下的步驟
 
 - **第 5 步：部署、測試、錯誤處理**

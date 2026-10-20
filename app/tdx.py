@@ -1,0 +1,244 @@
+"""真的 TDX 旅運規劃用戶端（規格書 3.2、5.3）。`TDX_MODE=real` 時使用。
+
+回應格式是 2026-10-20 用金鑰實測的（官方文件沒寫 `sections`），範例在 tests/fixtures/tdx：
+- `data.routes[]`：`start_time`、`end_time`（台北時間、沒有時區）、`transfers`、
+  `total_price`（只有公車時才有）
+- `sections[]`：`type` 是 `pedestrian`、`waiting`、`transit`……；`transit` 段的 `transport` 有
+  `mode`（Bus、TRA……）、`name`（公車路線號碼，台鐵是起訖站）、`headsign`（往哪裡）
+- 回傳的時間比要求的寬鬆（要 17:00 出發會給 16:48 出門的），所以多要幾條再篩
+
+注意：TDX 公告旅運規劃 2026/12/31 下架（討論紀錄「第二階段開始前的查證」）。
+"""
+
+import logging
+import math
+import time
+from collections.abc import Callable
+from dataclasses import dataclass
+from datetime import datetime
+from typing import Any
+from zoneinfo import ZoneInfo
+
+import httpx
+import redis
+
+from app.planning.types import Route
+from app.redis_utils.lock import acquire, release
+from app.transit import Endpoint, TimeMode, valid_routes
+
+log = logging.getLogger(__name__)
+
+TZ = ZoneInfo("Asia/Taipei")
+TOKEN_URL = "https://tdx.transportdata.tw/auth/realms/TDXConnect/protocol/openid-connect/token"
+ROUTING_URL = "https://tdx.transportdata.tw/api/maas/routing"
+TOKEN_KEY = "tdx:access_token"
+TOKEN_LOCK = "tdx:token"
+# 固定參數（3.2）：高鐵、台鐵、公車、捷運、輕軌；偏好最快；頭尾一定要明確設成走路，
+# 不帶的話 TDX 會自己安排騎車和叫計程車（實測）
+FIXED_PARAMS = {
+    "transit": "3,4,5,6,7",
+    "gc": "1.0",
+    "first_mile_mode": "0",
+    "last_mile_mode": "0",
+}
+# 回傳的時間不準，要多要幾條才篩得出合格的
+MIN_TOP = 5
+
+MODE_LABELS = {
+    "TRA": "台鐵",
+    "THSR": "高鐵",
+    "Bus": "公車",
+    "MRT": "捷運",
+    "Metro": "捷運",
+    "LRT": "輕軌",
+}
+
+
+class TdxError(Exception):
+    pass
+
+
+@dataclass(frozen=True)
+class TdxRoute:
+    start_at: datetime  # 從起點出發
+    end_at: datetime  # 走到終點
+    depart_at: datetime  # 第一班車開
+    arrive_at: datetime  # 最後一班車到
+    board_name: str | None
+    alight_name: str | None
+    summary: str
+    transfers: int
+    fare: int | None  # TDX 只在全程公車時給車資
+
+    def to_route(self, fare: int) -> Route:
+        walk_before = math.ceil((self.depart_at - self.start_at).total_seconds() / 60)
+        walk_after = math.ceil((self.end_at - self.arrive_at).total_seconds() / 60)
+        return Route(
+            summary=self.summary,
+            fare=fare,
+            depart_at=self.depart_at,
+            arrive_at=self.arrive_at,
+            board_name=self.board_name or "",
+            alight_name=self.alight_name or "",
+            walk_before=max(0, walk_before),
+            walk_after=max(0, walk_after),
+            transfers=self.transfers,
+        )
+
+
+def _time(value: str) -> datetime:
+    # 例如 2026-10-21T17:11:52 或 2026-06-28T21:56:50.0000000+08:00
+    head = value[:19]
+    dt = datetime.fromisoformat(head)
+    return dt.replace(tzinfo=TZ)
+
+
+def _label(transport: dict[str, Any]) -> str:
+    mode = transport.get("mode") or ""
+    label = MODE_LABELS.get(mode, mode)
+    if mode == "TRA":
+        headsign = transport.get("headsign")
+        return f"{label}（往{headsign}）" if headsign else label
+    if mode == "Bus":
+        name = transport.get("name") or transport.get("shortName")
+        return f"{label} {name}" if name else label
+    return label or (transport.get("name") or "大眾運輸")
+
+
+def parse_routes(payload: dict[str, Any]) -> list[TdxRoute]:
+    routes = (payload.get("data") or {}).get("routes") or []
+    out = []
+    for rt in routes:
+        transits = [s for s in rt.get("sections", []) if s.get("type") == "transit"]
+        start, end = _time(rt["start_time"]), _time(rt["end_time"])
+        if transits:
+            first, last = transits[0], transits[-1]
+            depart, arrive = _time(first["departure"]["time"]), _time(last["arrival"]["time"])
+            board = first["departure"]["place"].get("name")
+            alight = last["arrival"]["place"].get("name")
+            summary = " → ".join(_label(s.get("transport", {})) for s in transits)
+        else:  # 全程走路
+            depart, arrive, board, alight, summary = start, end, None, None, "步行"
+        price = rt.get("total_price")
+        out.append(
+            TdxRoute(
+                start_at=start,
+                end_at=end,
+                depart_at=depart,
+                arrive_at=arrive,
+                board_name=board,
+                alight_name=alight,
+                summary=summary,
+                transfers=int(rt.get("transfers") or 0),
+                fare=int(price) if price is not None else None,
+            )
+        )
+    out.sort(key=lambda r: (r.start_at, r.end_at))
+    return out
+
+
+FareFallback = Callable[[TdxRoute, Endpoint, Endpoint], int]
+
+
+class TdxTransit:
+    """真的 TDX。限流（每分鐘 5 次）和快取由外面的 CachedTransit 處理。"""
+
+    def __init__(
+        self,
+        client_id: str,
+        client_secret: str,
+        r: redis.Redis,
+        fare_fallback: FareFallback,
+        timeout: float = 10.0,
+        retries: int = 2,
+        http: httpx.Client | None = None,
+        sleep: Callable[[float], None] = time.sleep,
+    ):
+        if not client_id or not client_secret:
+            raise TdxError("TDX_MODE=real 要先在 .env 填 TDX_CLIENT_ID、TDX_CLIENT_SECRET")
+        self.client_id, self.client_secret = client_id, client_secret
+        self.r = r
+        self.fare_fallback = fare_fallback
+        self.retries = retries
+        self.http = http or httpx.Client(timeout=timeout)
+        self.sleep = sleep
+
+    # ── token（5.3 A1）─────────────────────────────────────────
+
+    def token(self) -> str:
+        """先讀 Redis；沒有就搶鎖去換，沒搶到的等 1 秒再讀。"""
+        for _ in range(30):
+            cached = self.r.get(TOKEN_KEY)
+            if cached:
+                return cached
+            lock = acquire(self.r, TOKEN_LOCK, ttl_ms=30_000)
+            if lock:
+                try:
+                    return self._fetch_token()
+                finally:
+                    release(self.r, TOKEN_LOCK, lock)
+            self.sleep(1)
+        raise TdxError("等不到 TDX token")
+
+    def _fetch_token(self) -> str:
+        resp = self.http.post(
+            TOKEN_URL,
+            data={
+                "grant_type": "client_credentials",
+                "client_id": self.client_id,
+                "client_secret": self.client_secret,
+            },
+        )
+        if resp.status_code != 200:
+            raise TdxError(f"換 TDX token 失敗：HTTP {resp.status_code}")
+        body = resp.json()
+        ttl = max(60, int(body.get("expires_in", 86400)) - 300)  # 有效期限減 5 分鐘
+        self.r.set(TOKEN_KEY, body["access_token"], ex=ttl)
+        return body["access_token"]
+
+    # ── 旅運規劃 ─────────────────────────────────────────────
+
+    def _get(self, params: dict[str, str]) -> dict[str, Any]:
+        """8.3：逾時或 5xx 最多重試 2 次（間隔 1、2 秒）；4xx 不重試；401 換一次 token。"""
+        refreshed = False
+        for attempt in range(self.retries + 1):
+            try:
+                resp = self.http.get(
+                    ROUTING_URL,
+                    params=params,
+                    headers={"authorization": f"Bearer {self.token()}", "Accept-Encoding": "gzip"},
+                )
+            except httpx.TimeoutException:
+                if attempt == self.retries:
+                    raise TdxError("TDX 逾時") from None
+                self.sleep(attempt + 1)
+                continue
+            if resp.status_code == 401 and not refreshed:
+                self.r.delete(TOKEN_KEY)
+                refreshed = True
+                continue
+            if resp.status_code >= 500 and attempt < self.retries:
+                self.sleep(attempt + 1)
+                continue
+            if resp.status_code != 200:
+                raise TdxError(f"TDX 旅運規劃 HTTP {resp.status_code}：{resp.text[:200]}")
+            return resp.json()
+        raise TdxError("TDX 旅運規劃失敗")
+
+    def route(
+        self, origin: Endpoint, dest: Endpoint, at: datetime, mode: TimeMode, top: int = 1
+    ) -> list[Route]:
+        params = {
+            **FIXED_PARAMS,
+            "origin": f"{origin.lat},{origin.lng}",
+            "destination": f"{dest.lat},{dest.lng}",
+            "top": str(max(top, MIN_TOP)),
+            mode: at.astimezone(TZ).strftime("%Y-%m-%dT%H:%M:%S"),
+        }
+        parsed = parse_routes(self._get(params))
+        routes = [p.to_route(p.fare if p.fare is not None else self.fare_fallback(p, origin, dest))
+                  for p in parsed]  # fmt: skip
+        routes = valid_routes(routes, at, mode)
+        if mode == "arrival":  # 抵達期限：最晚的那班排第一（跟模擬版一樣）
+            routes.sort(key=lambda r: r.reach_at, reverse=True)
+        return routes[:top]
