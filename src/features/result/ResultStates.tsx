@@ -1,7 +1,7 @@
 import { RotateCw } from 'lucide-react'
 import { LogoMark } from '@/shared/brand/Logo'
 
-/** 載入中：錶盤轉動（Q84）。完整的五道關卡篩選動畫在第 3–6 天做（Q21、Q54）。 */
+/** 載入中：錶盤轉動（Q84）。動畫播完、資料還沒回來時才會看到；五道關卡動畫在 FilterRun（Q21、Q54）。 */
 export function ResultLoading() {
   return (
     <div className="flex flex-col items-center gap-4 py-32 text-muted-foreground" role="status">

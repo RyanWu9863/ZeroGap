@@ -1,5 +1,7 @@
+import { useState } from 'react'
 import { PICK_FOR_ME, type ItineraryRequest } from '@/api/schemas'
 import { useOptions } from '@/api/queries'
+import { todayISO } from '@/shared/lib/dates'
 import { formatMoney, stationLabel, walkDistance } from '@/shared/lib/format'
 import { Chips, Field } from '@/features/wizard/parts/Choice'
 import { DateCalendar } from '@/features/wizard/parts/DateCalendar'
@@ -15,6 +17,7 @@ export function ConditionEditor({ kind, value: r, onChange }: Props) {
   const base = useOptions()
   const districtId = base.data?.districts.find((d) => d.name === r.district_hub)?.id
   const day = useOptions(r.date, districtId)
+  const [today] = useState(todayISO)
   const o = base.data
   if (!o) return <p className="py-6 text-center text-muted-foreground">載入中…</p>
 
@@ -31,7 +34,7 @@ export function ConditionEditor({ kind, value: r, onChange }: Props) {
         </div>
       )
     case 'date':
-      return <DateCalendar available={o.available_dates ?? []} value={r.date} onChange={(date) => onChange({ date })} />
+      return <DateCalendar available={o.available_dates ?? []} value={r.date} today={today} onChange={(date) => onChange({ date })} />
     case 'time':
       return (
         <TimeRange

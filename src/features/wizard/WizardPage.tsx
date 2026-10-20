@@ -9,6 +9,7 @@ import { StepFun } from './steps/StepFun'
 import { StepPlace } from './steps/StepPlace'
 import { StepTime } from './steps/StepTime'
 import { SummaryLine } from './parts/SummaryLine'
+import { useDateContext } from './useDateContext'
 import { firstIncomplete, stepComplete } from './validation'
 import { WizardProgress } from './WizardProgress'
 
@@ -23,6 +24,7 @@ export function WizardPage() {
   const navigate = useNavigate()
   const request = usePlanStore((s) => s.request)
   const markTrial = useTrialStore((s) => s.mark)
+  const dateCtx = useDateContext()
   useEffect(() => markTrial('startClickAt'), [markTrial]) // 試用計時：按了開始（Q79）
   // 往後一步從右邊滑入、往前一步從左邊滑入（React 官方「依前一次的值調整 state」寫法）
   const [prev, setPrev] = useState(n)
@@ -34,10 +36,10 @@ export function WizardPage() {
 
   if (!(n in STEP_VIEWS)) return <Navigate to="/plan/1" replace />
   const View = STEP_VIEWS[n as keyof typeof STEP_VIEWS]
-  const complete = stepComplete(n, request)
+  const complete = stepComplete(n, request, dateCtx)
 
   const submit = () => {
-    const missing = firstIncomplete(request)
+    const missing = firstIncomplete(request, dateCtx)
     if (missing) navigate(`/plan/${missing}`)
     else navigate('/result', { state: { replay: true } })
   }

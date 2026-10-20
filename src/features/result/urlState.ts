@@ -5,6 +5,7 @@ import { blankRequest } from '@/store/planStore'
  * 條件 ↔ 網址（決策 Q62）。
  * 網址長這樣：/result?from=中壢站&to=桃園區&date=2026-10-30&t=17:00-23:00&budget=1000&walk=12&plan=2
  * 預設值（不限、沒有、幫我挑）不寫進網址，讓網址短一點；?proto=、?mock= 這類其他參數原封不動。
+ * 網址沒寫 date 時用今天（P0-1），讓彩排用的書籤網址哪天都能用。
  */
 const OPTIONAL: [keyof ItineraryRequest, string, string][] = [
   ['movie_title', 'movie', PICK_FOR_ME],
@@ -33,11 +34,11 @@ export function writeRequest(params: URLSearchParams, r: ItineraryRequest, rank:
   return p
 }
 
-/** 從網址讀回條件；缺必要欄位或格式不對就回傳 null（改用瀏覽器暫存的條件） */
-export function readRequest(params: URLSearchParams): ItineraryRequest | null {
+/** 從網址讀回條件；缺必要欄位或格式不對就回傳 null（改用瀏覽器暫存的條件）。today＝沒寫 date 時用的日期 */
+export function readRequest(params: URLSearchParams, today: string): ItineraryRequest | null {
   const from = params.get('from')
   const to = params.get('to')
-  const date = params.get('date')
+  const date = params.get('date') || today
   const [start, end] = (params.get('t') ?? '').split('-')
   if (!from || !to || !date || !start || !end) return null
   const r: ItineraryRequest = {

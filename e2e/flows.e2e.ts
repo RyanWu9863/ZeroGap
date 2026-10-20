@@ -1,8 +1,8 @@
 import { expect, test, type Page } from '@playwright/test'
 
-/** 結果頁網址（基準案例條件），可以另外加參數 */
+/** 結果頁網址（基準案例條件），可以另外加參數；沒寫 date＝今天（P0-1） */
 const resultUrl = (extra: string) =>
-  `/result?from=${encodeURIComponent('中壢站')}&to=${encodeURIComponent('桃園區')}&date=2026-10-30&t=17:00-23:00&budget=1000&walk=12&${extra}`
+  `/result?from=${encodeURIComponent('中壢站')}&to=${encodeURIComponent('桃園區')}&t=17:00-23:00&budget=1000&walk=12&${extra}`
 
 const resultsHeading = (page: Page) => page.getByRole('heading', { name: '這 3 個行程，每一段都接得上。' })
 
@@ -20,6 +20,23 @@ test('有解：介紹頁 → 四步精靈 → 篩選動畫 → 三個方案，�
   await page.getByRole('radio', { name: /^最穩/ }).click()
   await expect(page).toHaveURL(/plan=2/)
   await expect(page.getByLabel('行程時間軸').locator('li').first()).toContainText('17:05')
+})
+
+test('日期過期：舊網址先提示再一鍵重排；精靈把舊日期換成最近可選日（P0-1）', async ({ page }) => {
+  await page.clock.setFixedTime(new Date('2026-11-02T10:00:00')) // Demo 當天
+  await page.goto(resultUrl('date=2026-10-30'))
+  await expect(page.getByRole('heading', { name: '這組行程的日期已經過了' })).toBeVisible()
+  await page.getByRole('button', { name: /改成 11\/2（一）/ }).click()
+  await expect(resultsHeading(page)).toBeVisible()
+  await expect(page).toHaveURL(/date=2026-11-02/)
+
+  // 舊網址又把 10/30 寫回瀏覽器暫存；這時打開精靈第 2 步，要自動換掉並說明
+  await page.goto(resultUrl('date=2026-10-30'))
+  await expect(page.getByRole('heading', { name: '這組行程的日期已經過了' })).toBeVisible()
+  await page.goto('/plan/2')
+  await expect(page.getByText('原本選的 10/30（五） 已經過了或沒有場次')).toBeVisible()
+  await expect(page.getByRole('grid', { name: '選擇日期' }).getByRole('button', { name: '11/2（一）' })).toHaveAttribute('aria-pressed', 'true')
+  await expect(page.getByRole('button', { name: '下一步' })).toBeEnabled()
 })
 
 test('無解：停在卡住的關卡，一鍵放寬預算後有解（Q23）', async ({ page }) => {

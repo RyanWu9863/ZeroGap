@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { benchmarkRequest } from '@/mocks/request'
 import { blankRequest } from '@/store/planStore'
-import { durationLabel, firstIncomplete, minutesAvailable, stepComplete, toHHMM, toMinutes, tooTight } from './validation'
+import { dateUsable, durationLabel, firstIncomplete, minutesAvailable, stepComplete, toHHMM, toMinutes, tooTight } from './validation'
 
 describe('時間換算', () => {
   it('來回一致', () => {
@@ -15,6 +15,23 @@ describe('stepComplete', () => {
   it('清空後卡在第 1 步', () => expect(firstIncomplete(blankRequest)).toBe(1))
   it('回到站早於出門 → 第 2 步沒完成', () => {
     expect(stepComplete(2, { ...benchmarkRequest, earliest_departure: '20:00', latest_return: '19:00' })).toBe(false)
+  })
+})
+
+describe('日期要能用（P0-1）', () => {
+  const ctx = { today: '2026-11-02', available: ['2026-11-02', '2026-11-03'] }
+  it('過去的日期不通過，精靈會停在第 2 步', () => {
+    expect(dateUsable('2026-10-30', ctx)).toBe(false)
+    expect(firstIncomplete({ ...benchmarkRequest, date: '2026-10-30' }, ctx)).toBe(2)
+  })
+  it('沒有場次的日子不通過', () => expect(dateUsable('2026-11-04', ctx)).toBe(false))
+  it('今天、可選日都通過', () => {
+    expect(dateUsable('2026-11-02', ctx)).toBe(true)
+    expect(firstIncomplete({ ...benchmarkRequest, date: '2026-11-03' }, ctx)).toBeNull()
+  })
+  it('沒給背景資訊時只檢查有沒有填', () => {
+    expect(dateUsable('2026-10-30')).toBe(true)
+    expect(dateUsable('')).toBe(false)
   })
 })
 

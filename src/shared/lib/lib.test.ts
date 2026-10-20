@@ -50,7 +50,7 @@ describe('maps（Q28b）', () => {
 })
 
 describe('itineraryToText（Q61）', () => {
-  const text = itineraryToText(benchmarkRequest, itineraryOk.top_3_proposals[0])
+  const text = itineraryToText({ ...benchmarkRequest, date: '2026-10-30' }, itineraryOk.top_3_proposals[0])
   it('第一行是日期標題', () => expect(text.split('\n')[0]).toBe('📅 10/30（五） 桃園區行程'))
   it('每個時間點都在', () => {
     for (const s of itineraryOk.top_3_proposals[0].timeline_steps) expect(text).toContain(s.time)

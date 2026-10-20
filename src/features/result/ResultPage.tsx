@@ -5,6 +5,7 @@ import { useTrialStore } from '@/features/trial/trialStore'
 import { Link, useLocation, useNavigate } from 'react-router'
 import type { ItineraryRequest } from '@/api/schemas'
 import { useItineraries } from '@/api/queries'
+import { isPastDate } from '@/shared/lib/dates'
 import { stationLabel } from '@/shared/lib/format'
 import { requestKey, usePlanStore } from '@/store/planStore'
 import { useResultState } from './useResultState'
@@ -18,6 +19,7 @@ import { FreshnessNote } from './FreshnessNote'
 import { PlanSwitcher } from './PlanSwitcher'
 import { ResultError, ResultLoading } from './ResultStates'
 import { RouteSketch } from './RouteSketch'
+import { StaleDate } from './StaleDate'
 import { Timeline } from './Timeline'
 
 /**
@@ -25,9 +27,11 @@ import { Timeline } from './Timeline'
  * 無解時改顯示放寬建議（Q23）；系統拿不定時先問一題（Q22、Q87）。條件同步在網址上（Q62）。
  */
 export function ResultPage() {
-  const { request, rank, update, choosePlan } = useResultState()
+  const { request, rank, today, update, choosePlan } = useResultState()
   const { animatedKey, markAnimated } = usePlanStore()
-  const { data, isPending, isError, refetch } = useItineraries(request)
+  // 日期已經過了就先不查，改問使用者要換哪天（P0-1）
+  const stale = isPastDate(request.date, today)
+  const { data, isPending, isError, refetch } = useItineraries(request, !stale)
   const station = stationLabel(request.origin_station)
   const key = requestKey(request)
   const location = useLocation()
@@ -45,7 +49,7 @@ export function ResultPage() {
   const [skipPickKey, setSkipPickKey] = useState<string | null>(null)
   // 試用計時：三個方案真的出現在畫面上才算「拿到行程」（Q79）
   const markTrial = useTrialStore((s) => s.mark)
-  const showingPlans = !runMode && data?.result_status === 'ok' && !(data.confidence_gate.uncertain_field && !data.confidence_gate.passed && skipPickKey !== key)
+  const showingPlans = !stale && !runMode && data?.result_status === 'ok' && !(data.confidence_gate.uncertain_field && !data.confidence_gate.passed && skipPickKey !== key)
   useEffect(() => {
     if (showingPlans) markTrial('resultAt')
   }, [showingPlans, markTrial])
@@ -55,6 +59,7 @@ export function ResultPage() {
     setRunMode('short')
   }
 
+  if (stale) return <StaleDate request={request} today={today} onFix={rerun} />
   if (isError) return <ResultError onRetry={() => refetch()} />
   if (runMode) return <FilterRun key={key} request={request} data={data} mode={runMode} onDone={finish} />
   if (isPending) return <ResultLoading />

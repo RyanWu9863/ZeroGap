@@ -3,10 +3,12 @@ import { benchmarkRequest } from '@/mocks/request'
 import { requestKey } from '@/store/planStore'
 import { readRank, readRequest, writeRequest } from './urlState'
 
+const T = '2026-11-02'
+
 describe('條件 ↔ 網址（Q62）', () => {
   it('寫進去再讀回來，條件完全一樣（動畫的鑰匙也一樣）', () => {
     const p = writeRequest(new URLSearchParams(), benchmarkRequest, 1)
-    const back = readRequest(p)!
+    const back = readRequest(p, T)!
     expect(back).toEqual(benchmarkRequest)
     expect(requestKey(back)).toBe(requestKey(benchmarkRequest))
   })
@@ -20,7 +22,7 @@ describe('條件 ↔ 網址（Q62）', () => {
   it('指定片名、先吃再看、第 2 案', () => {
     const r = { ...benchmarkRequest, movie_title: '不存在的罪人', dining_order: '先吃再看' as const }
     const p = writeRequest(new URLSearchParams(), r, 2)
-    expect(readRequest(p)).toEqual(r)
+    expect(readRequest(p, T)).toEqual(r)
     expect(readRank(p)).toBe(2)
   })
   it('保留 ?proto= ?mock= 這些別的參數', () => {
@@ -29,9 +31,14 @@ describe('條件 ↔ 網址（Q62）', () => {
     expect(p.get('mock')).toBe('no_solution')
   })
   it('缺必要欄位或數字不合法 → null', () => {
-    expect(readRequest(new URLSearchParams('from=中壢站'))).toBeNull()
+    expect(readRequest(new URLSearchParams('from=中壢站'), T)).toBeNull()
     const p = writeRequest(new URLSearchParams(), benchmarkRequest, 1)
     p.set('budget', 'abc')
-    expect(readRequest(p)).toBeNull()
+    expect(readRequest(p, T)).toBeNull()
+  })
+  it('網址沒寫日期 → 用今天（P0-1，書籤網址哪天都能用）', () => {
+    const p = writeRequest(new URLSearchParams(), benchmarkRequest, 1)
+    p.delete('date')
+    expect(readRequest(p, T)?.date).toBe(T)
   })
 })

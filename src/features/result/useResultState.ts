@@ -1,6 +1,7 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useLocation, useSearchParams } from 'react-router'
 import type { ItineraryRequest } from '@/api/schemas'
+import { todayISO } from '@/shared/lib/dates'
 import { requestKey, usePlanStore } from '@/store/planStore'
 import { readRank, readRequest, writeRequest } from './urlState'
 
@@ -14,7 +15,8 @@ export function useResultState() {
   const [params, setParams] = useSearchParams()
   const location = useLocation()
   const { request: stored, selectedRank, replaceRequest, selectRank } = usePlanStore()
-  const fromUrl = readRequest(params)
+  const [today] = useState(todayISO)
+  const fromUrl = readRequest(params, today)
   const request = fromUrl ?? stored
   const rank = (fromUrl ? readRank(params) : null) ?? selectedRank
   const urlKey = fromUrl ? requestKey(fromUrl) : null
@@ -36,5 +38,5 @@ export function useResultState() {
     selectRank(r)
     setParams((p) => writeRequest(p, request, r), { replace: true })
   }
-  return { request, rank, update, choosePlan }
+  return { request, rank, today, update, choosePlan }
 }
