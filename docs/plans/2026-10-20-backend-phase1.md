@@ -195,14 +195,14 @@ tests/
 
 ### F. 規劃流程與 RQ
 
-- [ ] **F1 `planner.py`**：把步驟 1～7 串起來，每個步驟呼叫 `progress(stage, **data)`。
+- [x] **F1 `planner.py`**：把步驟 1～7 串起來，每個步驟呼叫 `progress(stage, **data)`。
   - 整合測試：用種子資料和模擬版跑一次完整規劃，結果通過 `schemas` 的驗證；把預算設成 100 時回 `NO_FEASIBLE` 和 `reasons`。
-- [ ] **F2 `jobs/plan_job.py`**：在 worker 中執行規劃，進度和結果 `PUBLISH` 到 `plan:{job_id}:events`。
-- [ ] **F3 排隊上限與取消**：5 個在等就回 `QUEUE_FULL`；在佇列裡超過 15 分鐘作廢；使用者斷線時，排隊中的移除、執行中的停止。
+- [x] **F2 `jobs/plan_job.py`**：在 worker 中執行規劃，進度和結果 `PUBLISH` 到 `plan:{job_id}:events`。
+- [x] **F3 排隊上限與取消**：5 個在等就回 `QUEUE_FULL`；在佇列裡超過 15 分鐘作廢；使用者斷線時，排隊中的移除、執行中的停止。
 
 ### G. REST API
 
-- [ ] **G1 `schemas/`**：照 6.3～6.5 定義全部的 Pydantic 模型。
+- [x] **G1 `schemas/`**：照 6.3～6.5 定義全部的 Pydantic 模型。
 - [ ] **G2 選單端點**：`/api/counties`、`/api/areas`、`/api/stations`、`/api/categories`、`/api/coverage`（含 `available_dates`）、`/api/status`、`/api/health`。
 - [ ] **G3 `POST /api/plans`**：
   - 先訂閱 Pub/Sub 再排進佇列；轉成 SSE。

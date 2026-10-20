@@ -525,6 +525,9 @@ rq cron（只負責觸發）── 每天 06:00 ──▶ 抓取佇列 ──▶
   - 本機的 Ollama 原本沒有規格書指定的 `qwen2.5:3b`，使用者選擇下載（選項 A），已下載完成。實測代選：第一次 5.5 秒（含載入），之後每次 2.4 秒，都選中符合「日式」的那家。
   - E（限流、鎖、每月額度、路線快取）完成，共 143 個測試。限流的時間由程式傳進 Lua script，測試不用真的等；路線快取包成 `CachedTransit`，沒命中才呼叫 TDX，TDX 的限流也只在這時候等。
   - 測試時發現：Redis 連不上時，redis-py 預設會重試，每次讀寫可能卡好幾秒。之後建立 Redis 連線要設定連線和讀寫的逾時。
+  - F（規劃流程、RQ 工作、排隊上限與取消）和 G1（Pydantic 模型）完成，共 163 個測試。Docker 裡實際跑一次約 64 秒：TDX 限流等了 59 秒，Ollama 代選每次約 1 秒。
+  - 實際跑的時候發現：查詢時間往前取整到 15 分鐘，緊的組合在步驟 6 會查不到車而被淘汰，LLM 選的組合因此掉出第一名。改成退回用步驟 2 的路線，寫進 10.1。
+  - **前端要改的一處**：前端 `schemas.ts` 的 `RestaurantSource` 只接受 `google`、`osm`，但示意餐廳的 `source` 是 `demo`。後端最上層的 `restaurant_source` 只回 `google`／`osm`，每家餐廳的 `source` 照實回 `demo`，前端要在 `Plan.restaurant.source` 加上 `demo`。
   - D（資料表、migration、示意種子資料、PostGIS 查詢）完成，11 個整合測試。整合測試每次重建 `zerogap_test` 資料庫。compose 新增只跑一次的 `migrate` 服務。
   - Docker 容器用 `host.docker.internal` 連得到本機的 Ollama。
   - 實作 B 時遇到規格書沒寫清楚的地方，先照最直接的做法寫，全部標【預設】加進規格書 10.1（標「實作時新增」）：Jev 還沒判斷的屬性、營業時間的格式和判斷、`stats.feasible` 的基準、排名同分、兩題都由 LLM 代選、餐廳備選只列接得上的、`minutes_to_planned` 的算法、特色標籤的文字。**這些要找時間跟使用者確認。**
