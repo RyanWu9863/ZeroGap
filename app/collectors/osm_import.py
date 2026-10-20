@@ -38,6 +38,8 @@ QUESTIONS = {
     "date_suitability": "date_suitability",
 }
 NO_JEV = "none"  # Jev 金鑰到之前，jev_judgments.jev_version 記這個
+# LLM 連續失敗這麼多次就先停：多半是連不上，硬試下去只是浪費時間；剩下的下次再補
+MAX_CONSECUTIVE_FAILURES = 5
 
 
 class Judge(Protocol):
@@ -164,7 +166,8 @@ def judge_pending(
             """
         )
     ).all()
-    judged = failed = 0
+    judged = failed = consecutive = 0
+    aborted = False
     for i, row in enumerate(rows):
         tags = row.osm_tags or {}
         missing = [f for f in FIELDS if getattr(row, f) is None]
@@ -181,11 +184,18 @@ def judge_pending(
                 _record(session, row.id, field, value, "llm", judge.model)
             if any(f not in answer for f in ask):
                 failed += 1
+                consecutive = consecutive + 1 if not answer else 0
+            else:
+                consecutive = 0
         if values:
             session.execute(update(Restaurant).where(Restaurant.id == row.id).values(**values))
         judged += 1
         if i % 20 == 19:
             session.commit()
             keep_alive()
+        if consecutive >= MAX_CONSECUTIVE_FAILURES:
+            log.warning("LLM 連續 %d 次判斷失敗，先停；剩下的下次再補", consecutive)
+            aborted = True
+            break
     session.commit()
-    return {"judged": judged, "judge_failed": failed}
+    return {"judged": judged, "judge_failed": failed, "judge_aborted": aborted}

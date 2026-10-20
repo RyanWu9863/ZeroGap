@@ -98,7 +98,9 @@ def test_failed_judgement_leaves_fields_empty(session):
     )
     # 速食店照標籤就有價位；其他判斷失敗的留空，不會排進規劃
     assert unjudged > 0
-    assert stats["judge_failed"] >= unjudged  # 速食店也會問「適不適合約會」，那題也失敗
+    # 連續失敗 5 次就先停（多半是連不上），剩下的下次再補
+    assert stats["judge_aborted"] is True
+    assert stats["judge_failed"] == 5
 
 
 def test_missing_places_are_deactivated(session):
