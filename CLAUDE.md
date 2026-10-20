@@ -27,7 +27,9 @@
   - 逐項調整【預設】的值
   - 確認仍是預設值的項目：其他 3 個商圈的代表點、片型主清單
   - 處理【實作前確認】的項目
-  - 開始實作
+  - 跟使用者逐項確認規格書 10.1 標「實作時新增」的預設值
+  - 前端改好後，用 `VITE_USE_MOCK=false` 實際排一次行程（第一階段最後一項驗收）
+  - 第二階段（實作計畫第 0 節）：真的 TDX、Google Places、Jev 用戶端（金鑰到了才做）、開眼／OSM／TDX 車站的爬蟲與匯入、`rq cron`、MCP
 - 修改規格書時，同步更新 `docs/spec-discussion.md`。
 - **給組員看的網頁**：https://claude.ai/artifact/LzNC6Q716vraixUuoDsFKY
   - 架構圖的 PNG 用 headless Chrome 轉：寫一個用 `<img>` 載入 SVG 的 HTML，`chrome.exe --headless=new --force-device-scale-factor=2 --window-size=1340,1320 --screenshot=...`，輸出 2680×2640。
