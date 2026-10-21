@@ -76,7 +76,9 @@ def refresh_osm_job() -> dict | None:
         )
         return run_crawl(
             session, r, "refresh_osm", "osm",
-            lambda keep_alive: refresh_osm(session, judge, keep_alive=keep_alive),
+            lambda keep_alive: refresh_osm(
+                session, judge, keep_alive=keep_alive, budget_seconds=s.judge_budget_seconds
+            ),
         )  # fmt: skip
 
 

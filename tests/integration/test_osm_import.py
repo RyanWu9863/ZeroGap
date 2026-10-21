@@ -115,3 +115,15 @@ def test_missing_places_are_deactivated(session):
         {"e": f"{removed['type']}/{removed['id']}"},
     )
     assert active is False
+
+
+def test_time_budget_stops_judging_and_resumes_next_run(session):
+    from app.collectors.osm_import import judge_pending
+
+    refresh_osm(session, FakeJudge(answer={}), fetcher=fetcher)  # 先失敗，全部留空
+    ticks = iter(range(10_000))
+    stats = judge_pending(session, FakeJudge(), budget_seconds=3, clock=lambda: next(ticks))
+    assert stats["judged"] == 3
+    assert stats["judge_remaining"] > 0
+    again = judge_pending(session, FakeJudge())
+    assert again["judge_remaining"] == 0

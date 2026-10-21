@@ -6,6 +6,7 @@
 """
 
 import logging
+import time
 from collections.abc import Callable
 from datetime import datetime
 from typing import Any, Protocol
@@ -64,6 +65,7 @@ def refresh_osm(
     judge: Judge,
     fetcher: Callable[[str], dict[str, Any]] = fetch,
     keep_alive: Callable[[], None] = lambda: None,
+    budget_seconds: float | None = None,
 ) -> dict[str, Any]:
     hubs = load_hubs(session)
     if not hubs:
@@ -124,7 +126,7 @@ def refresh_osm(
         stats["demo_deactivated"] = result.rowcount
     session.commit()
 
-    stats.update(judge_pending(session, judge, keep_alive))
+    stats.update(judge_pending(session, judge, keep_alive, budget_seconds))
     return stats
 
 
@@ -154,8 +156,14 @@ def _record(session: Session, rid: int, field: str, value: Any, by: str, model: 
 
 
 def judge_pending(
-    session: Session, judge: Judge, keep_alive: Callable[[], None] = lambda: None
-) -> dict[str, int]:
+    session: Session,
+    judge: Judge,
+    keep_alive: Callable[[], None] = lambda: None,
+    budget_seconds: float | None = None,
+    clock: Callable[[], float] = time.monotonic,
+) -> dict[str, Any]:
+    """`budget_seconds`：時間到就先停，剩下的下次再補（第一次要判斷近千家，超過工作的逾時）。"""
+    deadline = None if budget_seconds is None else clock() + budget_seconds
     rows = session.execute(
         text(
             f"""
@@ -193,9 +201,17 @@ def judge_pending(
         if i % 20 == 19:
             session.commit()
             keep_alive()
+        if deadline is not None and clock() >= deadline:
+            log.info("判斷的時間預算用完，先停；還剩 %d 家下次再補", len(rows) - i - 1)
+            break
         if consecutive >= MAX_CONSECUTIVE_FAILURES:
             log.warning("LLM 連續 %d 次判斷失敗，先停；剩下的下次再補", consecutive)
             aborted = True
             break
     session.commit()
-    return {"judged": judged, "judge_failed": failed, "judge_aborted": aborted}
+    return {
+        "judged": judged,
+        "judge_failed": failed,
+        "judge_aborted": aborted,
+        "judge_remaining": len(rows) - judged,
+    }

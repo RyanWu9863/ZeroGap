@@ -77,8 +77,13 @@ services:
 
   worker:
     <<: *app
-    # 先處理規劃，再處理抓取（5.6）
-    command: ["rq", "worker", "--url", "redis://redis:6379/0", "plans", "crawl"]
+    # 啟動時補抓今天還沒抓過的資料，再開始處理工作；先處理規劃，再處理抓取（5.6）
+    command: ["sh", "-c", "python -m app.jobs.startup; exec rq worker --url redis://redis:6379/0 plans crawl"]
+
+  cron:
+    <<: *app
+    # 只負責按時間把工作排進佇列；時間依 TZ 計算（5.6）
+    command: ["rq", "cron", "--url", "redis://redis:6379/0", "app.jobs.cron_config"]
 
   proxy:
     image: nginx:1.27

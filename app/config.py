@@ -64,6 +64,8 @@ class Settings(BaseSettings):
     plan_alternatives_max: int = 2
     plan_opening_hours_retry_rounds: int = 2
     plan_timeout_seconds: int = 600
+    crawl_timeout_seconds: int = 1800  # 抓取工作最多 30 分鐘（5.6）
+    judge_budget_seconds: int = 1500  # 屬性判斷每次最多 25 分鐘，剩下的下次再補
     plan_queue_max_waiting: int = 5
     plan_queue_ttl_seconds: int = 900
     sse_heartbeat_seconds: int = 15

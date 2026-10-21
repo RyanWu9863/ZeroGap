@@ -24,8 +24,8 @@
 - [ ] 每頁間隔幾秒，報告註明「僅供學術展示」。
 
 ### K. 排程
-- [ ] **K1 `rq cron`**：開眼 06:00、18:00；OSM 每天；TDX 車站每週一；重新判斷每天 03:00。`cron` 容器 `TZ=Asia/Taipei`。
-- [ ] **K2 工作鎖與 `crawl_runs`**：搶 `lock:job:{名稱}`；worker 啟動時今天還沒成功抓過就補抓。
+- [x] **K1 `rq cron`**：開眼 06:00、18:00；OSM 每天；TDX 車站每週一；重新判斷每天 03:00。`cron` 容器 `TZ=Asia/Taipei`。
+- [x] **K2 工作鎖與 `crawl_runs`**：搶 `lock:job:{名稱}`；worker 啟動時今天還沒成功抓過就補抓。
 
 ### L. MCP
 - [ ] **L1** 用 `mcp` 2.x 的 `MCPServer` 手寫 5 個工具，掛在 `/mcp`，進度通知照 6.6；設定 `TransportSecuritySettings`。
