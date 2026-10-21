@@ -99,7 +99,6 @@ async def data_coverage(area: str, date: date | None = None) -> dict[str, Any]:
 async def plan_date(
     ctx: Context,
     area: str,
-    origin_station_id: int,
     date: str,
     earliest_departure: str,
     latest_home: str,
@@ -111,8 +110,15 @@ async def plan_date(
     hall_type: str | None = None,
     language: str | None = None,
     cuisine: str | None = None,
+    origin_station_id: int | None = None,
+    origin_lat: float | None = None,
+    origin_lng: float | None = None,
 ) -> dict[str, Any]:
     """規劃行程，回傳前三名方案（格式同 REST 的 POST /api/plans 的 result）。
+
+    出發點二擇一：origin_station_id（list_stations 的 id），
+    或使用者目前位置的 origin_lat、origin_lng；
+    回到出發點就算到家。
 
     date 是 YYYY-MM-DD（要是 data_coverage 的 available_dates 之一）；時間是 HH:MM，
     latest_home 早於 06:00 算隔天（最晚 02:00）；budget_per_person 是每人新台幣（含來回車資）。
@@ -121,7 +127,8 @@ async def plan_date(
     try:
         req = PlanRequest.model_validate(
             {
-                "area": area, "origin_station_id": origin_station_id, "date": date,
+                "area": area, "origin_station_id": origin_station_id, "origin_lat": origin_lat,
+                "origin_lng": origin_lng, "date": date,
                 "earliest_departure": earliest_departure, "latest_home": latest_home,
                 "order": order, "movie_id": movie_id, "movie_genre": movie_genre,
                 "hall_type": hall_type, "language": language, "cuisine": cuisine,

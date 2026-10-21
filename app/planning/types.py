@@ -166,7 +166,8 @@ class Route:
         return ride + self.walk_before + self.walk_after
 
 
-PlaceKind = Literal["station", "hub", "cinema", "restaurant"]
+# location：使用者的目前位置（id 一律是 0）
+PlaceKind = Literal["station", "location", "hub", "cinema", "restaurant"]
 
 
 @dataclass(frozen=True)

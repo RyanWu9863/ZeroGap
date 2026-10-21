@@ -442,3 +442,19 @@ def test_google_hours_are_remembered_and_plans_differ(session, r):
             text("DELETE FROM restaurants WHERE external_id IN ('ChIJearly', 'ChIJlate')")
         )
         session.commit()
+
+
+def test_plan_from_current_location(session, r):
+    # 出發點是目前位置（2026-10-21）：座標取到小數點 3 位，回到同一個位置就算到家
+    deps = Deps(
+        session=session, redis=r, transit=MockTransit(), jev=MockJev(), llm=MockLlm(),
+        places=MockPlaces(), settings=Settings(_env_file=None, tdx_per_minute=1000),
+    )  # fmt: skip
+    req = request(session, origin_station_id=None, origin_lat=24.95412, origin_lng=121.22578)
+    result = run_plan(req, "job-test", deps, lambda *a, **k: None)
+    plan = PlanResult.model_validate(result).to_json()["plans"][0]
+    first, home = plan["timeline"][0], plan["timeline"][-1]
+    assert first["place"] == {"kind": "location", "id": 0, "name": "目前位置",
+                              "lat": 24.954, "lng": 121.226, "place_id": None}  # fmt: skip
+    assert home["type"] == "home" and home["station"] == "目前位置"
+    assert r.keys("tdx:route:v1mock:loc24.954_121.226:*")

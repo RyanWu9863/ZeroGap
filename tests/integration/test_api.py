@@ -242,6 +242,16 @@ async def test_cors(client):
         ({"earliest_departure": "1700"}, 400, "VALIDATION_ERROR"),
         ({"date": (TODAY + timedelta(days=3)).isoformat()}, 400, "VALIDATION_ERROR"),
         ({"origin_station_id": 999999}, 404, "NOT_FOUND"),
+        # 出發點二擇一（2026-10-21）：兩個都給、都沒給、座標只給一半
+        ({"origin_lat": 24.99, "origin_lng": 121.31}, 400, "VALIDATION_ERROR"),
+        ({"origin_station_id": None}, 400, "VALIDATION_ERROR"),
+        ({"origin_station_id": None, "origin_lat": 24.99}, 400, "VALIDATION_ERROR"),
+        # 新竹離桃園的商圈超過 30 公里
+        (
+            {"origin_station_id": None, "origin_lat": 24.80, "origin_lng": 120.97},
+            400,
+            "VALIDATION_ERROR",
+        ),
         ({"area": "nowhere"}, 404, "NOT_FOUND"),
         ({"movie_id": 999999}, 404, "NOT_FOUND"),
         ({"cuisine": "martian"}, 400, "VALIDATION_ERROR"),

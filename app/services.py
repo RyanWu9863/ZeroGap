@@ -13,7 +13,7 @@ import redis.asyncio as aioredis
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.config import Settings
+from app.config import Settings, get_settings
 from app.jev.mock import MODEL as MOCK_JEV_MODEL
 from app.labels import HALL_TYPE_LABELS
 from app.redis_utils.quota import aused
@@ -245,11 +245,25 @@ async def get_status(db: AsyncSession, r: aioredis.Redis, s: Settings) -> dict[s
 async def validate_plan(db: AsyncSession, req: PlanRequest) -> None:
     """格式以外的檢查：商圈、車站、日期、電影、類別都要存在（6.4）。"""
     area_id = await _open_area_id(db, req.area)
-    station = await db.scalar(
-        text("SELECT id FROM stations WHERE id = :i AND is_active"), {"i": req.origin_station_id}
-    )
-    if station is None:
-        raise not_found(f"出發站 {req.origin_station_id} 不存在")
+    if req.origin_station_id is not None:
+        station = await db.scalar(
+            text("SELECT id FROM stations WHERE id = :i AND is_active"),
+            {"i": req.origin_station_id},
+        )
+        if station is None:
+            raise not_found(f"出發站 {req.origin_station_id} 不存在")
+    else:
+        # 目前位置離商圈太遠就不排（2026-10-21 使用者決定）
+        meters = await db.scalar(
+            text(
+                "SELECT min(ST_Distance(geom, ST_GeogFromText(:p))) FROM area_hubs "
+                "WHERE area_id = :a AND geom IS NOT NULL"
+            ),
+            {"p": f"SRID=4326;POINT({req.origin_lng} {req.origin_lat})", "a": area_id},
+        )
+        limit_km = get_settings().origin_max_distance_km
+        if meters is None or meters > limit_km * 1000:
+            raise invalid(f"目前位置離這個商圈超過 {limit_km:g} 公里，請改選出發站")
     if req.date not in await available_dates(db, area_id):
         raise invalid("這一天沒有場次資料，請從 /api/coverage 的 available_dates 選日期")
     earliest, _ = req.resolved_times()

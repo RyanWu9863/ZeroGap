@@ -167,9 +167,8 @@ def test_bad_params_for_very_close_points_becomes_walk(r):
     near = Endpoint("cin17", "cinema", "統領威秀", 24.9561, 121.2243, rail=False)  # 約 300 公尺
     routes = make(r).route(A, near, datetime(2026, 10, 21, 17, 45, tzinfo=TZ), "depart")
     assert routes[0].walk_only and routes[0].walk_after > 0
-    # 遠的照樣當錯誤
-    with pytest.raises(TdxError, match="40001"):
-        make(r).route(A, B, datetime(2026, 10, 21, 17, 45, tzinfo=TZ), "depart")
+    # 深夜沒車也會回 40001：遠的就當作查不到，不讓整個規劃失敗
+    assert make(r).route(A, B, datetime(2026, 10, 21, 23, 15, tzinfo=TZ), "depart") == []
 
 
 @respx.mock

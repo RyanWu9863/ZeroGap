@@ -12,7 +12,7 @@ from typing import Literal, Protocol
 from app.planning.types import Route
 
 TimeMode = Literal["depart", "arrival"]
-EndpointKind = Literal["station", "hub", "cinema", "restaurant"]
+EndpointKind = Literal["station", "location", "hub", "cinema", "restaurant"]
 
 
 @dataclass(frozen=True)

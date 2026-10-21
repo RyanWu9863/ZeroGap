@@ -49,6 +49,8 @@ class Settings(BaseSettings):
     max_wait_for_opening_minutes: int = 30  # 比開門早到，30 分鐘內就等開門（2026-10-20 決定）
     walk_detour_factor: float = 1.3
     walk_meters_per_minute: float = 75
+    # 目前位置離選定商圈的代表點超過幾公里就不排，請使用者改選出發站（2026-10-21 使用者決定）
+    origin_max_distance_km: float = 30.0
     walk_limit_options: list[int] = [5, 8, 12, 15, 20]
     latest_home_cutoff_hour: int = 6  # 早於 06:00 的 latest_home 算隔天
     latest_home_max_hour_next_day: int = 2  # 最晚到隔天 02:00

@@ -79,8 +79,9 @@ class TdxError(Exception):
 
 
 class TdxBadParams(TdxError):
-    """TDX 回 404、錯誤代碼 40001（API spec params is wrong）。起訖點很近時會這樣
-    （2026-10-21 實測：桃園站→統領威秀約 300 公尺），1 公里內當作查不到路線、改走路。"""
+    """TDX 回 404、錯誤代碼 40001（API spec params is wrong）。實測是「查不到路線」的另一種回法：
+    起訖點很近（桃園站→統領威秀約 300 公尺）、深夜沒車（23:15 從中壢站出發）都會這樣，
+    所以當作查不到路線（2026-10-21）。"""
 
 
 class TdxQuotaExhausted(Exception):
@@ -368,7 +369,8 @@ class TdxTransit:
                 self.sleep(attempt)
                 continue
             if resp.status_code == 404 and '"code":40001' in resp.text.replace(" ", ""):
-                raise TdxBadParams(f"TDX HTTP 404：{resp.text[:200]}")
+                when = params.get("depart") or params.get("arrival") or ""
+                raise TdxBadParams(f"TDX HTTP 404（{when}）：{resp.text[:200]}")
             if resp.status_code != 200:
                 raise TdxError(f"TDX HTTP {resp.status_code}：{resp.text[:200]}")
             return resp.json()
@@ -379,9 +381,9 @@ class TdxTransit:
     ) -> list[Route]:
         try:
             routes = self._route(origin, dest, at, mode, top)
-        except TdxBadParams:
-            if haversine_m(origin.lat, origin.lng, dest.lat, dest.lng) > WALK_FALLBACK_M:
-                raise
+        except TdxBadParams as exc:
+            # 萬一真的是參數錯了，記錄裡查得到
+            log.warning("TDX 回 40001，當作查不到路線：%s → %s，%s", origin.key, dest.key, exc)
             routes = []
         if not routes:
             walk = walk_route(origin, dest, at, mode)

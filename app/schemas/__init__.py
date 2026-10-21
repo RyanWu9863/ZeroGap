@@ -91,7 +91,10 @@ class PlanRequest(_Model):
     model_config = ConfigDict(extra="ignore")
 
     area: str = Field(min_length=1)
-    origin_station_id: int = Field(gt=0)
+    # 出發點二擇一：車站 id，或目前位置的座標（2026-10-21 使用者決定）。回到出發點就算「到家」
+    origin_station_id: int | None = Field(default=None, gt=0)
+    origin_lat: float | None = Field(default=None, ge=-90, le=90)
+    origin_lng: float | None = Field(default=None, ge=-180, le=180)
     date: date
     earliest_departure: time
     latest_home: time
@@ -129,6 +132,15 @@ class PlanRequest(_Model):
         resolve_times(self.date, self.earliest_departure, self.latest_home)
         return self
 
+    @model_validator(mode="after")
+    def _origin(self) -> "PlanRequest":
+        has_point = self.origin_lat is not None or self.origin_lng is not None
+        if has_point and (self.origin_lat is None or self.origin_lng is None):
+            raise ValueError("目前位置要同時給 origin_lat 和 origin_lng")
+        if has_point == (self.origin_station_id is not None):
+            raise ValueError("出發點要二擇一：origin_station_id，或 origin_lat＋origin_lng")
+        return self
+
     def resolved_times(self) -> tuple[datetime, datetime]:
         return resolve_times(self.date, self.earliest_departure, self.latest_home)
 
@@ -140,7 +152,7 @@ Decider = Literal["jev", "llm"]
 
 
 class PlaceOut(_Model):
-    kind: Literal["station", "hub", "cinema", "restaurant"]
+    kind: Literal["station", "location", "hub", "cinema", "restaurant"]
     id: int
     name: str
     lat: float | None = None

@@ -47,6 +47,7 @@ from app.transit import Endpoint, Transit
 TZ = ZoneInfo("Asia/Taipei")
 Progress = Callable[..., None]
 PLANS_WANTED = 3
+ORIGIN_NAME = "目前位置"
 
 
 class PlanError(Exception):
@@ -231,17 +232,24 @@ class Planner:
         if area is None:
             raise PlanError("NOT_FOUND", "商圈不存在或沒有開放")
         self.area_id = area.id
-        st = q(
-            text(
-                "SELECT id, name, ST_Y(geom::geometry) lat, ST_X(geom::geometry) lng "
-                "FROM stations WHERE id = :i AND is_active"
-            ),
-            {"i": req.origin_station_id},
-        ).first()
-        if st is None:
-            raise PlanError("NOT_FOUND", "出發站不存在")
-        self.station = Place(kind="station", id=st.id, name=st.name, lat=st.lat, lng=st.lng)
-        self.station_ep = Endpoint(f"sta{st.id}", "station", st.name, st.lat, st.lng, rail=True)
+        if req.origin_station_id is None:
+            # 目前位置：座標取到小數點 3 位（約 100 公尺），快取的 key 和查 TDX 都用它；
+            # 時間軸上叫「目前位置」（2026-10-21 使用者決定）
+            lat, lng = round(req.origin_lat, 3), round(req.origin_lng, 3)
+            self.station = Place(kind="location", id=0, name=ORIGIN_NAME, lat=lat, lng=lng)
+            self.station_ep = Endpoint(f"loc{lat:.3f}_{lng:.3f}", "location", ORIGIN_NAME, lat, lng)
+        else:
+            st = q(
+                text(
+                    "SELECT id, name, ST_Y(geom::geometry) lat, ST_X(geom::geometry) lng "
+                    "FROM stations WHERE id = :i AND is_active"
+                ),
+                {"i": req.origin_station_id},
+            ).first()
+            if st is None:
+                raise PlanError("NOT_FOUND", "出發站不存在")
+            self.station = Place(kind="station", id=st.id, name=st.name, lat=st.lat, lng=st.lng)
+            self.station_ep = Endpoint(f"sta{st.id}", "station", st.name, st.lat, st.lng, rail=True)
 
         self.hubs: dict[int, Place] = {}
         self.hub_eps: dict[int, Endpoint] = {}
