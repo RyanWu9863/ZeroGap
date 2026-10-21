@@ -2,7 +2,7 @@
 name: zerogap
 
 x-app: &app
-  build: .
+  build: ./backend
   env_file:
     - path: .env
       required: false
@@ -26,7 +26,7 @@ x-app: &app
 services:
   # 只跑一次：api、worker 等它跑完才啟動，避免開多個 api 時同時跑 migration
   migrate:
-    build: .
+    build: ./backend
     command: ["alembic", "upgrade", "head"]
     environment:
       DATABASE_URL: postgresql+psycopg://zerogap:zerogap@postgres:5432/zerogap

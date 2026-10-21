@@ -104,6 +104,8 @@
 
 ### 2.2 元件說明
 
+程式的路徑都相對於 `backend/`（2026-10-21 起後端程式搬進 `backend/`，根目錄放 `docker-compose.yml`、`deploy/`、`docs/`、`tools/`、`frontend/`）。
+
 | 元件 | 位置 | 職責 |
 |---|---|---|
 | REST API | `app/api.py` | 驗證輸入、限流、送出規劃並推送 SSE、提供下拉選單資料和狀態列 |

@@ -1,17 +1,21 @@
 """收集後端真正的回應，給 check.ts 用前端的 zod 驗證（前後端的合約檢查）。
 
-    uv run python tools/contract-check/collect.py
+    uv run --project backend python tools/contract-check/collect.py
     node tools/contract-check/check.ts tools/contract-check/out
 
 API 要在 localhost:8000 跑著。規劃結果用模擬版 TDX 在本機產生（格式一樣，不花 TDX 額度）。
 """
+
+# 要先把 backend/ 加進 sys.path 才能 import app
+# ruff: noqa: E402
 
 import json
 import sys
 from datetime import date
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[2]))  # 專案根目錄，才找得到 app
+# 後端程式在 backend/，加進 sys.path 才找得到 app
+sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "backend"))
 
 import httpx
 import redis

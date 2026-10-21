@@ -1,6 +1,6 @@
 # ZeroGap 零空檔：Demo 操作手冊（後端）
 
-> 2026-10-21 版。給 Demo 當天操作的人看。指令都在 `D:\ZeroGap` 執行。
+> 2026-10-21 版。給 Demo 當天操作的人看。指令都在專案根目錄 `D:\ZeroGap` 執行；後端的指令用 `uv run --directory backend …`（後端程式在 `backend/`，2026-10-21 起）。
 
 ## 1. Demo 前一天
 
@@ -22,7 +22,7 @@
    - `--build` 不要省：程式或資料庫結構改過的話，舊的映像檔會讓 `migrate` 失敗，api 跟著起不來（症狀是網頁回 502）。
 4. 等 10 秒，跑檢查：
    ```bash
-   uv run python -m app.jobs.check
+   uv run --directory backend python -m app.jobs.check
    ```
 5. 開前端（照前端組員的說明）：`frontend/` 的分支 `feature/backend-v0.9`，`.env` 設 `VITE_USE_MOCK=false`。前端開發模式會把 `/api` 轉到 `localhost:8000`（2026-10-21 前端已用這個方式實際排過行程）。
    - 前端的 Docker 版本還沒跟後端一起測過：前端的 nginx 預設把 `/api` 轉給 `http://backend:8000`，我們的 compose 沒有叫 `backend` 的服務，要另外設 `BACKEND_URL`。
@@ -71,13 +71,13 @@
 | 前端改了條件，結果還是上一次的「找不到行程」 | 前端把無解的結果存 10 分鐘 | 換一個條件再排，或等 10 分鐘 |
 | 等很久都在「等待交通查詢額度」 | TDX 每分鐘 5 次，多人同時排就要排隊 | 正常現象；Demo 時一次排一個 |
 | 回「你已經有一個規劃在進行」 | 同一台電腦上一個規劃還沒結束 | 等它結束；或關掉前端分頁（斷線會自動取消） |
-| 場次是舊的 | 排程沒跑到（電腦睡眠、Docker 沒開） | `uv run python -m app.jobs.refresh atmovies`（約 5 分鐘） |
+| 場次是舊的 | 排程沒跑到（電腦睡眠、Docker 沒開） | `uv run --directory backend python -m app.jobs.refresh atmovies`（約 5 分鐘） |
 | TDX 回錯誤（交通查詢暫時無法使用） | TDX 本身出問題或點數用完 | 檢查「TDX 本月點數」；暫時改 `.env` 的 `TDX_MODE=mock` 再 `docker compose up -d` 用模擬路線 |
 
 ## 6. 手動更新資料
 
 ```bash
-uv run python -m app.jobs.refresh atmovies
+uv run --directory backend python -m app.jobs.refresh atmovies
 ```
 
 | 指令 | 內容 | 時間 |
@@ -90,7 +90,7 @@ uv run python -m app.jobs.refresh atmovies
 在本機執行 `osm`（要判斷店家屬性）時，Ollama 的網址要用 localhost：
 
 ```bash
-OLLAMA_BASE_URL=http://localhost:11434 uv run python -m app.jobs.refresh osm
+OLLAMA_BASE_URL=http://localhost:11434 uv run --directory backend python -m app.jobs.refresh osm
 ```
 
 ## 7. 前後端合約檢查
@@ -98,7 +98,7 @@ OLLAMA_BASE_URL=http://localhost:11434 uv run python -m app.jobs.refresh osm
 前端改過 `schemas.ts`、或後端改過回應格式時，跑一次就知道前端會不會擋下後端的資料：
 
 ```bash
-uv run python tools/contract-check/collect.py
+uv run --project backend python tools/contract-check/collect.py
 ```
 
 ```bash

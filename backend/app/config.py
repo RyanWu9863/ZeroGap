@@ -6,14 +6,20 @@ dict、list 用 JSON 寫，例如 `MEAL_MINUTES='{"fast": 30, "normal": 60, "slo
 """
 
 from functools import lru_cache
+from pathlib import Path
 from typing import Annotated, Literal
 
 from pydantic import field_validator
 from pydantic_settings import BaseSettings, NoDecode, SettingsConfigDict
 
+ROOT_ENV = Path(__file__).resolve().parents[2] / ".env"
+
 
 class Settings(BaseSettings):
-    model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
+    # .env 放在專案根目錄（docker compose 也讀它）；在 backend/ 執行時也找得到
+    model_config = SettingsConfigDict(
+        env_file=(ROOT_ENV, ".env"), env_file_encoding="utf-8", extra="ignore"
+    )
 
     # --- 連線 ---
     database_url: str = "postgresql+psycopg://zerogap:zerogap@localhost:5433/zerogap"

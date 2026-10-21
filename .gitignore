@@ -8,8 +8,9 @@ __pycache__/
 # 本機設定（金鑰）
 .env
 
-# 前端有自己的 git；交接用的補丁不進版本控制
+# 前端有自己的 git
 frontend/
-frontend-patches/
+# 簡報的建置腳本和暫存檔（成品放在 docs/報告/）
+.presentation-build/
 # 換電腦用的 git bundle
 handoff/
