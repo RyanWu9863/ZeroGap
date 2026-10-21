@@ -78,6 +78,11 @@ class TdxError(Exception):
     pass
 
 
+class TdxBadParams(TdxError):
+    """TDX 回 404、錯誤代碼 40001（API spec params is wrong）。起訖點很近時會這樣
+    （2026-10-21 實測：桃園站→統領威秀約 300 公尺），1 公里內當作查不到路線、改走路。"""
+
+
 class TdxQuotaExhausted(Exception):
     """本月點數用完（5.5）：停止呼叫，不重試。"""
 
@@ -362,6 +367,8 @@ class TdxTransit:
                 attempt += 1
                 self.sleep(attempt)
                 continue
+            if resp.status_code == 404 and '"code":40001' in resp.text.replace(" ", ""):
+                raise TdxBadParams(f"TDX HTTP 404：{resp.text[:200]}")
             if resp.status_code != 200:
                 raise TdxError(f"TDX HTTP {resp.status_code}：{resp.text[:200]}")
             return resp.json()
@@ -369,6 +376,20 @@ class TdxTransit:
 
     def route(
         self, origin: Endpoint, dest: Endpoint, at: datetime, mode: TimeMode, top: int = 1
+    ) -> list[Route]:
+        try:
+            routes = self._route(origin, dest, at, mode, top)
+        except TdxBadParams:
+            if haversine_m(origin.lat, origin.lng, dest.lat, dest.lng) > WALK_FALLBACK_M:
+                raise
+            routes = []
+        if not routes:
+            walk = walk_route(origin, dest, at, mode)
+            return [walk] if walk else []
+        return routes[:top]
+
+    def _route(
+        self, origin: Endpoint, dest: Endpoint, at: datetime, mode: TimeMode, top: int
     ) -> list[Route]:
         if mode == "arrival":
             routes = valid_routes(self._query(origin, dest, at, mode, top), at, mode)
@@ -385,10 +406,7 @@ class TdxTransit:
                 routes = valid_routes(found, at, mode)
                 if routes:
                     break
-        if not routes:
-            walk = walk_route(origin, dest, at, mode)
-            return [walk] if walk else []
-        return routes[:top]
+        return routes
 
     def _query(
         self, origin: Endpoint, dest: Endpoint, at: datetime, mode: TimeMode, top: int

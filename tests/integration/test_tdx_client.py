@@ -158,6 +158,21 @@ def test_no_route_within_1km_becomes_walk(r):
 
 
 @respx.mock
+def test_bad_params_for_very_close_points_becomes_walk(r):
+    respx.post(TOKEN_URL).mock(return_value=token_ok())
+    bad = httpx.Response(
+        404, json={"result": "fail", "error": {"code": 40001, "msg": "API spec params is wrong."}}
+    )
+    respx.get(ROUTING_URL).mock(return_value=bad)
+    near = Endpoint("cin17", "cinema", "統領威秀", 24.9561, 121.2243, rail=False)  # 約 300 公尺
+    routes = make(r).route(A, near, datetime(2026, 10, 21, 17, 45, tzinfo=TZ), "depart")
+    assert routes[0].walk_only and routes[0].walk_after > 0
+    # 遠的照樣當錯誤
+    with pytest.raises(TdxError, match="40001"):
+        make(r).route(A, B, datetime(2026, 10, 21, 17, 45, tzinfo=TZ), "depart")
+
+
+@respx.mock
 def test_no_route_far_away_stays_empty(r):
     respx.post(TOKEN_URL).mock(return_value=token_ok())
     respx.get(ROUTING_URL).mock(

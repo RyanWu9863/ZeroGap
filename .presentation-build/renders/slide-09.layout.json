@@ -1,0 +1,8 @@
+{"schema":"openai.presentation.layout/v5","unit":"px","slide":{"id":"sl/zq0ozr","index":8,"layout":{"id":"ly/mlcj2lgr","name":"Blank"},"backgroundColor":"rgba(255,255,255,1)","position":{"left":0,"top":0,"width":1280,"height":720}},
+"elements":[
+{"id":"sh/m5cjmpoj","kind":"textbox","name":"text-1","position":{"left":72,"top":59,"width":1136,"height":74},"text":"後端技術與用途","style":{"fontSize":48,"typeface":"Microsoft JhengHei","color":"#17333F","bold":true,"alignment":"left"},"geometry":"rect","lineWidth":0},
+{"id":"sh/98nix4na","kind":"textbox","name":"text-2","position":{"left":72,"top":662,"width":1000,"height":28},"text":"2  /  後端與行程規劃","style":{"fontSize":18,"typeface":"Microsoft JhengHei","color":"#566D76","alignment":"left"},"geometry":"rect","lineWidth":0},
+{"id":"sh/o7e1oz6p","kind":"textbox","name":"text-3","position":{"left":1136,"top":656,"width":72,"height":36},"text":"09","style":{"fontSize":23,"typeface":"Microsoft JhengHei","color":"#566D76","alignment":"right"},"geometry":"rect","lineWidth":0},
+{"id":"sh/z2l0ra5s","kind":"textbox","name":"text-4","position":{"left":72,"top":568,"width":1136,"height":50},"text":"讓需要等待的工作在背景執行，並持續回傳進度。","style":{"fontSize":27,"typeface":"Microsoft JhengHei","color":"#087E82","bold":true,"alignment":"left"},"geometry":"rect","lineWidth":0},
+{"id":"tb/n6xwv2xw","kind":"table","position":{"left":72,"top":178,"width":1136,"height":360},"text":"技術\t在專案中的用途\nFastAPI\t接收條件、提供資料與規劃結果\nPostgreSQL\t保存電影、餐廳、車站等資料\nPostGIS\t處理位置與距離查詢\nRedis\t快取、呼叫頻率限制與進度訊息\nRQ\t執行規劃及資料更新的背景工作","rows":6,"cols":2}
+]}

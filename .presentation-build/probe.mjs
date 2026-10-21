@@ -1,0 +1,10 @@
+import fs from 'node:fs/promises';
+import {Presentation,PresentationFile} from 'file:///C:/Users/User/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/@oai/artifact-tool/dist/artifact_tool.mjs';
+const p=Presentation.create({slideSize:{width:1280,height:720}});
+const s=p.slides.add(); s.background.fill='#FFFFFF';
+const t=s.shapes.add({geometry:'textbox',position:{left:72,top:70,width:1100,height:120},fill:'none',line:{fill:'none',width:0}});
+t.text='ZeroGap 零空檔｜行程可行性篩選'; t.text.style={fontFamily:'Microsoft JhengHei',fontSize:48,color:'#152D3B',bold:true};
+s.speakerNotes.text='第 1 人｜30 秒\n各位老師、各位同學大家好。';
+await fs.writeFile('D:/ZeroGap/.presentation-build/probe.png',new Uint8Array(await (await p.export({slide:s,format:'png',scale:1})).arrayBuffer()));
+await (await PresentationFile.exportPptx(p)).save('D:/ZeroGap/.presentation-build/probe.pptx');
+console.log('probe ready');
