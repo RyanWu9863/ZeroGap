@@ -26,7 +26,8 @@ from app.services import ApiError
 
 INSTRUCTIONS = (
     "ZeroGap 零空檔：規劃「電影＋餐廳＋交通」的行程。"
-    "請依序呼叫：list_areas（商圈代碼）→ list_stations（出發站 id）"
+    "請依序呼叫：list_areas（商圈代碼）→ list_stations（出發站 id；"
+    "或用 search_locations 以地址、地標找出發位置）"
     "→ list_categories（片型、料理代碼）"
     "→ data_coverage（有場次的日期、電影 id、影廳、語言）→ plan_date。"
     "一次規劃約 1～3 分鐘，期間會送出進度通知。資料是學術展示用。"
@@ -60,6 +61,17 @@ async def list_areas(county: str | None = None) -> dict[str, Any]:
                 "counties": await services.list_counties(db),
                 "areas": await services.list_areas(db, county),
             }
+        except ApiError as exc:
+            raise _tool_error(exc) from None
+
+
+@mcp.tool()
+async def search_locations(q: str, area: str | None = None) -> list[dict[str, Any]]:
+    """用地址或地標名稱找出發位置（桃園市內），回傳名稱、地址、座標。
+    plan_date 用 origin_lat、origin_lng、origin_name 帶入；有給 area 只留離商圈 30 公里內的。"""
+    async with async_session()() as db:
+        try:
+            return await services.search_locations(db, async_redis(), get_settings(), q, area)
         except ApiError as exc:
             raise _tool_error(exc) from None
 
@@ -113,11 +125,12 @@ async def plan_date(
     origin_station_id: int | None = None,
     origin_lat: float | None = None,
     origin_lng: float | None = None,
+    origin_name: str | None = None,
 ) -> dict[str, Any]:
     """規劃行程，回傳前三名方案（格式同 REST 的 POST /api/plans 的 result）。
 
     出發點二擇一：origin_station_id（list_stations 的 id），
-    或使用者目前位置的 origin_lat、origin_lng；
+    或使用者目前位置／search_locations 找到的 origin_lat、origin_lng（origin_name 是顯示的名稱）；
     回到出發點就算到家。
 
     date 是 YYYY-MM-DD（要是 data_coverage 的 available_dates 之一）；時間是 HH:MM，
@@ -128,7 +141,7 @@ async def plan_date(
         req = PlanRequest.model_validate(
             {
                 "area": area, "origin_station_id": origin_station_id, "origin_lat": origin_lat,
-                "origin_lng": origin_lng, "date": date,
+                "origin_lng": origin_lng, "origin_name": origin_name, "date": date,
                 "earliest_departure": earliest_departure, "latest_home": latest_home,
                 "order": order, "movie_id": movie_id, "movie_genre": movie_genre,
                 "hall_type": hall_type, "language": language, "cuisine": cuisine,

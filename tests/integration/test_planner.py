@@ -458,3 +458,17 @@ def test_plan_from_current_location(session, r):
                               "lat": 24.954, "lng": 121.226, "place_id": None}  # fmt: skip
     assert home["type"] == "home" and home["station"] == "目前位置"
     assert r.keys("tdx:route:v1mock:loc24.954_121.226:*")
+
+
+def test_plan_from_chosen_location_uses_its_name(session, r):
+    # 自選的位置：時間軸上用搜尋結果的名稱（2026-10-21）
+    deps = Deps(
+        session=session, redis=r, transit=MockTransit(), jev=MockJev(), llm=MockLlm(),
+        places=MockPlaces(), settings=Settings(_env_file=None, tdx_per_minute=1000),
+    )  # fmt: skip
+    req = request(session, origin_station_id=None, origin_lat=24.9576, origin_lng=121.2405,
+                  origin_name=" 中原大學 ")  # fmt: skip
+    result = run_plan(req, "job-test", deps, lambda *a, **k: None)
+    plan = PlanResult.model_validate(result).to_json()["plans"][0]
+    assert plan["timeline"][0]["place"]["name"] == "中原大學"
+    assert plan["timeline"][-1]["station"] == "中原大學"

@@ -107,7 +107,7 @@
 | 元件 | 位置 | 職責 |
 |---|---|---|
 | REST API | `app/api.py` | 驗證輸入、限流、送出規劃並推送 SSE、提供下拉選單資料和狀態列 |
-| MCP | `app/mcp.py` | 用官方 MCP Python SDK 手寫 5 個工具，直接呼叫 `services.py`，掛在 `/mcp`；以無狀態模式運作，負責進度通知 |
+| MCP | `app/mcp.py` | 用官方 MCP Python SDK 手寫 6 個工具（2026-10-21 加上 `search_locations`），直接呼叫 `services.py`，掛在 `/mcp`；以無狀態模式運作，負責進度通知 |
 | 服務層 | `app/services.py` | API 和 MCP 共用：組查詢條件、讀資料、送出規劃工作 |
 | 規劃 | `app/planner.py` | 在 worker 中執行：求可行時間、篩組合、請 Jev 選、驗證營業時間、查精確路線、算時間軸與花費 |
 | 交通 | `app/transit.py` | 步行估算、呼叫 TDX、路線快取 |
@@ -560,7 +560,8 @@ WHERE subject_type = 'restaurant' AND decided_by = 'llm';
 | 換 token 的鎖 | `lock:tdx:token` | string | 30 秒 |
 | 路線快取 | `tdx:route:v1:{起點}:{終點}:{dep\|arr}:{時段}:{top}` | string（JSON） | 6 小時；查不到路線（空的結果）只存 10 分鐘（2026-10-21 使用者決定） |
 | 排程鎖 | `lock:job:{工作名稱}` | string | 10 分鐘，工作還在跑就延長 |
-| 滑動窗口限流 | `rl:tdx`、`rl:jev`、`rl:api:plan:{IP}`、`rl:api:read:{IP}` | sorted set | 跟窗口一樣長 |
+| 滑動窗口限流 | `rl:tdx`、`rl:jev`、`rl:api:plan:{IP}`、`rl:api:read:{IP}`、`rl:api:loc:{IP}` | sorted set | 跟窗口一樣長 |
+| 地點搜尋快取 | `geo:search:v1:{整理過的搜尋文字}` | string（JSON） | 7 天（2026-10-21 使用者決定） |
 | 每個 IP 同時一個規劃 | `active:plan:{IP}` | string（job_id） | 25 分鐘（排隊最多 15 分鐘＋執行最多 10 分鐘）；規劃結束或取消時刪除 |
 | 每月額度 | `quota:{對象}:{YYYY-MM}` | string（計數器） | 下個月 5 日 |
 | 規劃進度頻道 | `plan:{job_id}:events` | Pub/Sub | — |
@@ -600,6 +601,7 @@ WHERE subject_type = 'restaurant' AND decided_by = 'llm';
 | 建立規劃（每個 IP） | 1 小時 | 10 | HTTP 429 ＋ `Retry-After` |
 | 建立規劃（每個 IP） | 同時進行 | 1 | HTTP 409 `PLAN_IN_PROGRESS` |
 | 其他查詢（每個 IP） | 60 秒 | 60 | HTTP 429 ＋ `Retry-After` |
+| 地點搜尋（每個 IP） | 1 小時 | 20（2026-10-21 使用者決定；快取命中也算） | HTTP 429 ＋ `Retry-After` |
 
 **每月額度**：照日曆月計數，例如 `quota:google:details_enterprise:2026-10`。呼叫前先檢查，呼叫成功後 `INCRBY`。
 
@@ -686,12 +688,21 @@ worker 完成 → PUBLISH result（完整結果）→ API 推送後關閉串流
 | GET | `/api/counties` | 縣市清單，並標示哪些縣市有開放約會的商圈 | `list_areas` |
 | GET | `/api/areas?county={code}` | 約會商圈 | `list_areas` |
 | GET | `/api/stations?county={code}` | 出發站 | `list_stations` |
+| GET | `/api/locations?q={文字}&area={code}` | 自選的出發位置：輸入地址或地標名稱，回傳桃園市的候選 `[{name, address, lat, lng}]`（最多 10 筆）。`area` 可省略，有給就只留離這個商圈代表點 30 公里內的（2026-10-21 使用者決定）。說明見下方 | `search_locations` |
 | GET | `/api/categories?kind=movie_genre\|cuisine` | 片型、料理類別 | `list_categories` |
 | GET | `/api/coverage?area={code}&date={YYYY-MM-DD}` | 有場次的日期範圍和日期清單；指定日期時，另外列出可看的電影，以及目前有場次的片型、影廳、語言 | `data_coverage` |
 | GET | `/api/status` | 狀態列：Jev 模式、LLM 連線狀態、各資料的更新時間 | — |
 | POST | `/api/plans` | 送出規劃，**直接回傳 SSE 串流** | `plan_date` |
 | GET | `/api/health` | 健康檢查【預設】：資料庫和 Redis 都連得上才回 200 | — |
 | GET | `/api/docs` | 自動產生的 API 文件（FastAPI 的 Swagger UI）（實作時新增） | — |
+
+**地點搜尋 `/api/locations`**（2026-10-21 使用者決定，給「自己選定位置」用）：
+- 用 TDX 地理編碼（進階服務，每次扣 15 單位點數）。看起來像地址（有路、街、段，或數字＋號）就查地址，沒寫縣市就補「桃園市」；否則查地標名稱。只查一種，查不到就回空的。
+- 只回傳桃園市的結果；只到區的結果不收（實測「台北101」查地標會回「桃園市桃園區」）。地址的結果沒有名稱，用地址當名稱。
+- 結果快取 7 天；每個 IP 每小時最多 20 次。TDX 每分鐘 5 次的額度不等（規劃可能正在用），搶不到就回 429 ＋ `Retry-After`；TDX 點數用完或出錯回 503，請使用者改選出發站。
+- `TDX_MODE=mock` 時只從車站、商圈代表點、影城的名稱找，不花點數。
+- TDX 的地標資料不完整：實測「中原大學」「大江購物中心」「桃園市政府」找得到，「桃園藝文特區」「中壢SOGO」找不到，要改輸入地址。
+- 前端要在按下搜尋時才呼叫，不要每打一個字就查。
 
 ### 6.3 回應範例
 
@@ -780,7 +791,8 @@ worker 完成 → PUBLISH result（完整結果）→ API 推送後關閉串流
 |---|---|---|
 | `area` | 商圈 | 開放中的商圈代碼 |
 | `origin_station_id` | 出發站 | 任何縣市的有效車站；回到這一站就算「到家」。跟 `origin_lat`、`origin_lng` 二擇一 |
-| `origin_lat`、`origin_lng` | 使用目前位置 | 瀏覽器定位的座標（2026-10-21 使用者決定）。兩個要一起給，不能和 `origin_station_id` 同時給。回到同一個位置就算「到家」。離選定商圈最近的代表點超過 30 公里時回 400 `VALIDATION_ERROR`，請使用者改選出發站。座標取到小數點 3 位（約 100 公尺）後才查 TDX、當快取的 key（`loc24.971_121.210`）；只用在這次規劃，不存資料庫。時間軸上的地點是 `{"kind": "location", "id": 0, "name": "目前位置", "lat": ..., "lng": ...}`，`home` 的 `station` 是「目前位置」 |
+| `origin_name` | 位置的名稱 | 只能跟座標一起給，最多 30 個字：搜尋結果的名稱，或「目前位置」；沒給就是「目前位置」。時間軸上地點的 `name`、`home` 的 `station` 都用它 |
+| `origin_lat`、`origin_lng` | 使用目前位置，或搜尋選定的位置 | 瀏覽器定位的座標（2026-10-21 使用者決定）。兩個要一起給，不能和 `origin_station_id` 同時給。回到同一個位置就算「到家」。離選定商圈最近的代表點超過 30 公里時回 400 `VALIDATION_ERROR`，請使用者改選出發站。座標取到小數點 3 位（約 100 公尺）後才查 TDX、當快取的 key（`loc24.971_121.210`）；只用在這次規劃，不存資料庫。時間軸上的地點是 `{"kind": "location", "id": 0, "name": "目前位置", "lat": ..., "lng": ...}`，`home` 的 `station` 是「目前位置」 |
 | `date` | 日期 | 必須是該商圈 `available_dates` 中的一天 |
 | `earliest_departure` | 最早出門 | `HH:MM`，一律是 `date` 當天；日期是今天時，要晚於現在 |
 | `latest_home` | 最晚到家 | `HH:MM`。早於 06:00 的時間算隔天，最晚到隔天 02:00；其他時間算當天，要晚於最早出門【預設】。例如最早出門 17:00、最晚到家 01:30，代表隔天凌晨 1:30 |

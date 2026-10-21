@@ -246,6 +246,8 @@ async def test_cors(client):
         ({"origin_lat": 24.99, "origin_lng": 121.31}, 400, "VALIDATION_ERROR"),
         ({"origin_station_id": None}, 400, "VALIDATION_ERROR"),
         ({"origin_station_id": None, "origin_lat": 24.99}, 400, "VALIDATION_ERROR"),
+        # 名稱只能跟座標一起給
+        ({"origin_name": "家"}, 400, "VALIDATION_ERROR"),
         # 新竹離桃園的商圈超過 30 公里
         (
             {"origin_station_id": None, "origin_lat": 24.80, "origin_lng": 120.97},
@@ -322,3 +324,32 @@ async def test_plan_stream_error_event(client, engine, worker):
     assert name == "error"
     assert data["code"] == "NO_FEASIBLE"
     assert data["reasons"]["budget"] > 0
+
+
+# ── GET /api/locations：自選的出發位置（2026-10-21） ─────────────────
+
+
+async def test_locations_search_mock(client):
+    # TDX_MODE=mock：從車站、代表點、影城的名稱找
+    res = await client.get("/api/locations", params={"q": "中壢"})
+    assert res.status_code == 200, res.text
+    hits = res.json()
+    assert hits and all({"name", "address", "lat", "lng"} <= h.keys() for h in hits)
+    assert any("中壢" in h["name"] for h in hits)
+
+
+async def test_locations_validation_and_area_filter(client):
+    assert (await client.get("/api/locations", params={"q": "中"})).status_code == 400
+    res = await client.get("/api/locations", params={"q": "中壢", "area": "nowhere"})
+    assert res.status_code == 404
+    res = await client.get("/api/locations", params={"q": "中壢", "area": "taoyuan"})
+    assert res.status_code == 200 and res.json()
+
+
+async def test_locations_rate_limited_per_hour(client):
+    override(api_location_search_per_hour=2)
+    for _ in range(2):
+        assert (await client.get("/api/locations", params={"q": "中壢"})).status_code == 200
+    res = await client.get("/api/locations", params={"q": "中壢"})
+    assert res.status_code == 429
+    assert res.json()["error"]["code"] == "RATE_LIMITED"

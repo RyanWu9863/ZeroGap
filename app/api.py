@@ -22,6 +22,7 @@ from app.schemas import (
     CategoryOut,
     CountyOut,
     CoverageOut,
+    LocationOut,
     PlanRequest,
     StationOut,
     StatusOut,
@@ -86,6 +87,24 @@ async def coverage(
     db: Db, r: Redis, s: Conf, area: Annotated[str, Query(min_length=1)], date: date | None = None
 ):
     return await services.get_coverage(db, r, s, area, date)
+
+
+@router.get("/locations", response_model=list[LocationOut], dependencies=read)
+async def locations(
+    request: Request,
+    db: Db,
+    r: Redis,
+    s: Conf,
+    q: Annotated[str, Query(min_length=1)],
+    area: str | None = None,
+):
+    """自選的出發位置：輸入地址或地標名稱（6.2）。每個 IP 每小時最多 20 次（會查 TDX）。"""
+    result = await ahit(
+        r, f"rl:api:loc:{client_ip(request)}", s.api_location_search_per_hour, 3_600_000
+    )
+    if not result.allowed:
+        raise rate_limited(result.retry_after_seconds)
+    return await services.search_locations(db, r, s, q, area)
 
 
 @router.get("/status", response_model=StatusOut, dependencies=read)

@@ -236,8 +236,9 @@ class Planner:
             # 目前位置：座標取到小數點 3 位（約 100 公尺），快取的 key 和查 TDX 都用它；
             # 時間軸上叫「目前位置」（2026-10-21 使用者決定）
             lat, lng = round(req.origin_lat, 3), round(req.origin_lng, 3)
-            self.station = Place(kind="location", id=0, name=ORIGIN_NAME, lat=lat, lng=lng)
-            self.station_ep = Endpoint(f"loc{lat:.3f}_{lng:.3f}", "location", ORIGIN_NAME, lat, lng)
+            name = req.origin_name or ORIGIN_NAME
+            self.station = Place(kind="location", id=0, name=name, lat=lat, lng=lng)
+            self.station_ep = Endpoint(f"loc{lat:.3f}_{lng:.3f}", "location", name, lat, lng)
         else:
             st = q(
                 text(

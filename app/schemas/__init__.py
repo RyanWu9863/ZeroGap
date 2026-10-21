@@ -45,6 +45,13 @@ class StationOut(_Model):
     operator: str
 
 
+class LocationOut(_Model):
+    name: str | None
+    address: str | None
+    lat: float
+    lng: float
+
+
 class CategoryOut(_Model):
     code: str
     label: str
@@ -95,6 +102,8 @@ class PlanRequest(_Model):
     origin_station_id: int | None = Field(default=None, gt=0)
     origin_lat: float | None = Field(default=None, ge=-90, le=90)
     origin_lng: float | None = Field(default=None, ge=-180, le=180)
+    # 時間軸上這個位置的名稱：搜尋結果的名稱，或「目前位置」；沒給就是「目前位置」
+    origin_name: str | None = Field(default=None, max_length=30)
     date: date
     earliest_departure: time
     latest_home: time
@@ -139,6 +148,10 @@ class PlanRequest(_Model):
             raise ValueError("目前位置要同時給 origin_lat 和 origin_lng")
         if has_point == (self.origin_station_id is not None):
             raise ValueError("出發點要二擇一：origin_station_id，或 origin_lat＋origin_lng")
+        if self.origin_name is not None:
+            if not has_point:
+                raise ValueError("origin_name 只有用座標當出發點時才能給")
+            self.origin_name = self.origin_name.strip() or None
         return self
 
     def resolved_times(self) -> tuple[datetime, datetime]:

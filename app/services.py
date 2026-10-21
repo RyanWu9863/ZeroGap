@@ -12,12 +12,19 @@ import httpx
 import redis.asyncio as aioredis
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
+from starlette.concurrency import run_in_threadpool
 
+from app import locations
+from app.collectors.tdx_geocode import Geocoder
 from app.config import Settings, get_settings
 from app.jev.mock import MODEL as MOCK_JEV_MODEL
 from app.labels import HALL_TYPE_LABELS
+from app.redis_client import sync_redis
 from app.redis_utils.quota import aused
+from app.redis_utils.ratelimit import hit
 from app.schemas import PlanRequest
+from app.tdx import TdxError, TdxQuotaExhausted, TdxTransit
+from app.transit import haversine_m
 
 TZ = ZoneInfo("Asia/Taipei")
 CATEGORY_KINDS = ("movie_genre", "cuisine")
@@ -97,6 +104,110 @@ async def list_stations(db: AsyncSession, county: str) -> list[dict[str, Any]]:
         {"c": county_id},
     )
     return [dict(r._mapping) for r in rows]
+
+
+# ── 地點搜尋（自選的出發位置） ─────────────────────────────────
+
+
+class _TdxBusy(Exception):
+    def __init__(self, retry_after_seconds: int):
+        self.retry_after_seconds = retry_after_seconds
+
+
+def _tdx_search(s: Settings, q: str) -> list[dict[str, Any]]:
+    """在執行緒裡跑（TDX 用戶端是同步的）。"""
+    r = sync_redis()
+
+    def limiter() -> None:
+        # 不等額度：規劃可能正在用，搶不到就請使用者稍後再試
+        result = hit(r, "rl:tdx", s.tdx_per_minute, 60_000)
+        if not result.allowed:
+            raise _TdxBusy(result.retry_after_seconds)
+
+    tdx = TdxTransit(
+        s.tdx_client_id, s.tdx_client_secret, r, timeout=s.http_timeout_seconds,
+        limiter=limiter, points_limit=s.quota_tdx_points_units,
+    )  # fmt: skip
+    geo = Geocoder(tdx, r, s)
+    return [
+        {"name": h.name, "address": h.address, "lat": h.lat, "lng": h.lng}
+        for h in locations.search(geo.markname, geo.address, q)
+    ]
+
+
+async def _mock_search(db: AsyncSession, q: str) -> list[dict[str, Any]]:
+    """TDX_MODE=mock：只從車站、商圈代表點、影城的名稱找（示意，不花點數）。"""
+    rows = await db.execute(
+        text(
+            """
+            SELECT name, NULL AS address, ST_Y(geom::geometry) lat, ST_X(geom::geometry) lng
+              FROM stations WHERE is_active AND name ILIKE :p
+            UNION ALL
+            SELECT name, NULL, ST_Y(geom::geometry), ST_X(geom::geometry)
+              FROM area_hubs WHERE geom IS NOT NULL AND name ILIKE :p
+            UNION ALL
+            SELECT name, address, ST_Y(geom::geometry), ST_X(geom::geometry)
+              FROM cinemas WHERE is_active AND geom IS NOT NULL AND name ILIKE :p
+            LIMIT :n
+            """
+        ),
+        {"p": f"%{q}%", "n": locations.MAX_RESULTS},
+    )
+    return [dict(x._mapping) for x in rows]
+
+
+async def search_locations(
+    db: AsyncSession, r: aioredis.Redis, s: Settings, q: str, area: str | None = None
+) -> list[dict[str, Any]]:
+    """輸入地址或地標名稱，回傳桃園市的候選位置（6.2）。結果快取 7 天。
+
+    有給 `area` 時，只留離這個商圈代表點 30 公里內的（跟規劃的檢查一樣）。
+    """
+    q = locations.normalize(q)
+    if not 2 <= len(q) <= 50:
+        raise invalid("搜尋的文字要 2～50 個字")
+    hubs = None
+    if area:
+        area_id = await _open_area_id(db, area)
+        hubs = (
+            await db.execute(
+                text(
+                    "SELECT ST_Y(geom::geometry) lat, ST_X(geom::geometry) lng FROM area_hubs "
+                    "WHERE area_id = :a AND geom IS NOT NULL"
+                ),
+                {"a": area_id},
+            )
+        ).all()
+    key = locations.cache_key(q) if s.tdx_mode == "real" else locations.cache_key(f"mock:{q}")
+    cached = await r.get(key)
+    if cached is not None:
+        hits = json.loads(cached)
+    elif s.tdx_mode != "real":
+        hits = await _mock_search(db, q)
+    else:
+        try:
+            hits = await run_in_threadpool(_tdx_search, s, q)
+        except _TdxBusy as exc:
+            raise ApiError(
+                429, "RATE_LIMITED", "地點搜尋忙碌中，請稍後再試",
+                headers={"Retry-After": str(exc.retry_after_seconds)},
+            ) from None  # fmt: skip
+        except TdxQuotaExhausted:
+            raise ApiError(
+                503, "SERVICE_UNAVAILABLE", "地點搜尋暫停（TDX 本月點數用完），請改選出發站"
+            ) from None
+        except TdxError:
+            raise ApiError(
+                503, "SERVICE_UNAVAILABLE", "地點搜尋暫時無法使用，請改選出發站"
+            ) from None
+        await r.set(key, json.dumps(hits, ensure_ascii=False), ex=locations.CACHE_TTL_SECONDS)
+    if hubs is not None:
+        limit_m = s.origin_max_distance_km * 1000
+        hits = [
+            h for h in hits
+            if any(haversine_m(h["lat"], h["lng"], x.lat, x.lng) <= limit_m for x in hubs)
+        ]  # fmt: skip
+    return hits
 
 
 async def list_categories(db: AsyncSession, kind: str) -> list[dict[str, Any]]:

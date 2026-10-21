@@ -80,6 +80,8 @@ class Settings(BaseSettings):
     jev_per_minute: int = 300
     api_plan_per_hour: int = 10
     api_read_per_minute: int = 60
+    # 地點搜尋（查 TDX，每次 15 單位點數）：每個 IP 每小時最多幾次（2026-10-21 使用者決定）
+    api_location_search_per_hour: int = 20
     quota_tdx_points_units: int = 9000
     quota_google_nearby_enterprise: int = 950
     quota_google_details_enterprise: int = 950

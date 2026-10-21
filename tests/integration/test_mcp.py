@@ -106,11 +106,12 @@ def plan_args(sid, **overrides):
     return args
 
 
-async def test_five_tools_with_instructions(env):
+async def test_six_tools_with_instructions(env):
     async with connect() as client:
         tools = {t.name for t in (await client.list_tools()).tools}
         instructions = client.instructions
-    assert tools == {"list_areas", "list_stations", "list_categories", "data_coverage", "plan_date"}
+    assert tools == {"list_areas", "list_stations", "search_locations", "list_categories",
+                     "data_coverage", "plan_date"}  # fmt: skip
     assert "plan_date" in (instructions or "")
 
 
