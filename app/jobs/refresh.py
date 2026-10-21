@@ -5,16 +5,18 @@ python -m app.jobs.refresh stations
 
 import logging
 import sys
+import time
 
 from sqlalchemy import text
 
+from app.collectors.atmovies_import import make_fetcher, refresh_atmovies
 from app.collectors.osm_import import refresh_osm
 from app.collectors.tdx_geocode import Geocoder, geocode_hubs
 from app.collectors.tdx_stations import refresh_stations
 from app.config import get_settings
 from app.db import sync_session
 from app.jobs.crawl import run_crawl
-from app.judge import RestaurantJudge
+from app.judge import MovieJudge, RestaurantJudge
 from app.redis_client import sync_redis
 from app.tdx import TdxTransit
 
@@ -78,7 +80,38 @@ def refresh_osm_job() -> dict | None:
         )  # fmt: skip
 
 
-JOBS = {"stations": refresh_stations_job, "hubs": geocode_hubs_job, "osm": refresh_osm_job}
+def refresh_atmovies_job() -> dict | None:
+    """開眼電影網的影城、電影、場次（每天 06:00、18:00）。僅供學術展示（2026-10-20 決定）。"""
+    s, r = get_settings(), sync_redis()
+    tdx = TdxTransit(s.tdx_client_id, s.tdx_client_secret, r, timeout=s.http_timeout_seconds)
+    with sync_session()() as session:
+        genres = dict(
+            session.execute(
+                text(
+                    "SELECT code, label || '：' || coalesce(jev_description, '') FROM categories "
+                    "WHERE kind = 'movie_genre' ORDER BY sort_order"
+                )
+            ).all()
+        )
+        judge = MovieJudge(
+            s.ollama_base_url, s.ollama_model, genres=genres, timeout=s.ollama_timeout_seconds,
+            keep_alive=s.ollama_keep_alive, think=s.ollama_think,
+        )  # fmt: skip
+        return run_crawl(
+            session, r, "refresh_atmovies", "atmovies",
+            lambda keep_alive: refresh_atmovies(
+                session, make_fetcher(), Geocoder(tdx, r, s), judge, sleep=time.sleep,
+                keep_alive=keep_alive,
+            ),
+        )  # fmt: skip
+
+
+JOBS = {
+    "stations": refresh_stations_job,
+    "hubs": geocode_hubs_job,
+    "osm": refresh_osm_job,
+    "atmovies": refresh_atmovies_job,
+}
 
 
 def main(argv: list[str]) -> None:

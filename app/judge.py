@@ -100,3 +100,56 @@ class RestaurantJudge:
         if not isinstance(answer, dict):
             return {}
         return {f: answer[f] for f in fields if answer.get(f) in self._enum(f)}
+
+
+class MovieJudge:
+    """電影的片型（7.3 的 `genre`）：依片名、簡介、出品國，從 `categories` 的片型主清單選一個。"""
+
+    def __init__(
+        self,
+        base_url: str,
+        model: str,
+        genres: dict[str, str],
+        timeout: float = 30.0,
+        keep_alive: str = "30m",
+        think: bool | None = None,
+    ):
+        self.base_url = base_url.rstrip("/")
+        self.model = model
+        self.genres = genres  # {代碼: 說明}
+        self.timeout = timeout
+        self.keep_alive = keep_alive
+        self.think = think
+
+    def genre(self, title: str, synopsis: str | None, country: str | None) -> str | None:
+        lines = [
+            "你是電影資料整理員。依片名、簡介、出品國，從下面的片型選一個最符合的。",
+            f"片名：{title}",
+            f"出品國：{country or '不明'}",
+            f"簡介：{(synopsis or '（沒有簡介）')[:400]}",
+            "片型：",
+            *(f"- {code}：{desc}" for code, desc in self.genres.items()),
+            "只回答 JSON。",
+        ]
+        body: dict[str, Any] = {
+            "model": self.model,
+            "prompt": "\n".join(lines),
+            "stream": False,
+            "format": {
+                "type": "object",
+                "properties": {"genre": {"type": "string", "enum": list(self.genres)}},
+                "required": ["genre"],
+            },
+            "options": {"temperature": 0},
+            "keep_alive": self.keep_alive,
+        }
+        if self.think is not None:
+            body["think"] = self.think
+        try:
+            resp = httpx.post(f"{self.base_url}/api/generate", json=body, timeout=self.timeout)
+            resp.raise_for_status()
+            value = json.loads(resp.json()["response"])["genre"]
+        except (httpx.HTTPError, ValueError, KeyError, TypeError) as exc:
+            log.warning("Ollama 判斷片型「%s」失敗：%r", title, exc)
+            return None
+        return value if value in self.genres else None
