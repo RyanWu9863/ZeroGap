@@ -62,7 +62,8 @@ class Settings(BaseSettings):
 
     # --- 規劃 ---
     plan_alternatives_max: int = 2
-    plan_opening_hours_retry_rounds: int = 2
+    # 營業時間或精確路線接不上時最多再換幾組：前三名＋7 組＝最多試 10 組（2026-10-21 使用者決定）
+    plan_opening_hours_retry_rounds: int = 7
     plan_timeout_seconds: int = 600
     crawl_timeout_seconds: int = 1800  # 抓取工作最多 30 分鐘（5.6）
     judge_budget_seconds: int = 1500  # 屬性判斷每次最多 25 分鐘，剩下的下次再補

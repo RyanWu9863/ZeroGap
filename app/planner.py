@@ -94,6 +94,9 @@ class Planner:
     def __init__(self, req: PlanRequest, job_id: str, deps: Deps, progress: Progress):
         self.req, self.job_id, self.d, self.progress = req, job_id, deps, progress
         self.s = deps.settings
+        # 步驟 5 查到的 Google 店家資料，只放在這次規劃的記憶體裡（3.3 不能存）：
+        # 同一家不重查，也用它刪掉這家店其他接不上的組合（2026-10-21 使用者決定）
+        self.google_details: dict[int, PlaceDetails] = {}
         # 真的 TDX：限流放在用戶端裡，每次請求（含重試）都等額度，才不會超過上限。
         # 模擬版沒有重試，在快取沒命中時等一次就好
         inner_limited = hasattr(deps.transit, "limiter")
@@ -192,6 +195,15 @@ class Planner:
         plans = self._verify_and_route(ranked)
         if not plans:
             raise PlanError("NO_FEASIBLE", "查到的精確路線都接不上，請放寬時間再試一次", {})
+        # 已經查到營業時間、確定接不上的店，也不能出現在「換一家」「換一部」
+        self.feasible = {
+            pair: c
+            for pair, c in self.feasible.items()
+            if not (
+                c.restaurant.id in self.google_details
+                and isinstance(self._recheck(c, self.google_details[c.restaurant.id]), Rejected)
+            )
+        }
 
         self.progress("building_result")
         return self._build_result(result, plans, picks)
@@ -491,8 +503,10 @@ class Planner:
         plans: list[tuple[_Candidate, Timeline, dict]] = []
         tried = 0
         while len(plans) < PLANS_WANTED and tried < max_tried:
-            batch = []
+            batch: list[Ranked] = []
             for r in queue:
+                if self._known_closed(r) or self._same_as_chosen(r, plans, batch):
+                    continue
                 batch.append(r)
                 if len(batch) >= min(PLANS_WANTED - len(plans), max_tried - tried):
                     break
@@ -520,26 +534,39 @@ class Planner:
                     plans.append((c, tl, {"route_go": go_info, "route_return": ret_info}))
         return plans[:PLANS_WANTED]
 
+    def _known_closed(self, ranked: Ranked) -> bool:
+        """這家 Google 的店這次規劃已經查過營業時間，而且這組的用餐時段接不上。"""
+        details = self.google_details.get(ranked.combo.restaurant.id)
+        return details is not None and isinstance(self._recheck(ranked.combo, details), Rejected)
+
+    @staticmethod
+    def _same_as_chosen(ranked: Ranked, plans: list, batch: list[Ranked]) -> bool:
+        """跟前面的方案同一家餐廳、同一個開演時間就跳過，三個方案才看得出差別（10/21 決定）。"""
+        key = (ranked.combo.restaurant.id, ranked.combo.showtime.starts_at)
+        chosen = [c.combo for c, _, _ in plans] + [b.combo for b in batch]
+        return any((c.restaurant.id, c.showtime.starts_at) == key for c in chosen)
+
+    def _recheck(self, combo: Combo, details: PlaceDetails) -> Combo | Rejected:
+        rest = replace(combo.restaurant, hours=details.hours)
+        return check(
+            combo.showtime, rest, combo.walk_cinema_restaurant, self.reach, self.leave, self.cond
+        )
+
     def _verify_hours(self, ranked: Ranked) -> _Candidate | None:
         combo = ranked.combo
         row = self.restaurant_rows[combo.restaurant.id]
         if row.source != "google":
             return _Candidate(ranked=ranked, combo=combo, name=row.name, address=None)
-        if not has_room(
-            self.d.redis, "google:details_enterprise", self.s.quota_google_details_enterprise
-        ):
-            return None
-        details: PlaceDetails = self.d.places.details(row.external_id)
-        add_usage(self.d.redis, "google:details_enterprise", 1)
-        rest = replace(combo.restaurant, hours=details.hours)
-        rechecked = check(
-            combo.showtime,
-            rest,
-            combo.walk_cinema_restaurant,
-            self.reach,
-            self.leave,
-            self.cond,
-        )
+        details = self.google_details.get(combo.restaurant.id)
+        if details is None:
+            if not has_room(
+                self.d.redis, "google:details_enterprise", self.s.quota_google_details_enterprise
+            ):
+                return None
+            details = self.d.places.details(row.external_id)
+            add_usage(self.d.redis, "google:details_enterprise", 1)
+            self.google_details[combo.restaurant.id] = details
+        rechecked = self._recheck(combo, details)
         if isinstance(rechecked, Rejected):
             return None
         return _Candidate(
@@ -625,6 +652,8 @@ class Planner:
         row = self.restaurant_rows[rid]
         if row.source != "google":
             return row.name
+        if rid in self.google_details:  # 步驟 5 查過了，不用再花一次
+            return self.google_details[rid].name
         if not has_room(self.d.redis, "google:details_pro", self.s.quota_google_details_pro):
             return None  # 5.5：Pro 額度用完時備選只顯示類別
         add_usage(self.d.redis, "google:details_pro", 1)

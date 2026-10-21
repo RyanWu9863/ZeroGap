@@ -387,3 +387,58 @@ def test_google_restaurants_replace_others_in_the_same_area(session, r):
     finally:
         session.execute(text("DELETE FROM restaurants WHERE external_id = 'ChIJtest'"))
         session.commit()
+
+
+class HoursPlaces(MockPlaces):
+    """ChIJearly 18:00 就打烊（晚上排不進去），ChIJlate 開到半夜。記下每家查了幾次。"""
+
+    def __init__(self):
+        self.calls: dict[str, int] = {}
+
+    def details(self, place_id):
+        from app.places import PlaceDetails
+        from app.planning.opening_hours import OpeningHours
+
+        self.calls[place_id] = self.calls.get(place_id, 0) + 1
+        close = 18 * 60 if place_id == "ChIJearly" else 24 * 60
+        hours = OpeningHours(by_weekday=tuple(((11 * 60, close),) for _ in range(7)))
+        return PlaceDetails(name=place_id, address="桃園市", hours=hours, price_range="200_500")
+
+
+def test_google_hours_are_remembered_and_plans_differ(session, r):
+    # 步驟 5：查過營業時間的店，這次規劃不再重查，也直接跳過它其他接不上的組合；
+    # 三個方案不會是同一家餐廳、同一個開演時間（2026-10-21 決定）
+    session.execute(
+        text(
+            "INSERT INTO restaurants (source, external_id, geom, area_id, category_code, "
+            "price_range, meal_duration, date_suitability, is_active) "
+            "SELECT 'google', x.pid, 'SRID=4326;POINT(121.3115 24.9920)', a.id, 'japanese', "
+            "'200_500', 'normal', 2, true FROM areas a, "
+            "(VALUES ('ChIJearly'), ('ChIJlate')) AS x(pid) WHERE a.code = 'taoyuan'"
+        )
+    )
+    session.commit()
+    try:
+        places = HoursPlaces()
+        deps = Deps(
+            session=session, redis=r, transit=MockTransit(), jev=MockJev(), llm=MockLlm(),
+            places=places, settings=Settings(_env_file=None, tdx_per_minute=1000),
+        )  # fmt: skip
+        try:
+            req = request(session, earliest_departure="15:00", latest_home="23:59")
+            result = run_plan(req, "job-test", deps, lambda *a, **k: None)
+        except PlanError as e:
+            raise AssertionError(e.reasons) from e
+        plans = PlanResult.model_validate(result).to_json()["plans"]
+        assert plans and all(p["restaurant"]["name"] == "ChIJlate" for p in plans)
+        assert places.calls.get("ChIJearly", 0) <= 1 and places.calls["ChIJlate"] == 1
+        # 查到接不上的店不會出現在「換一家」
+        alts = plans[0].get("alternatives", {}).get("restaurant", [])
+        assert "ChIJearly" not in {a["name"] for a in alts}
+        keys = [(p["restaurant"]["id"], p["timeline"][2]["starts_at"]) for p in plans]
+        assert len(set(keys)) == len(keys)
+    finally:
+        session.execute(
+            text("DELETE FROM restaurants WHERE external_id IN ('ChIJearly', 'ChIJlate')")
+        )
+        session.commit()

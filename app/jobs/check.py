@@ -139,14 +139,41 @@ def main() -> int:
         )
         detail = "全部判斷完" if pending == 0 else f"還有 {pending} 家沒判斷完（每天會繼續補）"
         add(OK if pending == 0 else WARN, "店家屬性判斷", detail)
-        dates = db.scalars(
+        # 每個商圈都至少有 1 家影城在 17:00 後有場次，那天才算可以 Demo（2026-10-21 使用者決定）：
+        # 開眼常常只先公布部分影城的隔天場次，只看「有沒有場次」會誤導
+        rows = db.execute(
             text(
-                "SELECT DISTINCT (starts_at AT TIME ZONE 'Asia/Taipei')::date FROM showtimes s "
-                "JOIN cinemas c ON c.id = s.cinema_id WHERE c.is_active AND s.starts_at > now() "
-                "ORDER BY 1"
+                """
+                WITH days AS (
+                  SELECT DISTINCT (s.starts_at AT TIME ZONE 'Asia/Taipei')::date AS d
+                  FROM showtimes s JOIN cinemas c ON c.id = s.cinema_id
+                  WHERE c.is_active AND s.starts_at > now())
+                SELECT days.d, a.name,
+                  (SELECT count(*) FROM showtimes s JOIN cinemas c ON c.id = s.cinema_id
+                   WHERE c.is_active AND c.area_id = a.id
+                   AND (s.starts_at AT TIME ZONE 'Asia/Taipei')::date = days.d
+                   AND (s.starts_at AT TIME ZONE 'Asia/Taipei')::time >= '17:00') AS evening,
+                  (SELECT count(DISTINCT c.id) FROM showtimes s JOIN cinemas c ON c.id = s.cinema_id
+                   WHERE c.is_active AND c.area_id = a.id
+                   AND (s.starts_at AT TIME ZONE 'Asia/Taipei')::date = days.d
+                   AND (s.starts_at AT TIME ZONE 'Asia/Taipei')::time >= '17:00') AS cinemas
+                FROM days CROSS JOIN areas a WHERE a.is_open ORDER BY days.d, a.sort_order
+                """
             )
         ).all()
-        add(OK if dates else FAIL, "有場次的日期", ", ".join(f"{d:%m/%d}" for d in dates) or "沒有")
+        by_day: dict = {}
+        for d, area, evening, cinemas in rows:
+            by_day.setdefault(d, []).append((area, evening, cinemas))
+        usable = [d for d, areas in by_day.items() if all(c > 0 for _, _, c in areas)]
+        add(
+            OK if usable else FAIL,
+            "可以 Demo 的日期",
+            ", ".join(f"{d:%m/%d}" for d in usable) or "沒有（每個商圈 17:00 後都要有場次）",
+        )
+        for d, areas in by_day.items():
+            detail = "、".join(f"{a} {n} 場（{c} 家影城）" for a, n, c in areas)
+            add(OK if d in usable else WARN, f"{d:%m/%d} 17:00 後的場次",
+                detail + ("" if d in usable else "：有商圈還沒有場次，可能還沒公布"))  # fmt: skip
     return report(results)
 
 
