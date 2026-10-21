@@ -82,7 +82,7 @@
 
     <!-- RQ worker -->
     <rect class="box" x="50" y="576" width="1010" height="454" rx="14"/>
-    <text class="cap" x="68" y="602">RQ worker（worker 容器・同步・可多個）</text>
+    <text class="cap" x="68" y="602">RQ worker（同步・規劃在 worker 容器、可多個・抓取在 worker-crawl 容器）</text>
 
     <rect class="p" x="70" y="616" width="360" height="288" rx="12"/>
     <text class="pt" x="250" y="648">規劃 planner.py</text>
@@ -172,5 +172,5 @@
   <text class="lbl" x="608" y="1293" font-size="14">Docker 容器</text>
   <line class="dash" x1="720" y1="1288" x2="760" y2="1288"/>
   <text class="lbl" x="768" y="1293" font-size="14">備援</text>
-  <text class="lbl" x="880" y="1293" font-size="14">★ 三大亮點　｜　對應規格書 v0.13</text>
+  <text class="lbl" x="880" y="1293" font-size="14">★ 三大亮點　｜　對應規格書 v0.14</text>
 </svg>

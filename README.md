@@ -11,7 +11,7 @@
 | `deploy/` | nginx 設定（反向代理、SSE、`/mcp`） |
 | `docs/` | 規格書 `backend-spec.md`、討論紀錄、Demo 操作手冊、架構圖、`報告/` |
 | `tools/` | 前後端合約檢查（`contract-check/`）、規格書網頁產生工具（`spec-page/`） |
-| `docker-compose.yml` | 整套服務：migrate、api、worker、cron、proxy、postgres、redis |
+| `docker-compose.yml` | 整套服務：migrate、api、worker（規劃）、worker-crawl（抓取）、cron、proxy、postgres、redis |
 
 ## 快速開始
 

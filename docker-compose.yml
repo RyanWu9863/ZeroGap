@@ -75,10 +75,16 @@ services:
     expose:
       - "8000"
 
+  # 規劃和抓取分開兩個 worker：RQ 只在兩個工作之間照順序挑，同一個 worker 抓取時
+  # （開眼約 14 分鐘、OSM 判斷約 20 分鐘）規劃只能一直排隊（2026-10-21 實測，5.6）
   worker:
     <<: *app
-    # 啟動時補抓今天還沒抓過的資料，再開始處理工作；先處理規劃，再處理抓取（5.6）
-    command: ["sh", "-c", "python -m app.jobs.startup; exec rq worker --url redis://redis:6379/0 plans crawl"]
+    command: ["rq", "worker", "--url", "redis://redis:6379/0", "plans"]
+
+  worker-crawl:
+    <<: *app
+    # 啟動時補抓今天還沒抓過的資料，再開始處理抓取（5.6）
+    command: ["sh", "-c", "python -m app.jobs.startup; exec rq worker --url redis://redis:6379/0 crawl"]
 
   cron:
     <<: *app

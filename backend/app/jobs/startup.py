@@ -1,6 +1,6 @@
-"""worker 啟動時補抓（規格書 5.6）：今天還沒成功抓過的資料，就把工作排進「抓取」佇列。
+"""抓取的 worker 啟動時補抓（規格書 5.6）：今天還沒成功抓過的資料，就把工作排進「抓取」佇列。
 
-`python -m app.jobs.startup`，在 `rq worker` 之前執行。
+`python -m app.jobs.startup`，在 `worker-crawl` 的 `rq worker` 之前執行。
 資料庫或 Redis 還沒好時只記警告，不擋 worker。
 """
 

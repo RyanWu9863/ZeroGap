@@ -2,8 +2,8 @@
 
 | 項目 | 內容 |
 |---|---|
-| 版本 | v0.13（第二階段實作：真的 TDX［頭尾步行 20 分鐘、車資沒給時自己估］、TDX 車站、OSM 餐廳、開眼爬蟲、`rq cron`、MCP；新增蘆竹（南崁）商圈、青埔先不開放；八德只用廣豐新天地。v0.12：逐項確認實作時新增的預設值：早到 30 分鐘內等開門、餐廳備選補滿 2 家、沒判斷屬性的店不排、Jev 沒把握就附備選、新增 `restaurant.hours_verified`。v0.11：實作中的補充列在 10.1；`restaurants.source` 新增 `demo`；修正 5.3 路線快取的取整範例；7.3 補上價位區間的代碼；實作時的小調整：`areas.sort_order`、`area_hubs.geom` 可以是 null、migration 一併寫入類別和票價。v0.10：補上前端對照時發現的缺口：下拉選單的回應範例、跨午夜的判斷、`reasons` 的 key、排隊順位的意思、備選欄位、OSM 出處。v0.9：備選只附估計值、第一名固定「最推薦」、回程緩衝加 `return_window`。v0.8 起前端 ZeroGap 照這份規格串接、飲食限制延後；架構與 v0.4 相同） |
-| 日期 | 2026-10-20 |
+| 版本 | v0.14（規劃和抓取拆成兩個 worker：`worker` 只聽 `plans`、新增 `worker-crawl` 只聽 `crawl`，抓取時規劃不用再排隊等，見 5.6、8.1。v0.13：第二階段實作：真的 TDX［頭尾步行 20 分鐘、車資沒給時自己估］、TDX 車站、OSM 餐廳、開眼爬蟲、`rq cron`、MCP；新增蘆竹（南崁）商圈、青埔先不開放；八德只用廣豐新天地。v0.12：逐項確認實作時新增的預設值：早到 30 分鐘內等開門、餐廳備選補滿 2 家、沒判斷屬性的店不排、Jev 沒把握就附備選、新增 `restaurant.hours_verified`。v0.11：實作中的補充列在 10.1；`restaurants.source` 新增 `demo`；修正 5.3 路線快取的取整範例；7.3 補上價位區間的代碼；實作時的小調整：`areas.sort_order`、`area_hubs.geom` 可以是 null、migration 一併寫入類別和票價。v0.10：補上前端對照時發現的缺口：下拉選單的回應範例、跨午夜的判斷、`reasons` 的 key、排隊順位的意思、備選欄位、OSM 出處。v0.9：備選只附估計值、第一名固定「最推薦」、回程緩衝加 `return_window`。v0.8 起前端 ZeroGap 照這份規格串接、飲食限制延後；架構與 v0.4 相同） |
+| 日期 | 2026-10-21 |
 | 狀態 | 草稿 |
 | 討論紀錄 | [spec-discussion.md](spec-discussion.md) |
 
@@ -97,7 +97,7 @@
 
 ![系統架構圖](架構圖/architecture-v0.4.svg)
 
-- 虛線框是 Docker 容器：FastAPI（`api`）和 RQ worker（`worker`）都可以開多個實例。
+- 虛線框是 Docker 容器：FastAPI（`api`）和 RQ worker 都可以開多個實例。RQ worker 分成兩種容器：`worker` 只跑規劃、`worker-crawl` 只跑抓取（v0.14）。
 - 標 ★ 的是三大亮點：FastAPI、Redis、PostgreSQL。
 - 虛線箭頭是備援：Jev 沒把握時交給 `llm.py`，由它呼叫 Ollama。
 - 架構從 v0.4 起沒有變動，所以檔名沿用 v0.4；圖上的文字已更新到 v0.13（v0.8：拿掉飲食限制、前端改名 ZeroGap、TDX 可行時間 2～5 次；v0.13：匯入改成各來源的 `*_import.py`、店家屬性先用 Ollama 判斷、OSM 是目前主要的餐廳來源、TDX 旅運規劃 12/31 下架）。原始檔：[architecture-v0.4.svg](架構圖/architecture-v0.4.svg)。要修改時直接編輯這個 SVG 檔，再轉一次 PNG：[architecture-v0.4.png](架構圖/architecture-v0.4.png)。
@@ -623,7 +623,10 @@ WHERE subject_type = 'restaurant' AND decided_by = 'llm';
 | `plans` | 高 | `plan_job` | 執行最多 10 分鐘【預設】 |
 | `crawl` | 低 | `refresh_daily`、`refresh_google_places`、`refresh_stations`、`rejudge_and_refresh_geom` | 執行最多 30 分鐘【預設】 |
 
-- worker 監聽順序是 `plans crawl`，會先處理規劃。
+- **規劃和抓取用不同的 worker**（2026-10-21 改，v0.14）：`worker` 只聽 `plans`，`worker-crawl` 只聽 `crawl`。
+  - 原本一個 worker 聽 `plans crawl`，以為會先處理規劃；但 RQ 只在兩個工作之間照順序挑下一個，抓取一開始，規劃就要等它整個做完。實測開眼約 14 分鐘、OSM 屬性判斷約 20 分鐘，這段時間送出的規劃一直停在「排隊中，第 1 位」，排滿 15 分鐘就逾時，使用者重試幾次就碰到每小時 10 次的上限。
+  - 拆開後，抓取和規劃會同時跑，共用 TDX 每分鐘 5 次的限流和 Ollama，抓取期間的規劃可能慢一點，但不會再被擋住。
+  - 測試：`tests/unit/test_compose_workers.py` 檢查 compose 裡沒有一個 worker 同時聽兩個佇列。
 - **排隊上限**【預設】：
   - `plans` 佇列裡等待中的工作最多 **5 個**。送出前先檢查，已滿就直接回 HTTP 503 `QUEUE_FULL`，附 `Retry-After: 60`，不會開始 SSE 串流。
   - 工作在佇列裡等超過 **15 分鐘**還沒開始，就自動作廢（RQ 的 `ttl`），推送 `error` 事件，code 是 `TIMEOUT`。
@@ -642,7 +645,7 @@ WHERE subject_type = 'restaurant' AND decided_by = 'llm';
 - **cron 時間是依排程程式所在環境的時區計算的**，Docker 容器預設是 UTC。所以 `cron` 容器一定要設 `TZ=Asia/Taipei`，否則 06:00 會變成台灣時間 14:00。
 - 官方文件把 RQ 的 cron 功能標為測試版，也沒有說明開多個 `rq cron` 時會不會重複觸發，所以要靠下一點的鎖來防止重複執行。
 - 每個工作開始時先搶 `lock:job:{名稱}`。
-- worker 啟動時查 `crawl_runs`：今天還沒有成功的 `atmovies` 紀錄，就把 `refresh_daily` 排進佇列。
+- `worker-crawl` 啟動時查 `crawl_runs`：今天還沒有成功的 `atmovies` 紀錄，就把 `refresh_daily` 排進佇列。
 
 ### 5.7 進度推播
 
@@ -1158,10 +1161,11 @@ worker 完成 → PUBLISH result（完整結果）→ API 推送後關閉串流
 |---|---|---|---|
 | `web` | 前端自建（nginx） | 1 | 前端 ZeroGap 的容器：提供打包好的網頁，`/api/` 轉給 `proxy`（前端的 `BACKEND_URL` 設成 `http://proxy`）【預設】 |
 | `proxy` | nginx【預設】 | 1 | 反向代理；SSE 和 `/mcp` 路徑要關閉緩衝（`proxy_buffering off`；後端的 SSE 回應也會帶 `X-Accel-Buffering: no`）。nginx 預設不往外傳 `X-Accel-*` 標頭，所以要加 `proxy_pass_header X-Accel-Buffering`，前端容器的 nginx 才收得到（實作時發現）；api 重開會換 IP，所以用 Docker 內建的 DNS（`resolver 127.0.0.11`）並把位址放在變數裡，讓 nginx 重新解析（實作時發現）；設定 `X-Forwarded-For`；一般的輪流分配即可，不需要固定連線 |
-| `migrate` | 自建 | 1（跑完就結束） | 執行 `alembic upgrade head`；`api`、`worker` 等它跑完才啟動，避免開多個 `api` 時同時跑 migration（實作時新增） |
+| `migrate` | 自建 | 1（跑完就結束） | 執行 `alembic upgrade head`；`api`、`worker`、`worker-crawl` 等它跑完才啟動，避免開多個 `api` 時同時跑 migration（實作時新增） |
 | `api` | 自建（uvicorn） | 1～N | 啟動參數加 `--proxy-headers`，才能拿到使用者的真實 IP |
-| `worker` | 自建（RQ worker） | 1～N | 規劃的速度受 TDX 每分鐘 5 次限制，開多個也不會更快；建議 1～2 個 |
-| `cron` | 自建（`rq cron app.jobs.cron_config`） | 1 | 必須設定 `TZ=Asia/Taipei`；就算開多個也有鎖保護（2026-10-21 實作）。worker 啟動時先跑 `python -m app.jobs.startup` 補抓今天還沒抓過的資料 |
+| `worker` | 自建（`rq worker plans`） | 1～N | 只跑規劃。規劃的速度受 TDX 每分鐘 5 次限制，開多個也不會更快；建議 1～2 個 |
+| `worker-crawl` | 自建（`rq worker crawl`） | 1 | 只跑抓取，抓取再久也不會擋到規劃（2026-10-21 新增，見 5.6）。啟動時先跑 `python -m app.jobs.startup` 補抓今天還沒抓過的資料 |
+| `cron` | 自建（`rq cron app.jobs.cron_config`） | 1 | 必須設定 `TZ=Asia/Taipei`；就算開多個也有鎖保護（2026-10-21 實作） |
 | `postgres` | postgis/postgis | 1 | |
 | `redis` | redis:7 | 1 | 依 5.1 設定 |
 | `ollama` | ollama/ollama | 1 | 預先下載 qwen2.5:3b；用 CPU 或 GPU 視主機而定 |
