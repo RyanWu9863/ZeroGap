@@ -5,7 +5,7 @@ import type { Plan } from '@/api/schemas'
 import { SourceCredit } from '@/shared/brand/Attribution'
 import { bufferSentence } from '@/shared/lib/buffer'
 import { placeUrl } from '@/shared/lib/maps'
-import { describeTimeline } from '@/shared/lib/steps'
+import { describeTimeline, transitLeg } from '@/shared/lib/steps'
 import { BufferChip } from '@/shared/ui/BufferChip'
 import { Money } from '@/shared/ui/Money'
 import { StepIcon } from '@/shared/ui/StepIcon'
@@ -27,8 +27,9 @@ function extrasFor(plan: Plan, props: Props): Map<number, ReactNode[]> {
   const steps = plan.timeline
   const movie = steps.findIndex((s) => s.type === 'movie')
   const meal = steps.findIndex((s) => s.type === 'meal')
-  const go = steps.findIndex((s) => s.type === 'transit')
-  const back = steps.findLastIndex((s) => s.type === 'transit')
+  // 去程、回程的交通各自找（某一段整段走路時沒有交通）
+  const go = steps.findIndex((s, i) => s.type === 'transit' && transitLeg(steps, i) === 'go')
+  const back = steps.findLastIndex((s, i) => s.type === 'transit' && transitLeg(steps, i) === 'return')
   const add = (i: number, node: ReactNode) => {
     if (i >= 0) out.set(i, [...(out.get(i) ?? []), node])
   }
@@ -44,7 +45,7 @@ function extrasFor(plan: Plan, props: Props): Map<number, ReactNode[]> {
   if (plan.alternatives.movie?.length) add(movie, <SwapChoices key="m" plan={plan} kind="movie" date={props.date} swap={props.swap} onSwap={props.onSwap} />)
   if (plan.alternatives.restaurant?.length) add(meal, <SwapChoices key="r" plan={plan} kind="restaurant" date={props.date} swap={props.swap} onSwap={props.onSwap} />)
   if (plan.alternatives.route_go?.length) add(go, <OtherTrains key="go" routes={plan.alternatives.route_go} date={props.date} />)
-  if (back !== go && plan.alternatives.route_return?.length) add(back, <OtherTrains key="back" routes={plan.alternatives.route_return} date={props.date} />)
+  if (plan.alternatives.route_return?.length) add(back, <OtherTrains key="back" routes={plan.alternatives.route_return} date={props.date} />)
   return out
 }
 
@@ -104,7 +105,7 @@ export function Timeline(props: Props) {
                     {s.cost && <Money amount={s.cost.amount} estimated={s.cost.estimated} className="text-sm" />}
                   </div>
                   <p className="mt-0.5 text-sm text-muted-foreground">{s.desc}</p>
-                  {s.buffer && <BufferChip className="mt-2.5" minutes={s.buffer.minutes} text={bufferSentence(s.buffer.gate, s.buffer.minutes, stationName, s.buffer.window)} />}
+                  {s.buffer && <BufferChip className="mt-2.5" minutes={s.buffer.minutes} text={bufferSentence(s.buffer.gate, s.buffer.minutes, stationName, s.buffer.window, s.buffer.walkHome)} />}
                   {extras.get(i)}
                 </div>
               </motion.li>

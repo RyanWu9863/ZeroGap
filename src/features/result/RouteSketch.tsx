@@ -14,7 +14,8 @@ function toNodes(plan: Plan): Node[] {
   const nodes: Node[] = []
   plan.timeline.forEach((s, i) => {
     const prev = nodes.at(-1)
-    if (!s.place || (prev && prev.kind === s.place.kind && prev.id === s.place.id)) return
+    // 同一個地點，或名稱一樣（例如商圈代表點「中壢站」和出發站中壢站）都只畫一次
+    if (!s.place || (prev && ((prev.kind === s.place.kind && prev.id === s.place.id) || prev.label === placeName(s.place)))) return
     const before = plan.timeline[i - 1]
     nodes.push({ ...s.place, label: placeName(s.place), via: nodes.length === 0 ? null : before?.type === 'transit' ? 'train' : 'walk' })
   })

@@ -43,7 +43,7 @@ export function TimelinePreview() {
                   className="basis-full sm:pl-[5.5rem]"
                   variants={{ hidden: { opacity: 0, scale: 0.9 }, show: { opacity: 1, scale: 1 } }}
                 >
-                  <BufferChip minutes={s.buffer.minutes} text={bufferSentence(s.buffer.gate, s.buffer.minutes, '中壢站', s.buffer.window)} />
+                  <BufferChip minutes={s.buffer.minutes} text={bufferSentence(s.buffer.gate, s.buffer.minutes, '中壢站', s.buffer.window, s.buffer.walkHome)} />
                 </motion.span>
               )}
             </motion.li>

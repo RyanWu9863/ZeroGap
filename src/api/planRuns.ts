@@ -35,6 +35,12 @@ export const requestKey = (r: PlanRequest) => JSON.stringify(r)
 /** 這兩種失敗是「條件本身排不出來」，重新整理也一樣，可以存起來 */
 const DETERMINISTIC = ['NO_FEASIBLE', 'NO_SHOWTIMES']
 const KEEP = 6
+/**
+ * 存起來的「排不出來」只算 10 分鐘：場次、餐廳每天更新，交通查不到的結果後端也只快取 10 分鐘（規格書 5.3），
+ * 過了就重新規劃，不要一直卡在舊的無解。排出來的結果照 Q62 一直留著。
+ */
+const FAILURE_TTL = 10 * 60_000
+const expiredAt = (r: Run | undefined, now: number) => r?.status === 'failed' && r.finishedAt != null && now - r.finishedAt > FAILURE_TTL
 
 type Store = { runs: Record<string, Run>; lastDoneKey: string | null }
 
@@ -163,12 +169,15 @@ export function usePlanRun(req: PlanRequest, fresh = false) {
   const key = requestKey(req)
   const stored = usePlanRunStore((s) => s.runs[key])
   // fresh 時，掛上之前就跑完的舊結果不算數：第一個畫面才不會先閃出舊結果、再跳回等待畫面
+  // 存太久的「排不出來」也一樣不算數，會重新規劃
   const [since] = useState(() => Date.now())
-  const run = fresh && stored?.finishedAt != null && stored.finishedAt < since ? undefined : stored
+  const old = stored?.finishedAt != null && stored.finishedAt < since
+  const run = old && (fresh || expiredAt(stored, since)) ? undefined : stored
   useEffect(() => {
     const existing = usePlanRunStore.getState().runs[key]
     const finished = existing?.status === 'done' || existing?.status === 'failed'
-    if (!live.has(key) && (!existing || (fresh && finished) || (existing && !finished))) startPlan(req)
+    const redo = finished && (fresh || expiredAt(existing, Date.now()))
+    if (!live.has(key) && (!existing || redo || !finished)) startPlan(req)
     watch(key)
     return () => unwatch(key)
   }, [key]) // eslint-disable-line react-hooks/exhaustive-deps -- 只在條件改變時處理一次

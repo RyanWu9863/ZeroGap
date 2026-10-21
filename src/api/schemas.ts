@@ -113,7 +113,7 @@ const StepCommon = {
 
 export const TimelineStep = z.discriminatedUnion('type', [
   z.object({ type: z.literal('transit'), from: z.string(), to: z.string(), summary: z.string(), depart_at: ISO, arrive_at: ISO, fare_per_person: z.number().int(), ...StepCommon }),
-  z.object({ type: z.literal('walk'), from: z.string(), to: z.string(), minutes: z.number().int(), arrive_at: ISO, note: z.string().nullish(), ...StepCommon }),
+  z.object({ type: z.literal('walk'), from: z.string().nullish(), to: z.string().nullish(), minutes: z.number().int(), arrive_at: ISO, note: z.string().nullish(), ...StepCommon }),
   z.object({ type: z.literal('movie'), starts_at: ISO, ends_at: ISO, ...StepCommon }),
   z.object({ type: z.literal('wait'), minutes: z.number().int(), note: z.string().nullish(), ...StepCommon }),
   z.object({ type: z.literal('meal'), starts_at: ISO, ends_at: ISO, duration: z.enum(['fast', 'normal', 'slow']), ...StepCommon }),
