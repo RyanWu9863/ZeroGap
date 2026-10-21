@@ -3,6 +3,7 @@ import { AnimatePresence, motion } from 'motion/react'
 import { useEffect, useState } from 'react'
 import { useTrialStore } from '@/features/trial/trialStore'
 import { Link, Navigate, useNavigate, useParams } from 'react-router'
+import { atLocation, locate, LocateError, noOrigin, usesLocation } from '@/shared/lib/origin'
 import { usePlanStore } from '@/store/planStore'
 import { StepFood } from './steps/StepFood'
 import { StepFun } from './steps/StepFun'
@@ -36,10 +37,25 @@ export function WizardPage() {
   const View = STEP_VIEWS[n as keyof typeof STEP_VIEWS]
   const complete = stepComplete(n, request)
 
-  const submit = () => {
+  const setRequest = usePlanStore((s) => s.setRequest)
+  const [locating, setLocating] = useState(false)
+  const submit = async () => {
     const missing = firstIncomplete(request)
-    if (missing) navigate(`/plan/${missing}`)
-    else navigate('/result', { state: { replay: true } })
+    if (missing) return navigate(`/plan/${missing}`)
+    // 用目前位置出發時，每次送出都重新定位（使用者決定）；失敗就回第 1 步改選車站
+    if (usesLocation(request)) {
+      setLocating(true)
+      try {
+        const { lat, lng } = await locate()
+        setRequest(atLocation(lat, lng))
+      } catch (e) {
+        setRequest(noOrigin)
+        return navigate('/plan/1', { state: { locateError: e instanceof LocateError ? e.message : '定位失敗' } })
+      } finally {
+        setLocating(false)
+      }
+    }
+    navigate('/result', { state: { replay: true } })
   }
 
   return (
@@ -94,9 +110,10 @@ export function WizardPage() {
             <SummaryLine />
             <button
               onClick={submit}
-              className="flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-primary text-base font-semibold text-primary-foreground lin:rounded-md"
+              disabled={locating}
+              className="flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-primary text-base font-semibold text-primary-foreground disabled:opacity-70 lin:rounded-md"
             >
-              排出接得上的行程 <ArrowRight className="size-4" />
+              {locating ? '正在取得目前位置…' : '排出接得上的行程'} <ArrowRight className="size-4" />
             </button>
           </div>
         )}

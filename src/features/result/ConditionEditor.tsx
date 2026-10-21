@@ -5,7 +5,9 @@ import { BUDGET_OPTIONS, WALK_OPTIONS } from '@/shared/lib/config'
 import { formatMoney, walkDistance } from '@/shared/lib/format'
 import { Chips, Field } from '@/features/wizard/parts/Choice'
 import { DateCalendar } from '@/features/wizard/parts/DateCalendar'
+import { LocationButton } from '@/features/wizard/parts/LocationButton'
 import { StationPicker } from '@/features/wizard/parts/StationPicker'
+import { atStation } from '@/shared/lib/origin'
 import { TimeRange } from '@/features/wizard/parts/TimeRange'
 
 export type ConditionKind = 'place' | 'date' | 'time' | 'order' | 'movie' | 'food' | 'budget' | 'walk'
@@ -38,8 +40,11 @@ export function ConditionEditor({ kind, value: r, onChange }: Props) {
           <Field title="商圈">
             <Chips label="商圈" value={r.area} onChange={(area) => onChange({ area, ...RESET_MOVIE })} options={areas.map((a) => ({ value: a.code, label: a.name }))} />
           </Field>
-          <Field title="出發站">
-            <StationPicker stations={stations} value={r.origin_station_id} onChange={(origin_station_id) => onChange({ origin_station_id })} />
+          <Field title="從哪裡出發">
+            <div className="space-y-3">
+              <LocationButton request={r} onChange={onChange} />
+              <StationPicker stations={stations} value={r.origin_station_id ?? 0} onChange={(id) => onChange(atStation(id))} />
+            </div>
           </Field>
         </div>
       )

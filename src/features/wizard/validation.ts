@@ -1,5 +1,6 @@
 import type { PlanRequest } from '@/api/schemas'
 import { MIN_COMFORT_HOURS } from '@/shared/lib/config'
+import { usesLocation } from '@/shared/lib/origin'
 import { taipeiNow } from '@/shared/lib/time'
 
 /** 四步精靈（Q13、Q17）：對應專題簡介的四組條件 */
@@ -36,7 +37,7 @@ export function departureInPast(r: PlanRequest, now = taipeiNow()): boolean {
 export function stepComplete(n: number, r: PlanRequest): boolean {
   switch (n) {
     case 1:
-      return Boolean(r.area && r.origin_station_id > 0)
+      return Boolean(r.area && ((r.origin_station_id ?? 0) > 0 || usesLocation(r)))
     case 2:
       return Boolean(r.date) && minutesAvailable(r) > 0 && !departureInPast(r)
     case 3:

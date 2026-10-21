@@ -23,7 +23,10 @@ export function itineraryToText(req: PlanRequest, plan: Plan, names: { area: str
   const swapped = swap
     ? `※ 改選${swap.name}${swap.alsoRestaurant ? `（餐廳換成${swap.alsoRestaurant}）` : ''}：約 ${clockOn(swap.homeAt, req.date)} 回到站、每人約 ${formatMoney(swap.total)}（時間軸是原本的，這兩項是估計）`
     : null
-  const places = timelinePlaces(plan).map((p) => ({ ...p, name: placeName(p) }))
+  // 目前位置不放進地圖連結：貼出去的文字不帶座標（2026-10-21 使用者決定）
+  const places = timelinePlaces(plan)
+    .filter((p) => p.kind !== 'location')
+    .map((p) => ({ ...p, name: placeName(p) }))
   const map = places.length >= 2 ? `路線：${routeUrl(places)}` : null
   const credit = plan.restaurant.source === 'google' ? '餐廳資料：Google Maps' : plan.restaurant.source === 'osm' ? '餐廳資料：© OpenStreetMap 貢獻者（ODbL）' : null
   return [header, '', ...lines, '', back, cost, swapped, map, credit, '— 由 ZeroGap 零空檔排程'].filter((l) => l !== null).join('\n')

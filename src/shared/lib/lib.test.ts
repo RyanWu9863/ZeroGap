@@ -108,3 +108,14 @@ describe('itineraryToText（Q61）', () => {
     expect(itineraryToText(benchmarkRequest, p3, names)).toContain('OpenStreetMap')
   })
 })
+
+describe('從目前位置出發的複製文字（2026-10-21）', () => {
+  const req = { ...benchmarkRequest, origin_station_id: null, origin_lat: 24.971, origin_lng: 121.21 }
+  const plan = mockResult(req, false).plans[0]
+  const text = itineraryToText(req, plan, { area: '桃園區', station: '目前位置' })
+  it('寫「目前位置」，不帶座標', () => {
+    expect(text).toContain('21:25 回到目前位置')
+    expect(text).not.toContain('24.971')
+    expect(text).not.toContain('121.21')
+  })
+})

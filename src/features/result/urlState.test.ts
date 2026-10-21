@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { benchmarkRequest } from '@/mocks/request'
 import { requestKey } from '@/api/planRuns'
-import { readRank, readRequest, writeRequest } from './urlState'
+import { needsOrigin, readRank, readRequest, writeRequest } from './urlState'
 
 describe('條件 ↔ 網址（Q62）', () => {
   it('寫進去再讀回來，條件完全一樣（規劃的鑰匙也一樣）', () => {
@@ -44,5 +44,25 @@ describe('舊版網址', () => {
     const p = writeRequest(new URLSearchParams(), benchmarkRequest, 1)
     p.set('walk', '10')
     expect(readRequest(p)).not.toBeNull() // 前端的 zod 只檢查正整數；不合法的值由後端回 VALIDATION_ERROR
+  })
+})
+
+describe('從目前位置出發（2026-10-21）', () => {
+  const here = { lat: 24.971, lng: 121.21 }
+  const r = { ...benchmarkRequest, origin_station_id: null, origin_lat: here.lat, origin_lng: here.lng }
+  it('網址只寫 from=here，不帶座標', () => {
+    const p = writeRequest(new URLSearchParams(), r, 1)
+    expect(p.get('from')).toBe('here')
+    expect(p.toString()).not.toContain('24.971')
+  })
+  it('這台瀏覽器有座標 → 讀回同樣的條件', () => {
+    expect(readRequest(writeRequest(new URLSearchParams(), r, 1), here)).toEqual(r)
+  })
+  it('別人傳來的網址、這台沒有座標 → 請使用者選出發點，其他條件照網址', () => {
+    const p = writeRequest(new URLSearchParams(), r, 1)
+    expect(readRequest(p, null)).toBeNull()
+    expect(needsOrigin(p, null)).toMatchObject({ origin_station_id: 0, origin_lat: null, area: 'taoyuan', budget_per_person: 1000 })
+    expect(needsOrigin(p, here)).toBeNull()
+    expect(needsOrigin(writeRequest(new URLSearchParams(), benchmarkRequest, 1), null)).toBeNull()
   })
 })

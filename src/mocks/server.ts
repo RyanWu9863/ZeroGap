@@ -75,9 +75,23 @@ function frames(req: PlanRequest): Frame[] {
   ]
 }
 
+/** 兩點的直線距離（公里），判斷目前位置是不是離商圈太遠 */
+function km(aLat: number, aLng: number, bLat: number, bLng: number) {
+  const r = (d: number) => (d * Math.PI) / 180
+  const h = Math.sin(r(bLat - aLat) / 2) ** 2 + Math.cos(r(aLat)) * Math.cos(r(bLat)) * Math.sin(r(bLng - aLng) / 2) ** 2
+  return 2 * 6371 * Math.asin(Math.sqrt(h))
+}
+
+const json400 = (message: string) =>
+  new Response(JSON.stringify({ error: { code: 'VALIDATION_ERROR', message } }), { status: 400, headers: { 'Content-Type': 'application/json' } })
+
 /** 模擬 POST /api/plans：回傳一個會慢慢送出 SSE 的 Response；signal 中斷就停 */
 export async function mockPlanResponse(req: PlanRequest, signal?: AbortSignal): Promise<Response> {
   await wait(100)
+  // 目前位置離商圈超過 30 公里，跟後端一樣回 400（規格書 6.4；假資料一律用桃園站當商圈的代表點）
+  if (req.origin_lat != null && req.origin_lng != null && km(req.origin_lat, req.origin_lng, 24.989, 121.314) > 30) {
+    return json400('目前位置離這個商圈超過 30 公里，請改選出發站')
+  }
   if (scenario() === 'queue_full') {
     return new Response(JSON.stringify({ error: { code: 'QUEUE_FULL', message: '規劃佇列已滿' } }), {
       status: 503,

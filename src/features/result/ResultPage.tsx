@@ -1,4 +1,4 @@
-import { ArrowRight, Info } from 'lucide-react'
+import { ArrowRight, Info, LocateFixed } from 'lucide-react'
 import { useCallback, useEffect, useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router'
 import { useCuisineLabel, useRequestLabels } from '@/api/labels'
@@ -18,6 +18,7 @@ import { RouteSketch } from './RouteSketch'
 import { swapNotice, swapView, type Swap } from './swap'
 import { Timeline } from './Timeline'
 import { useResultState } from './useResultState'
+import { usePlanStore } from '@/store/planStore'
 
 const NO_PLAN = ['NO_FEASIBLE', 'NO_SHOWTIMES']
 
@@ -30,7 +31,37 @@ const NO_PLAN = ['NO_FEASIBLE', 'NO_SHOWTIMES']
  * 條件同步在網址上（Q62）。
  */
 export function ResultPage() {
-  const { request, rank, update, choosePlan } = useResultState()
+  const state = useResultState()
+  return state.pickOrigin ? <PickOrigin request={state.pickOrigin} /> : <ResultView state={state} />
+}
+
+/**
+ * 別人傳來「從目前位置出發」的網址（座標不寫進網址，2026-10-21 使用者決定）：
+ * 其他條件照網址，出發點請使用者自己選，不自動規劃。
+ */
+function PickOrigin({ request }: { request: PlanRequest }) {
+  const replaceRequest = usePlanStore((s) => s.replaceRequest)
+  const navigate = useNavigate()
+  return (
+    <div className="mx-auto max-w-md px-4 py-24 text-center">
+      <LocateFixed className="mx-auto size-8 text-muted-foreground" aria-hidden="true" />
+      <h1 className="mt-4 text-xl font-semibold">這個行程是從「目前位置」出發的</h1>
+      <p className="mt-2 text-sm text-muted-foreground">位置只存在對方的裝置裡。選好你的出發點，其他條件照這個連結，就能排一次。</p>
+      <button
+        onClick={() => {
+          replaceRequest(request)
+          navigate('/plan/1')
+        }}
+        className="mt-6 inline-flex h-11 items-center gap-2 rounded-lg bg-primary px-5 text-sm font-medium text-primary-foreground"
+      >
+        選出發點 <ArrowRight className="size-4" />
+      </button>
+    </div>
+  )
+}
+
+function ResultView({ state }: { state: ReturnType<typeof useResultState> }) {
+  const { request, rank, update, choosePlan } = state
   const location = useLocation()
   const navigate = useNavigate()
   const replay = Boolean((location.state as { replay?: boolean } | null)?.replay)

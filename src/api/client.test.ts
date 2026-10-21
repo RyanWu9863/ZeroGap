@@ -7,7 +7,7 @@ import type { PlanRequest } from './schemas'
  * USE_MOCK 在載入時就決定，所以每個測試重新載入 client.ts。
  */
 const req: PlanRequest = {
-  area: 'zhongli', origin_station_id: 49, date: '2026-10-21', earliest_departure: '17:30', latest_home: '23:30', order: 'movie_first',
+  area: 'zhongli', origin_station_id: 49, origin_lat: null, origin_lng: null, date: '2026-10-21', earliest_departure: '17:30', latest_home: '23:30', order: 'movie_first',
   movie_id: null, movie_genre: null, hall_type: null, language: null, cuisine: null, budget_per_person: 1500, max_walk_minutes: 15,
 }
 

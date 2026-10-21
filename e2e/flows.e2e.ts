@@ -135,3 +135,39 @@ test('手機版：估計值的 ⓘ 點一下就看得到說明', async ({ page, 
   await page.getByRole('button', { name: '這是估計值，點一下看說明' }).first().tap()
   await expect(page.getByRole('tooltip').first()).toHaveText('此價格為估計，實際以現場為準')
 })
+
+test.describe('從目前位置出發（2026-10-21）', () => {
+  test.use({ permissions: ['geolocation'], geolocation: { latitude: 24.9705, longitude: 121.2105 } })
+
+  test('精靈按「使用目前位置」→ 排出行程，網址只寫 from=here、不帶座標', async ({ page }) => {
+    await page.goto('/plan/1')
+    await page.getByRole('button', { name: /使用目前位置/ }).click()
+    await expect(page.getByRole('button', { name: /已使用目前位置/ })).toHaveAttribute('aria-pressed', 'true')
+    for (let i = 0; i < 3; i++) await page.getByRole('button', { name: '下一步' }).click()
+    await page.getByRole('button', { name: '排出接得上的行程' }).click()
+    await expect(resultsHeading(page)).toBeVisible()
+    await expect(page).toHaveURL(/from=here/)
+    expect(page.url()).not.toContain('24.97')
+    await expect(page.getByLabel('行程時間軸').locator('li').first()).toContainText('目前位置')
+    await expect(page.getByLabel('行程時間軸').locator('li').last()).toContainText('回到目前位置')
+  })
+
+  test('別人傳來 from=here 的網址：請使用者自己選出發點', async ({ page }) => {
+    await page.goto(resultUrl('').replace('from=103', 'from=here'))
+    await expect(page.getByRole('heading', { name: '這個行程是從「目前位置」出發的' })).toBeVisible()
+    await page.getByRole('button', { name: '選出發點' }).click()
+    await expect(page).toHaveURL(/\/plan\/1/)
+  })
+})
+
+test.describe('目前位置離商圈太遠', () => {
+  test.use({ permissions: ['geolocation'], geolocation: { latitude: 22.6273, longitude: 120.3014 } }) // 高雄
+
+  test('後端回 400，畫面說明並請改選出發站', async ({ page }) => {
+    await page.goto('/plan/1')
+    await page.getByRole('button', { name: /使用目前位置/ }).click()
+    await page.goto('/plan/4')
+    await page.getByRole('button', { name: '排出接得上的行程' }).click()
+    await expect(page.getByText('目前位置離這個商圈超過 30 公里，請改選出發站')).toBeVisible()
+  })
+})

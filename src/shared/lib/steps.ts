@@ -1,5 +1,6 @@
 import type { BufferGate, CostKey, Place, Plan, ReturnWindow, TimelineStep } from '@/api/schemas'
 import { restaurantName, stationLabel } from './format'
+import { LOCATION_NAME } from './origin'
 import { addMinutes, clockOn, minutesBetween } from './time'
 
 /*
@@ -65,7 +66,7 @@ function sentence(s: TimelineStep, plan: Plan, next: TimelineStep | undefined): 
       return `${head}${DURATION[s.duration]}用餐約 ${minutesBetween(s.starts_at, s.ends_at)} 分鐘${r.last_order ? `，最後點餐 ${r.last_order}` : ''}`
     }
     case 'home':
-      return `回到${stationLabel(s.station)}`
+      return `回到${s.place?.kind === 'location' ? s.station : stationLabel(s.station)}`
   }
 }
 
@@ -86,7 +87,7 @@ function title(s: TimelineStep, plan: Plan): string {
   if (s.place) return placeName(s.place)
   if (s.type === 'movie') return plan.movie.cinema
   if (s.type === 'meal' || s.type === 'wait') return restaurantName(plan.restaurant.name, plan.restaurant.cuisine_label)
-  if (s.type === 'home') return stationLabel(s.station)
+  if (s.type === 'home') return s.station === LOCATION_NAME ? s.station : stationLabel(s.station)
   return (s.type === 'transit' ? s.from : s.to) ?? ''
 }
 

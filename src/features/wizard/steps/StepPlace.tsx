@@ -1,8 +1,11 @@
 import { MapPin } from 'lucide-react'
 import { useEffect } from 'react'
+import { useLocation } from 'react-router'
+import { atStation } from '@/shared/lib/origin'
 import { useAreas, useOpenCounty, useStations } from '@/api/queries'
 import { usePlanStore } from '@/store/planStore'
 import { ChoiceCard, Chips, Field } from '../parts/Choice'
+import { LocationButton } from '../parts/LocationButton'
 import { StationPicker } from '../parts/StationPicker'
 import { StepShell } from './StepShell'
 
@@ -16,6 +19,8 @@ export function StepPlace() {
   const { counties, county } = useOpenCounty()
   const areas = useAreas().data
   const stations = useStations().data
+  // 送出前重新定位失敗時，精靈會帶著原因回到這一步
+  const locateError = (useLocation().state as { locateError?: string } | null)?.locateError ?? null
 
   // 存著的商圈或車站在清單裡找不到（例如換了後端）→ 清掉，請使用者重選
   useEffect(() => {
@@ -45,8 +50,11 @@ export function StepPlace() {
               ))}
             </div>
           </Field>
-          <Field title="從哪一站出發？" hint="行程會算到「回到這一站」為止。">
-            <StationPicker stations={stations} value={request.origin_station_id} onChange={(origin_station_id) => setRequest({ origin_station_id })} />
+          <Field title="從哪裡出發？" hint="行程會算到「回到出發的地方」為止。">
+            <div className="space-y-3">
+              <LocationButton request={request} onChange={setRequest} error={locateError} />
+              <StationPicker stations={stations} value={request.origin_station_id ?? 0} onChange={(id) => setRequest(atStation(id))} />
+            </div>
           </Field>
         </>
       )}

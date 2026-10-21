@@ -64,10 +64,17 @@ export const StatusResponse = z.object({
 
 // ── 規劃請求（6.4） ─────────────────────────────────────────────
 
-/** 一律送代碼或 id；「不限」「幫我挑」都送 null */
-export const PlanRequest = z.object({
+/**
+ * 一律送代碼或 id；「不限」「幫我挑」都送 null。
+ * 出發點二擇一（2026-10-21）：車站 id，或「目前位置」的兩個座標（另一邊送 null）
+ */
+export const PlanRequest = z
+  .object({
   area: z.string().min(1),
-  origin_station_id: z.number().int().positive(),
+  origin_station_id: z.number().int().positive().nullable(),
+  /** 目前位置：瀏覽器定位，取到小數點 3 位（約 100 公尺）；回到同一個位置就算「到家」 */
+  origin_lat: z.number().min(-90).max(90).nullable(),
+  origin_lng: z.number().min(-180).max(180).nullable(),
   date: DATE,
   earliest_departure: HHMM,
   /** 可以跨到隔天凌晨 02:00 前，例如 "01:30" */
@@ -81,14 +88,20 @@ export const PlanRequest = z.object({
   budget_per_person: z.number().int().positive(),
   max_walk_minutes: z.number().int().positive(),
 })
+  .refine((r) => (r.origin_lat != null && r.origin_lng != null ? r.origin_station_id == null : r.origin_station_id != null && r.origin_lat == null && r.origin_lng == null), {
+    message: '出發點要二擇一：車站，或目前位置的兩個座標',
+  })
 
 // ── 規劃結果（6.5） ─────────────────────────────────────────────
 
 export const BufferGate = z.enum(['showtime', 'last_order', 'return_trip', 'latest_return'])
 
-/** 這一步的地點。Google 來源的餐廳沒有座標，只有 place_id */
+/**
+ * 這一步的地點。Google 來源的餐廳沒有座標，只有 place_id。
+ * location＝用「目前位置」出發時的起點和終點（v0.13 之後新增，2026-10-21）：id 固定 0、name 是「目前位置」
+ */
 export const Place = z.object({
-  kind: z.enum(['station', 'hub', 'cinema', 'restaurant']),
+  kind: z.enum(['station', 'hub', 'cinema', 'restaurant', 'location']),
   id: z.number().int(),
   name: z.string(),
   lat: z.number().nullish(),

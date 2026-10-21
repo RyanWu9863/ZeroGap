@@ -11,6 +11,8 @@ export const blankRequest: PlanRequest = {
   ...benchmarkRequest,
   area: '',
   origin_station_id: 0,
+  origin_lat: null,
+  origin_lng: null,
   date: '',
   movie_id: null,
   movie_genre: null,
@@ -46,8 +48,13 @@ export const usePlanStore = create<PlanState>()(
     }),
     {
       name: 'zg-plan',
-      version: 2,
-      migrate: () => ({ request: benchmarkRequest, selectedRank: 1 }),
+      // version 3：出發點可以是目前位置（多了 origin_lat、origin_lng），舊版的條件補上 null
+      version: 3,
+      migrate: (old, version) => {
+        const o = old as { request?: PlanRequest; selectedRank?: number } | undefined
+        if (version === 2 && o?.request) return { request: { ...o.request, origin_lat: null, origin_lng: null }, selectedRank: o.selectedRank ?? 1 }
+        return { request: benchmarkRequest, selectedRank: 1 }
+      },
       partialize: (s) => ({ request: s.request, selectedRank: s.selectedRank }),
     },
   ),

@@ -9,7 +9,7 @@ export function SummaryLine() {
   const r = usePlanStore((s) => s.request)
   const l = useRequestLabels(r)
   const parts: { text: string; step: number }[] = [
-    { text: `${r.origin_station_id ? l.station : '？'} → ${r.area ? l.area : '？'}`, step: 1 },
+    { text: `${r.origin_station_id || r.origin_lat != null ? l.station : '？'} → ${r.area ? l.area : '？'}`, step: 1 },
     { text: `${r.date ? formatDate(r.date) : '？'} ${r.earliest_departure}–${homeLabel(r.latest_home)}`, step: 2 },
     { text: r.order === 'meal_first' ? '先吃再看' : '看完再吃', step: 2 },
     { text: l.movie ? `《${l.movie}》` : '幫我挑電影', step: 3 },

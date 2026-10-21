@@ -90,3 +90,12 @@ describe('後端 7df94b1 的新步驟（2026-10-21）', () => {
     expect(transitLeg(plan.timeline, plan.timeline.length - 2)).toBe('return')
   })
 })
+
+describe('從目前位置出發（2026-10-21）', () => {
+  const req = { ...benchmarkRequest, origin_station_id: null, origin_lat: 24.971, origin_lng: 121.21 }
+  const s = describeTimeline(mockResult(req, false).plans[0], req.date)
+  it('起點、終點叫「目前位置」，不加「站」', () => {
+    expect(s[0].title).toBe('目前位置')
+    expect(s.at(-1)).toMatchObject({ title: '目前位置', desc: '回到目前位置' })
+  })
+})

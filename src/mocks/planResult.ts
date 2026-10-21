@@ -78,13 +78,17 @@ function build(date: string, origin: Place, s: Spec, rank: number, highlight: Pl
 
 export function mockResult(req: PlanRequest, lowConfidence: boolean): PlanResult {
   const st = stations.find((s) => s.id === req.origin_station_id) ?? stations[2]
-  const origin: Place = { kind: 'station', id: st.id, name: st.name, lat: 24.9537, lng: 121.2257 }
+  // 從目前位置出發時，起點和終點是 location（2026-10-21）
+  const origin: Place =
+    req.origin_lat != null && req.origin_lng != null
+      ? { kind: 'location', id: 0, name: '目前位置', lat: req.origin_lat, lng: req.origin_lng }
+      : { kind: 'station', id: st.id, name: st.name, lat: 24.9537, lng: 121.2257 }
   const d = req.date
   const at = (hhmm: string) => `${d}T${hhmm}:00+08:00`
   // 最推薦；最穩（最緊 15 分）；最早回到站（21:06）——三案的數字讓特色標籤照規格書的規則分得出來
   const p1 = build(d, origin, { movie: MADOKA, show: '17:55', ticket: 350, restaurant: katsuya, place: KATSUYA, walkToFood: 3, meal: '20:07', walkBack: 5, train: ['21:05', '21:25'] }, 1, { key: 'recommended', label: '最推薦', reason: '最符合你選的條件' })
   const p2 = build(d, origin, { movie: { ...SINNER, hall_type: 'imax', hall_type_label: 'IMAX' }, show: '18:00', ticket: 440, restaurant: katsuya, place: KATSUYA, walkToFood: 3, meal: '19:58', walkBack: 5, train: ['21:00', '21:20'] }, 2, { key: 'safest', label: '最穩', reason: '最緊的一段也還有 15 分鐘' })
-  const p3 = build(d, origin, { movie: SINNER, show: '17:50', ticket: 350, restaurant: fukusho, place: FUKUSHO, walkToFood: 4, meal: '19:49', walkBack: 6, train: ['20:46', '21:06'] }, 3, { key: 'earliest_return', label: '最早回到站', reason: `21:06 就回到${st.name}站，比最晚時間早 114 分` })
+  const p3 = build(d, origin, { movie: SINNER, show: '17:50', ticket: 350, restaurant: fukusho, place: FUKUSHO, walkToFood: 4, meal: '19:49', walkBack: 6, train: ['20:46', '21:06'] }, 3, { key: 'earliest_return', label: '最早回到站', reason: `21:06 就回到${origin.kind === 'location' ? '目前位置' : `${st.name}站`}，比最晚時間早 114 分` })
   p2.probabilities = { movie: 0.21, restaurant: 0.64 }
   p3.probabilities = { movie: 0.21, restaurant: 0.3 }
 

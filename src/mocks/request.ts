@@ -10,6 +10,8 @@ export const BENCHMARK_STATION_NAME = '中壢'
 export const benchmarkRequest: PlanRequest = {
   area: 'taoyuan',
   origin_station_id: 103,
+  origin_lat: null,
+  origin_lng: null,
   date: '2026-10-30',
   earliest_departure: '17:00',
   latest_home: '23:00',

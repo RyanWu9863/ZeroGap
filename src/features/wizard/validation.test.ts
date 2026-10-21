@@ -46,3 +46,10 @@ describe('今天不能選過去的出門時間', () => {
   it('今天 17:00 出門，現在 17:30 → 已經過了', () => expect(departureInPast(benchmarkRequest, now)).toBe(true))
   it('別天不受影響', () => expect(departureInPast(benchmarkRequest, { ...now, date: '2026-10-29' })).toBe(false))
 })
+
+describe('出發點二擇一（2026-10-21）', () => {
+  it('用目前位置也算第 1 步填完', () => {
+    expect(stepComplete(1, { ...benchmarkRequest, origin_station_id: null, origin_lat: 24.971, origin_lng: 121.21 })).toBe(true)
+    expect(stepComplete(1, { ...benchmarkRequest, origin_station_id: 0 })).toBe(false)
+  })
+})
