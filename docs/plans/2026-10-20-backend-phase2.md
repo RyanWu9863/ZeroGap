@@ -28,7 +28,7 @@
 - [x] **K2 工作鎖與 `crawl_runs`**：搶 `lock:job:{名稱}`；worker 啟動時今天還沒成功抓過就補抓。
 
 ### L. MCP
-- [ ] **L1** 用 `mcp` 2.x 的 `MCPServer` 手寫 5 個工具，掛在 `/mcp`，進度通知照 6.6；設定 `TransportSecuritySettings`。
+- [x] **L1** 用 `mcp` 2.x 的 `MCPServer` 手寫 5 個工具，掛在 `/mcp`，進度通知照 6.6；設定 `TransportSecuritySettings`。
 
 ### M. 最後
 - [ ] **M1 Google Places**、**M2 真的 Jev**：金鑰到了再做。

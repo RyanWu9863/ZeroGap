@@ -1,6 +1,5 @@
 """REST 端點（規格書 6.2）。實際的事交給 `services.py` 和 `plan_stream.py`。"""
 
-import asyncio
 import uuid
 from collections.abc import AsyncIterator
 from datetime import date
@@ -15,9 +14,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app import services
 from app.config import Settings, get_settings
 from app.db import async_session
-from app.jobs.queue import plans_queue
-from app.plan_stream import active_key, plan_events
-from app.redis_client import async_redis, rq_redis
+from app.plan_stream import plan_events, rate_limited, reserve_plan, sse_stream
+from app.redis_client import async_redis
 from app.redis_utils.ratelimit import ahit
 from app.schemas import (
     AreaOut,
@@ -28,7 +26,6 @@ from app.schemas import (
     StationOut,
     StatusOut,
 )
-from app.services import ApiError
 
 router = APIRouter(prefix="/api")
 
@@ -45,12 +42,6 @@ def get_redis() -> aioredis.Redis:
 def client_ip(request: Request) -> str:
     # uvicorn 開了 --proxy-headers，這裡已經是 X-Forwarded-For 裡使用者的 IP
     return request.client.host if request.client else "unknown"
-
-
-def rate_limited(retry_after_seconds: int) -> ApiError:
-    return ApiError(
-        429, "RATE_LIMITED", "請稍後再試", headers={"Retry-After": str(retry_after_seconds)}
-    )
 
 
 async def read_limit(
@@ -115,28 +106,10 @@ async def create_plan(request: Request, req: PlanRequest, db: Db, r: Redis, s: C
     await services.validate_plan(db, req)
     ip = client_ip(request)
     job_id = uuid.uuid4().hex
-    key = active_key(ip)
-
-    # 每個 IP 同時 1 個：25 分鐘涵蓋排隊 15 分鐘＋執行 10 分鐘
-    ttl = s.plan_queue_ttl_seconds + s.plan_timeout_seconds
-    if not await r.set(key, job_id, nx=True, ex=ttl):
-        raise ApiError(409, "PLAN_IN_PROGRESS", "你已經有一個規劃在進行，請等它完成")
-    try:
-        waiting = await asyncio.to_thread(lambda: plans_queue(rq_redis()).count)
-        if waiting >= s.plan_queue_max_waiting:
-            raise ApiError(
-                503, "QUEUE_FULL", "排隊的人太多了，請一分鐘後再試", headers={"Retry-After": "60"}
-            )
-        hourly = await ahit(r, f"rl:api:plan:{ip}", s.api_plan_per_hour, 3_600_000)
-        if not hourly.allowed:
-            raise rate_limited(hourly.retry_after_seconds)
-    except BaseException:
-        await r.delete(key)
-        raise
-
-    body = req.model_dump(mode="json")
+    await reserve_plan(r, s, ip, job_id)
+    events = plan_events(r, s, job_id, req.model_dump(mode="json"), ip, request.is_disconnected)
     return StreamingResponse(
-        plan_events(request, r, s, job_id, body, ip),
+        sse_stream(events),
         media_type="text/event-stream",
         headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
     )
