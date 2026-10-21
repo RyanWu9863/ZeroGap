@@ -312,4 +312,3 @@ async def test_plan_stream_error_event(client, engine, worker):
     assert name == "error"
     assert data["code"] == "NO_FEASIBLE"
     assert data["reasons"]["budget"] > 0
-

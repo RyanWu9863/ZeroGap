@@ -24,6 +24,7 @@ import redis
 
 from app.planning.types import Route
 from app.redis_utils.lock import acquire, release
+from app.redis_utils.quota import add_usage, has_room
 from app.transit import Endpoint, TimeMode, haversine_m, valid_routes
 
 log = logging.getLogger(__name__)
@@ -45,6 +46,9 @@ FIXED_PARAMS = {
 }
 # 回傳的時間不準，要多要幾條才篩得出合格的
 MIN_TOP = 5
+# 點數（5.5）：基礎服務每次 2 單位、進階服務 15 單位、旅運規劃（MaaS）不扣點
+BASIC_UNITS = 2
+ADVANCED_UNITS = 15
 
 MODE_LABELS = {
     "TRA": "台鐵",
@@ -58,6 +62,10 @@ MODE_LABELS = {
 
 class TdxError(Exception):
     pass
+
+
+class TdxQuotaExhausted(Exception):
+    """本月點數用完（5.5）：停止呼叫，不重試。"""
 
 
 @dataclass(frozen=True)
@@ -218,7 +226,12 @@ class TdxTransit:
         retries: int = 2,
         http: httpx.Client | None = None,
         sleep: Callable[[float], None] = time.sleep,
+        limiter: Callable[[], None] | None = None,
+        points_limit: int | None = None,
     ):
+        """`limiter`：每次送出請求前呼叫（等每分鐘 5 次的額度），重試也算。
+        `points_limit`：每月點數上限（單位）；有設就在每次請求前檢查並記帳（5.5）。
+        """
         if not client_id or not client_secret:
             raise TdxError("TDX_MODE=real 要先在 .env 填 TDX_CLIENT_ID、TDX_CLIENT_SECRET")
         self.client_id, self.client_secret = client_id, client_secret
@@ -227,6 +240,8 @@ class TdxTransit:
         self.retries = retries
         self.http = http or httpx.Client(timeout=timeout)
         self.sleep = sleep
+        self.limiter = limiter
+        self.points_limit = points_limit
 
     # ── token（5.3 A1）─────────────────────────────────────────
 
@@ -264,17 +279,29 @@ class TdxTransit:
     # ── 旅運規劃 ─────────────────────────────────────────────
 
     def get_basic(self, path: str, params: dict[str, str] | None = None) -> Any:
-        """基礎服務，例如車站（3.5）。限流和點數由呼叫端處理。"""
-        return self._get({"$format": "JSON", **(params or {})}, url=BASIC_URL + path)
+        """基礎服務，例如車站（3.5）：每次請求 2 單位。"""
+        return self._get({"$format": "JSON", **(params or {})}, BASIC_URL + path, BASIC_UNITS)
 
     def get_advanced(self, path: str, params: dict[str, str] | None = None) -> Any:
-        """進階服務，例如地理編碼（3.4）。限流和點數由呼叫端處理。"""
-        return self._get({"$format": "JSON", **(params or {})}, url=ADVANCED_URL + path)
+        """進階服務，例如地理編碼（3.4）：每次請求 15 單位。"""
+        return self._get({"$format": "JSON", **(params or {})}, ADVANCED_URL + path, ADVANCED_UNITS)
 
-    def _get(self, params: dict[str, str], url: str = ROUTING_URL) -> Any:
-        """8.3：逾時或 5xx 最多重試 2 次（間隔 1、2 秒）；4xx 不重試；401 換一次 token。"""
+    def _before_request(self, units: int) -> None:
+        if self.limiter:
+            self.limiter()
+        if units and self.points_limit is not None:
+            if not has_room(self.r, "tdx_points", self.points_limit, units):
+                raise TdxQuotaExhausted("TDX 本月點數用完，暫停呼叫（5.5）")
+            add_usage(self.r, "tdx_points", units)
+
+    def _get(self, params: dict[str, str], url: str = ROUTING_URL, units: int = 0) -> Any:
+        """8.3：逾時或 5xx 最多重試 2 次（間隔 1、2 秒）；4xx 不重試；401 換一次 token。
+
+        每次真的送出請求前都先等額度、記點數，重試也算，才不會超過 TDX 的上限。
+        """
         refreshed = False
         for attempt in range(self.retries + 1):
+            self._before_request(units)
             try:
                 resp = self.http.get(
                     url,

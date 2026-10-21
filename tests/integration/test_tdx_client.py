@@ -147,3 +147,45 @@ def test_4xx_is_not_retried(r):
 def test_missing_keys_is_a_clear_error(r):
     with pytest.raises(TdxError, match="TDX_CLIENT_ID"):
         TdxTransit("", "", r)
+
+
+@respx.mock
+def test_every_attempt_waits_for_the_rate_limit(r):
+    # 重試也要算進每分鐘 5 次（2026-10-21：使用者要求不能超過上限）
+    respx.post(TOKEN_URL).mock(return_value=token_ok())
+    routing = respx.get(ROUTING_URL).mock(return_value=httpx.Response(500))
+    waits = []
+    tdx = TdxTransit("id", "secret", r, sleep=lambda s: None, limiter=lambda: waits.append(1))
+    with pytest.raises(TdxError):
+        tdx.route(A, B, datetime(2026, 10, 21, 17, 10, tzinfo=TZ), "depart")
+    assert routing.call_count == 3
+    assert len(waits) == 3
+
+
+@respx.mock
+def test_basic_calls_count_points_per_attempt(r):
+    from app.tdx import BASIC_URL
+
+    respx.post(TOKEN_URL).mock(return_value=token_ok())
+    respx.get(f"{BASIC_URL}/v2/Rail/THSR/Station").mock(
+        side_effect=[httpx.Response(503), httpx.Response(200, json=[])]
+    )
+    tdx = TdxTransit("id", "secret", r, sleep=lambda s: None, points_limit=9000)
+    assert tdx.get_basic("/v2/Rail/THSR/Station") == []
+    key = next(iter(r.keys("quota:tdx_points:*")))
+    assert int(r.get(key)) == 4  # 兩次請求，各 2 單位
+
+
+@respx.mock
+def test_points_exhausted_stops_before_calling(r):
+    from app.redis_utils.quota import add_usage
+    from app.tdx import TdxQuotaExhausted
+
+    add_usage(r, "tdx_points", 9000)
+    route = respx.get(url__regex=r".*/api/advanced/.*").mock(
+        return_value=httpx.Response(200, json=[])
+    )
+    tdx = TdxTransit("id", "secret", r, sleep=lambda s: None, points_limit=9000)
+    with pytest.raises(TdxQuotaExhausted):
+        tdx.get_advanced("/V3/Map/GeoCode/Coordinate/Markname/x")
+    assert route.call_count == 0

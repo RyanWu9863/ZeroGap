@@ -19,6 +19,10 @@ from app.config import get_settings
 
 TEST_DB = "zerogap_test"
 
+# 測試一律用模擬版的外部服務，不受使用者 .env 的影響（環境變數優先於 .env）
+for _key, _value in {"TDX_MODE": "mock", "JEV_MODE": "mock", "GOOGLE_MODE": "mock"}.items():
+    os.environ[_key] = _value
+
 # psycopg 的非同步模式不能用 Windows 預設的 ProactorEventLoop（API 的測試會用到）
 if sys.platform == "win32":
     asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())

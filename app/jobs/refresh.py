@@ -18,15 +18,28 @@ from app.db import sync_session
 from app.jobs.crawl import run_crawl
 from app.judge import MovieJudge, RestaurantJudge
 from app.redis_client import sync_redis
+from app.redis_utils.ratelimit import wait_for_slot
 from app.tdx import TdxTransit
 
 log = logging.getLogger(__name__)
 
 
+def make_tdx(s, r) -> TdxTransit:
+    """抓取工作用的 TDX：每次請求前等每分鐘 5 次的額度，並檢查、記錄每月點數（5.5）。"""
+    return TdxTransit(
+        s.tdx_client_id,
+        s.tdx_client_secret,
+        r,
+        timeout=s.http_timeout_seconds,
+        limiter=lambda: wait_for_slot(r, "rl:tdx", s.tdx_per_minute, 60_000),
+        points_limit=s.quota_tdx_points_units,
+    )
+
+
 def refresh_stations_job() -> dict | None:
     """TDX 軌道車站（每週一 04:00）。"""
     s, r = get_settings(), sync_redis()
-    tdx = TdxTransit(s.tdx_client_id, s.tdx_client_secret, r, timeout=s.http_timeout_seconds)
+    tdx = make_tdx(s, r)
     with sync_session()() as session:
         return run_crawl(
             session,
@@ -43,7 +56,7 @@ def geocode_hubs_job() -> dict | None:
     車站代表點用 TDX 車站座標，不花點數；其他的查地標，每個 15 單位。
     """
     s, r = get_settings(), sync_redis()
-    tdx = TdxTransit(s.tdx_client_id, s.tdx_client_secret, r, timeout=s.http_timeout_seconds)
+    tdx = make_tdx(s, r)
     with sync_session()() as session:
         return run_crawl(
             session,
@@ -85,7 +98,7 @@ def refresh_osm_job() -> dict | None:
 def refresh_atmovies_job() -> dict | None:
     """開眼電影網的影城、電影、場次（每天 06:00、18:00）。僅供學術展示（2026-10-20 決定）。"""
     s, r = get_settings(), sync_redis()
-    tdx = TdxTransit(s.tdx_client_id, s.tdx_client_secret, r, timeout=s.http_timeout_seconds)
+    tdx = make_tdx(s, r)
     with sync_session()() as session:
         genres = dict(
             session.execute(

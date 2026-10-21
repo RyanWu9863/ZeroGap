@@ -61,7 +61,7 @@ def mock_tdx(tra=None):
 
 
 def run(session, r):
-    tdx = TdxTransit("id", "secret", r, sleep=lambda s: None)
+    tdx = TdxTransit("id", "secret", r, sleep=lambda s: None, points_limit=9000)
     return run_crawl(
         session, r, "refresh_stations", "tdx_stations",
         lambda keep_alive: refresh_stations(session, r, tdx, SETTINGS, keep_alive),

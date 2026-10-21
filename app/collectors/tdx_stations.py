@@ -16,8 +16,6 @@ from sqlalchemy.orm import Session
 
 from app.config import Settings
 from app.models import County, Station
-from app.redis_utils.quota import add_usage, has_room
-from app.redis_utils.ratelimit import wait_for_slot
 from app.tdx import TdxError, TdxTransit
 
 log = logging.getLogger(__name__)
@@ -29,11 +27,6 @@ SOURCES: list[tuple[str, str]] = [
     ("THSR", "/v2/Rail/THSR/Station"),
     *[(m, f"/v2/Rail/Metro/Station/{m}") for m in METRO_SYSTEMS],
 ]
-BASIC_CALL_UNITS = 2  # 基礎服務每次扣 2 單位（5.5）
-
-
-class QuotaExhausted(Exception):
-    pass
 
 
 def parse_stations(
@@ -69,10 +62,8 @@ def refresh_stations(
     counties = {name: cid for cid, name in session.execute(select(County.id, County.name))}
     stats: dict[str, Any] = {"upserted": 0, "deactivated": 0, "by_operator": {}, "failed": []}
     seen: dict[str, set[str]] = {}
+    # 限流（每分鐘 5 次）和點數由 TdxTransit 在每次請求前處理；點數用完會丟 TdxQuotaExhausted
     for operator, path in SOURCES:
-        wait_for_slot(r, "rl:tdx", s.tdx_per_minute, 60_000)
-        if not has_room(r, "tdx_points", s.quota_tdx_points_units, BASIC_CALL_UNITS):
-            raise QuotaExhausted("TDX 本月點數用完，暫停車站更新（5.5）")
         try:
             items = tdx.get_basic(path)
         except TdxError as exc:
@@ -80,7 +71,6 @@ def refresh_stations(
             log.warning("抓 %s 車站失敗：%s", operator, exc)
             stats["failed"].append(operator)
             continue
-        add_usage(r, "tdx_points", BASIC_CALL_UNITS)
         rows = parse_stations(items, operator, counties)
         if rows:
             stmt = insert(Station).values(rows)

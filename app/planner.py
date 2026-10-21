@@ -94,10 +94,15 @@ class Planner:
     def __init__(self, req: PlanRequest, job_id: str, deps: Deps, progress: Progress):
         self.req, self.job_id, self.d, self.progress = req, job_id, deps, progress
         self.s = deps.settings
+        # 真的 TDX：限流放在用戶端裡，每次請求（含重試）都等額度，才不會超過上限。
+        # 模擬版沒有重試，在快取沒命中時等一次就好
+        inner_limited = hasattr(deps.transit, "limiter")
+        if inner_limited:
+            deps.transit.limiter = self._wait_tdx
         self.transit = CachedTransit(
             deps.transit,
             deps.redis,
-            before_call=self._wait_tdx,
+            before_call=None if inner_limited else self._wait_tdx,
             version="v1" if self.s.tdx_mode == "real" else "v1mock",
         )
         self.earliest, self.latest_home = req.resolved_times()

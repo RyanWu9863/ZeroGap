@@ -16,16 +16,9 @@ from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 from app.config import Settings
-from app.redis_utils.quota import add_usage, has_room
-from app.redis_utils.ratelimit import wait_for_slot
 from app.tdx import TdxTransit
 
-ADVANCED_CALL_UNITS = 15
 _POINT = re.compile(r"POINT\s*\(\s*([-\d.]+)\s+([-\d.]+)\s*\)", re.IGNORECASE)
-
-
-class QuotaExhausted(Exception):
-    pass
 
 
 @dataclass(frozen=True)
@@ -61,12 +54,8 @@ class Geocoder:
         self.tdx, self.r, self.s = tdx, r, s
 
     def _call(self, kind: str, value: str) -> list[dict[str, Any]]:
-        wait_for_slot(self.r, "rl:tdx", self.s.tdx_per_minute, 60_000)
-        if not has_room(self.r, "tdx_points", self.s.quota_tdx_points_units, ADVANCED_CALL_UNITS):
-            raise QuotaExhausted("TDX 本月點數用完，暫停地理編碼（5.5）")
-        data = self.tdx.get_advanced(f"/V3/Map/GeoCode/Coordinate/{kind}/{quote(value)}")
-        add_usage(self.r, "tdx_points", ADVANCED_CALL_UNITS)
-        return data
+        # 限流和點數（每次 15 單位）由 TdxTransit 在每次請求前處理
+        return self.tdx.get_advanced(f"/V3/Map/GeoCode/Coordinate/{kind}/{quote(value)}")
 
     def markname(self, name: str, city: str | None = None) -> list[GeoHit]:
         return parse_hits(self._call("Markname", name), city)
