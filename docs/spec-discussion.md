@@ -690,6 +690,12 @@ rq cron（只負責觸發）── 每天 06:00 ──▶ 抓取佇列 ──▶
 
 查 TypeSafe 官方文件（quickstart、api/system-one、api/errors），照格式寫好規劃時用的 Jev 用戶端（`app/jev/client.py`）：選項用 `criteria`（代碼 → 說明物件）；回應取 `answers[題目].probabilities`、`model`、`usage.input_tokens`；429、529 指數退避重試；每次請求（含重試）都等每分鐘 300 次的額度。`JEV_MODE=real` 就會用。官方文件沒寫錯誤回應的欄位名稱、也沒寫速率限制的標頭，要實測。寫入時的判斷（店家屬性、片型）還是 Ollama。
 
+### 2026-10-21 Google Places（等金鑰實測）、OSM 判斷完成
+
+- 使用者說「後端的部分先跑完」。照官方文件寫好 Google Places 用戶端、找店匯入、座標每 25 天更新（細節寫在規格書 3.3）。店名、地址只放在記憶體，資料庫只存 `place_id` 和座標。商圈裡有 Google 的店時規劃只用 Google 的店，避免同一家店出現兩次。
+- OSM 店家屬性判斷全部完成：884 家。
+- 使用者要先拿 Google 的**測試用金鑰**來測。
+
 ## 6. 剩下的步驟
 
 - **第 5 步：部署、測試、錯誤處理**

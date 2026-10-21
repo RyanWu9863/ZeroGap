@@ -209,6 +209,13 @@ docker-compose.yml
 | 座標超過 25 天就更新（條款上限 30 天） | Place Details | `location` | Essentials | 10,000 | 9,500 |
 
 - 寫入時要 `priceLevel`，是為了讓 Jev 判斷價位區間，所以 Nearby Search 會以 Enterprise 計費。
+- **實作**（2026-10-21，照官方文件，金鑰到了再實測；`app/places.py`、`app/collectors/google_import.py`）：
+  - 店家資料 `GET https://places.googleapis.com/v1/places/{place_id}`；附近搜尋 `POST .../places:searchNearby`。金鑰放 `X-Goog-Api-Key`，欄位一定要寫在 `X-Goog-FieldMask`；`languageCode=zh-TW`、`regionCode=TW`。
+  - 附近搜尋一次最多 20 筆、沒有分頁，所以每個商圈用代表點加周圍 6 點（間隔 900 公尺），各搜半徑 700 公尺【預設】；停業的店不收。
+  - 價位等級對照：$ → `under_200`、$$ → `200_500`、$$$ → `500_1000`、$$$$ → `over_1000`【預設】；料理類別先看 Google 的店家類型（例如 `japanese_restaurant`），其他交給 Ollama。
+  - 營業時間 `periods[].open/close` 的 `day` 是 0（星期日）～6；24 小時營業的店沒有 `close`。
+  - 商圈裡有 Google 的店時，規劃只用 Google 的店（同一家店可能也在 OSM），Google 規劃用的額度用完才改用 OSM。
+  - 排程：找店每週一 05:00、座標更新每天 03:00；`GOOGLE_MODE=mock` 時直接跳過。
 - **條款限制**：只能長期保存 `place_id`；座標最多保存 30 天；其他內容不能存進 PostgreSQL 或 Redis。Jev 需要的店名等資料只放在記憶體裡。顯示時要附 Google 標誌，由前端負責。
 - **顯示規則**（2026-10-20 查證 Places 條款）：
   - 沒有搭配 Google 地圖顯示時，要附 Google 標誌。

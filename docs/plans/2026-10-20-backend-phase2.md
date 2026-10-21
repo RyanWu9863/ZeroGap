@@ -31,7 +31,7 @@
 - [x] **L1** 用 `mcp` 2.x 的 `MCPServer` 手寫 5 個工具，掛在 `/mcp`，進度通知照 6.6；設定 `TransportSecuritySettings`。
 
 ### M. 最後
-- [ ] **M1 Google Places**：金鑰到了再做（使用者決定最後才接）。
+- [~] **M1 Google Places**：用戶端、找店匯入、座標更新都照官方文件寫好（`GOOGLE_MODE=real`），等金鑰實測。
 - [~] **M2 真的 Jev**：規劃時用的用戶端照官方文件寫好（`app/jev/client.py`，`JEV_MODE=real`），金鑰到了實測；寫入時的判斷之後也改成 Jev。
 - [ ] 真資料取代示意資料；示意資料只留給測試。
 - [x] 商圈：青埔先不開放；新增「蘆竹（南崁）」，代表點台茂購物中心（migration 0002）。
