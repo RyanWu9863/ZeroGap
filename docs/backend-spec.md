@@ -170,6 +170,7 @@ docker-compose.yml
   - `transit=3,4,5,6,7`：高鐵、台鐵、公車、捷運、輕軌
   - `gc=1.0`：偏好最快
   - `first_mile_mode=0`、`last_mile_mode=0`：頭尾都走路
+  - `first_mile_time=20`、`last_mile_time=20`：頭尾最多走 20 分鐘（TDX 預設 10 分鐘；實測離車站 900 公尺的影城只會排到公車，2026-10-21 使用者決定改成 20）。路線快取因此換成 `v2`
 - 兩種用法：
 
   | 用途 | 時間參數 | `top` |

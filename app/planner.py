@@ -103,7 +103,8 @@ class Planner:
             deps.transit,
             deps.redis,
             before_call=None if inner_limited else self._wait_tdx,
-            version="v1" if self.s.tdx_mode == "real" else "v1mock",
+            # 真的 TDX 的固定參數 2026-10-21 改過（頭尾步行 20 分鐘），快取換成 v2（5.3）
+            version="v2" if self.s.tdx_mode == "real" else "v1mock",
         )
         self.earliest, self.latest_home = req.resolved_times()
         self.cond = Conditions(

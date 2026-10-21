@@ -355,4 +355,4 @@ def test_estimated_fares_are_flagged(session, r):
     plans = PlanResult.model_validate(result).to_json()["plans"]
     assert plans[0]["estimated"] == ["ticket", "meal", "fare_go", "fare_return"]
     # 模擬版和真的 TDX 的路線快取分開存
-    assert r.keys("tdx:route:v1mock:*") and not r.keys("tdx:route:v1:*")
+    assert r.keys("tdx:route:v1mock:*") and not r.keys("tdx:route:v2:*")

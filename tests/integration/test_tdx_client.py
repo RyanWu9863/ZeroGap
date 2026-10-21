@@ -63,6 +63,7 @@ def test_fixed_params_and_time_format(r):
     assert params["depart"] == "2026-10-21T17:10:00"
     assert params["first_mile_mode"] == "0" and params["last_mile_mode"] == "0"
     assert params["transit"] == "3,4,5,6,7"
+    assert params["first_mile_time"] == "20" and params["last_mile_time"] == "20"
     assert params["top"] == "5"  # 時間不準，多要幾條再篩
     assert params["origin"] == "24.9537,121.2257"
     assert route.calls[0].request.headers["authorization"] == "Bearer tok-1"
