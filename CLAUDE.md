@@ -20,7 +20,7 @@
 
 - **第二階段（2026-10-21）**：使用者最後決定留在原本的電腦。TDX（真的）、車站、OSM 餐廳、開眼爬蟲、`rq cron`、MCP 都做好了；剩 Google、Jev（等金鑰）。進度和待問的問題在 `docs/plans/2026-10-20-backend-phase2.md` 和討論紀錄最後幾節。[交接文件](docs/交接_後端第二階段.md) 留著，換電腦時照它做（裡面的進度是 10/20 的）。
 
-- **規格書目前是 v0.12**（v0.12 逐項確認實作時新增的預設值；v0.11 補上示意資料的 `demo` 來源、修正快取取整範例；v0.7 對照 `初步簡報.pdf` 並做過一致性檢查；v0.8～v0.10 對照組員的前端 ZeroGap 調整）：[docs/backend-spec.md](docs/backend-spec.md)。使用者要趕進度，所以未決定的項目先用預設值寫入，標記為【預設】，整理在第 10 節。
+- **規格書目前是 v0.13**（v0.13 第二階段實作；v0.12 逐項確認實作時新增的預設值；v0.11 補上示意資料的 `demo` 來源、修正快取取整範例；v0.7 對照 `初步簡報.pdf` 並做過一致性檢查；v0.8～v0.10 對照組員的前端 ZeroGap 調整）：[docs/backend-spec.md](docs/backend-spec.md)。使用者要趕進度，所以未決定的項目先用預設值寫入，標記為【預設】，整理在第 10 節。
 - **前端 ZeroGap**（組員做的 React 前端，原本照另一份 `docs/API.md` 寫成）：使用者決定前端改照我們的規格書串接。串接說明在規格書 6.7；對照經過在討論紀錄的「對照前端 ZeroGap」一節。飲食限制這一版不做，設計留在規格書附錄 A。
 - **前端改接**：另一個 session 做到一半，已交接到另一台電腦繼續。交接文件和補丁在 `frontend-patches/`，程式在 `frontend/`（前端自己的 git，分支 `feature/backend-v0.9`）。主 session 不要動 `frontend/`。前端說規格書定案後，只要改 `src/api/schemas.ts` 和 `relax.ts`。
 - **後端第一階段完成**（2026-10-20）：照 [實作計畫](docs/plans/2026-10-20-backend-phase1.md) 做完 A～G，示意資料＋模擬版 TDX、Jev、Google，本機 Ollama（qwen2.5:3b）。`docker compose up -d --build` 後 `python -m app.seed.demo` 寫入示意資料，API 在 `localhost:8000`（文件 `/api/docs`）。測試：`uv run pytest`（整合測試要先開 Docker）。前端預計 10/27～28 串真後端。前端要配合三件事：`RestaurantSource` 加 `demo`；依 `alternatives` 的 key 顯示換一部／換一家；`hours_verified` 是 false 時提示請向店家確認。

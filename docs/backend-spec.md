@@ -2,7 +2,7 @@
 
 | 項目 | 內容 |
 |---|---|
-| 版本 | v0.12（逐項確認實作時新增的預設值：早到 30 分鐘內等開門、餐廳備選補滿 2 家、沒判斷屬性的店不排、Jev 沒把握就附備選、新增 `restaurant.hours_verified`。v0.11：實作中的補充列在 10.1；`restaurants.source` 新增 `demo`；修正 5.3 路線快取的取整範例；7.3 補上價位區間的代碼；實作時的小調整：`areas.sort_order`、`area_hubs.geom` 可以是 null、migration 一併寫入類別和票價。v0.10：補上前端對照時發現的缺口：下拉選單的回應範例、跨午夜的判斷、`reasons` 的 key、排隊順位的意思、備選欄位、OSM 出處。v0.9：備選只附估計值、第一名固定「最推薦」、回程緩衝加 `return_window`。v0.8 起前端 ZeroGap 照這份規格串接、飲食限制延後；架構與 v0.4 相同） |
+| 版本 | v0.13（第二階段實作：真的 TDX［頭尾步行 20 分鐘、車資沒給時自己估］、TDX 車站、OSM 餐廳、開眼爬蟲、`rq cron`、MCP；新增蘆竹（南崁）商圈、青埔先不開放；八德只用廣豐新天地。v0.12：逐項確認實作時新增的預設值：早到 30 分鐘內等開門、餐廳備選補滿 2 家、沒判斷屬性的店不排、Jev 沒把握就附備選、新增 `restaurant.hours_verified`。v0.11：實作中的補充列在 10.1；`restaurants.source` 新增 `demo`；修正 5.3 路線快取的取整範例；7.3 補上價位區間的代碼；實作時的小調整：`areas.sort_order`、`area_hubs.geom` 可以是 null、migration 一併寫入類別和票價。v0.10：補上前端對照時發現的缺口：下拉選單的回應範例、跨午夜的判斷、`reasons` 的 key、排隊順位的意思、備選欄位、OSM 出處。v0.9：備選只附估計值、第一名固定「最推薦」、回程緩衝加 `return_window`。v0.8 起前端 ZeroGap 照這份規格串接、飲食限制延後；架構與 v0.4 相同） |
 | 日期 | 2026-10-20 |
 | 狀態 | 草稿 |
 | 討論紀錄 | [spec-discussion.md](spec-discussion.md) |
@@ -100,7 +100,7 @@
 - 虛線框是 Docker 容器：FastAPI（`api`）和 RQ worker（`worker`）都可以開多個實例。
 - 標 ★ 的是三大亮點：FastAPI、Redis、PostgreSQL。
 - 虛線箭頭是備援：Jev 沒把握時交給 `llm.py`，由它呼叫 Ollama。
-- 架構從 v0.4 起沒有變動，所以檔名沿用 v0.4；圖上的文字已更新到 v0.8（拿掉飲食限制、前端改名 ZeroGap、TDX 可行時間 2～5 次）。原始檔：[architecture-v0.4.svg](架構圖/architecture-v0.4.svg)。要修改時直接編輯這個 SVG 檔，再轉一次 PNG：[architecture-v0.4.png](架構圖/architecture-v0.4.png)。
+- 架構從 v0.4 起沒有變動，所以檔名沿用 v0.4；圖上的文字已更新到 v0.13（v0.8：拿掉飲食限制、前端改名 ZeroGap、TDX 可行時間 2～5 次；v0.13：匯入改成各來源的 `*_import.py`、店家屬性先用 Ollama 判斷、OSM 是目前主要的餐廳來源、TDX 旅運規劃 12/31 下架）。原始檔：[architecture-v0.4.svg](架構圖/architecture-v0.4.svg)。要修改時直接編輯這個 SVG 檔，再轉一次 PNG：[architecture-v0.4.png](架構圖/architecture-v0.4.png)。
 
 ### 2.2 元件說明
 
@@ -113,8 +113,10 @@
 | 交通 | `app/transit.py` | 步行估算、呼叫 TDX、路線快取 |
 | Jev | `app/jev/` | 包裝 TypeSafe Jev；另有測試用的模擬版 |
 | LLM 備援 | `app/llm.py` | Jev 沒把握時，請 Ollama 從前幾名中選一個 |
-| 爬蟲 | `app/collectors/` | 開眼電影網、Google Places、OSM、TDX 軌道車站、TDX 地理編碼 |
-| 匯入 | `app/ingest.py` | UPSERT 寫入、Jev 預判；也可以用 `python -m app.ingest` 手動執行 |
+| 爬蟲 | `app/collectors/` | 開眼電影網、OSM、TDX 軌道車站、TDX 地理編碼（Google Places 等金鑰） |
+| 匯入 | `app/collectors/*_import.py` | UPSERT 寫入、店家和電影的屬性判斷（Jev 金鑰到之前用 Ollama，`app/judge.py`）；手動執行用 `python -m app.jobs.refresh atmovies`（或 osm、stations、hubs） |
+| 規劃串流 | `app/plan_stream.py` | REST 的 SSE 和 MCP 共用：送出前的檢查、轉送進度、斷線取消 |
+| TDX | `app/tdx.py` | 真的 TDX：token 共用、限流和點數（每次請求都算）、解析旅運規劃、車資估計 |
 | 背景工作 | `app/jobs/` | RQ 的工作函式、`rq cron` 的設定 |
 | 共用元件 | `app/redis_utils/` | 鎖、限流、額度計數、快取 |
 
@@ -123,14 +125,15 @@
 ```
 app/
   main.py          # FastAPI 進入點，掛載 /api 和 /mcp
-  api.py  mcp.py  services.py  planner.py  transit.py  llm.py  ingest.py
+  api.py  mcp.py  services.py  plan_stream.py  planner.py  transit.py  tdx.py  llm.py  judge.py
   config.py        # 讀取環境變數
   db.py            # SQLAlchemy engine 和 session（非同步、同步各一）
   models/          # SQLAlchemy 模型
   schemas/         # Pydantic 的請求和回應格式
   jev/             # client.py（正式版）、mock.py（模擬版）
-  collectors/      # atmovies.py、google_places.py、osm.py、tdx_stations.py、tdx_geocode.py
-  jobs/            # plan_job.py、refresh_job.py、cron_config.py
+  collectors/      # atmovies(_import).py、osm(_import).py、tdx_stations.py、tdx_geocode.py
+  planning/        # 規劃的純邏輯：可行性、選擇、時間軸、標籤、備選
+  jobs/            # plan_job.py、queue.py、refresh.py、cron_config.py、startup.py、check.py
   redis_utils/     # lock.py、ratelimit.py、quota.py、cache.py
 migrations/        # Alembic
 tests/
