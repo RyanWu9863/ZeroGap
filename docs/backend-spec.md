@@ -917,7 +917,7 @@ worker 完成 → PUBLISH result（完整結果）→ API 推送後關閉串流
 
 ### 6.6 MCP
 
-- **實作方式**：用官方 MCP Python SDK（`mcp` 套件的 FastMCP）手寫 5 個工具，直接呼叫 `services.py`，不經過 REST 端點。
+- **實作方式**：用官方 MCP Python SDK 手寫 5 個工具，直接呼叫 `services.py`，不經過 REST 端點。（2026-10-21 實作：`mcp` 2.3 的 `MCPServer`，FastMCP 已改名；掛在 FastAPI 的 `/mcp`，lifespan 裡啟動 `session_manager`；`/mcp` 不轉址直接服務，因為官方客戶端不跟著轉址；Host 由 nginx 控制，所以關掉 SDK 的 DNS rebinding 檢查，否則經過 proxy 的請求會回 421。實測經過 nginx 連線，協定是 2026-07-28。）
 - **規範版本**：依 MCP **2026-07-28** 版，這一版有幾項重要改變：
   - 移除 session 和 `Mcp-Session-Id`，協定改成無狀態。
   - **sampling 列為棄用**，官方建議改成由伺服器直接呼叫 LLM API。
@@ -1121,7 +1121,7 @@ worker 完成 → PUBLISH result（完整結果）→ API 推送後關閉串流
 | `migrate` | 自建 | 1（跑完就結束） | 執行 `alembic upgrade head`；`api`、`worker` 等它跑完才啟動，避免開多個 `api` 時同時跑 migration（實作時新增） |
 | `api` | 自建（uvicorn） | 1～N | 啟動參數加 `--proxy-headers`，才能拿到使用者的真實 IP |
 | `worker` | 自建（RQ worker） | 1～N | 規劃的速度受 TDX 每分鐘 5 次限制，開多個也不會更快；建議 1～2 個 |
-| `cron` | 自建（`rq cron`） | 1 | 必須設定 `TZ=Asia/Taipei`；就算開多個也有鎖保護 |
+| `cron` | 自建（`rq cron app.jobs.cron_config`） | 1 | 必須設定 `TZ=Asia/Taipei`；就算開多個也有鎖保護（2026-10-21 實作）。worker 啟動時先跑 `python -m app.jobs.startup` 補抓今天還沒抓過的資料 |
 | `postgres` | postgis/postgis | 1 | |
 | `redis` | redis:7 | 1 | 依 5.1 設定 |
 | `ollama` | ollama/ollama | 1 | 預先下載 qwen2.5:3b；用 CPU 或 GPU 視主機而定 |
