@@ -196,6 +196,7 @@ docker-compose.yml
   - 回傳的路線不照時間排序。
 - **頭尾一定要帶 `first_mile_mode=0`、`last_mile_mode=0`**：不帶的話 TDX 會安排騎車和叫計程車（實測）。
 - **回傳的時間比要求的寬鬆**（實測：要 17:00 出發會給 16:48 出門的），所以每次至少要 5 條再篩，`top=1` 的用法也一樣。
+- **用 `depart` 查時往後延**（2026-10-21 實測、使用者決定）：要 17:30 出發，TDX 給的 3 條都在 17:17～17:28 出門，篩完一條不剩。所以一開始就用「要求時間＋15 分鐘」查，還是照要求的時間篩；篩光了就再往後延 15 分鐘，最多 2 次（一條路線最多查 3 次，每次都算進每分鐘 5 次的限流）。`arrival` 照原本的時間查。
 - **車資**：用到台鐵時 TDX 不給車資。先自己估：公車段每段 18 元，台鐵、高鐵、捷運依直線距離 × 1.15 × 每公里單價（台鐵 1.46、高鐵 3.8、捷運 2.4 元），不低於起跳價（15、40、20 元）【預設】，結果標成估計值；Demo 之後改查 TDX 的票價 API（2026-10-20 決定）。
 - **TDX 公告旅運規劃 2026/12/31 下架**，見第 9 節。
 
@@ -211,6 +212,7 @@ docker-compose.yml
 - 寫入時要 `priceLevel`，是為了讓 Jev 判斷價位區間，所以 Nearby Search 會以 Enterprise 計費。
 - **實作**（2026-10-21，照官方文件，金鑰到了再實測；`app/places.py`、`app/collectors/google_import.py`）：
   - 店家資料 `GET https://places.googleapis.com/v1/places/{place_id}`；附近搜尋 `POST .../places:searchNearby`。金鑰放 `X-Goog-Api-Key`，欄位一定要寫在 `X-Goog-FieldMask`；`languageCode=zh-TW`、`regionCode=TW`。
+  - 附近搜尋用 `includedPrimaryTypes`（`restaurant`、`fast_food_restaurant`、`cafe`），只收**主要類型**是餐廳類的店，排除麵包店這類順便標成餐廳的（2026-10-21 使用者決定）。官方文件：指定一般類型時，也會包含更細的主要類型（例如 `chinese_restaurant`）。
   - 附近搜尋一次最多 20 筆、沒有分頁，所以每個商圈用代表點加周圍 6 點（間隔 900 公尺），各搜半徑 700 公尺【預設】；停業的店不收。
   - 價位等級對照：$ → `under_200`、$$ → `200_500`、$$$ → `500_1000`、$$$$ → `over_1000`【預設】；料理類別先看 Google 的店家類型（例如 `japanese_restaurant`），其他交給 Ollama。
   - 營業時間 `periods[].open/close` 的 `day` 是 0（星期日）～6；24 小時營業的店沒有 `close`。
@@ -555,7 +557,7 @@ WHERE subject_type = 'restaurant' AND decided_by = 'llm';
 |---|---|---|---|
 | TDX token | `tdx:access_token` | string | TDX 給的有效期限減 5 分鐘 |
 | 換 token 的鎖 | `lock:tdx:token` | string | 30 秒 |
-| 路線快取 | `tdx:route:v1:{起點}:{終點}:{dep\|arr}:{時段}:{top}` | string（JSON） | 6 小時 |
+| 路線快取 | `tdx:route:v1:{起點}:{終點}:{dep\|arr}:{時段}:{top}` | string（JSON） | 6 小時；查不到路線（空的結果）只存 10 分鐘（2026-10-21 使用者決定） |
 | 排程鎖 | `lock:job:{工作名稱}` | string | 10 分鐘，工作還在跑就延長 |
 | 滑動窗口限流 | `rl:tdx`、`rl:jev`、`rl:api:plan:{IP}`、`rl:api:read:{IP}` | sorted set | 跟窗口一樣長 |
 | 每個 IP 同時一個規劃 | `active:plan:{IP}` | string（job_id） | 25 分鐘（排隊最多 15 分鐘＋執行最多 10 分鐘）；規劃結束或取消時刪除 |

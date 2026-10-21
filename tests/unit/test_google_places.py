@@ -140,7 +140,7 @@ def test_nearby_search():
         "center": {"latitude": 24.95, "longitude": 121.22}, "radius": 700.0
     }  # fmt: skip
     assert body["maxResultCount"] == 20
-    assert "restaurant" in body["includedTypes"]
+    assert "restaurant" in body["includedPrimaryTypes"] and "includedTypes" not in body
     mask = route.calls[0].request.headers["X-Goog-FieldMask"]
     assert all(f.startswith("places.") for f in mask.split(","))
     # 停業的不收

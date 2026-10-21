@@ -23,6 +23,8 @@ TZ = ZoneInfo("Asia/Taipei")
 VERSION = "v1"
 SLOT_MINUTES = 15
 TTL_SECONDS = 6 * 3600
+# 查不到路線的結果只存 10 分鐘：短時間內不重複呼叫，也不會卡好幾個小時（2026-10-21 使用者決定）
+EMPTY_TTL_SECONDS = 10 * 60
 
 
 def round_slot(at: datetime, mode: TimeMode, minutes: int = SLOT_MINUTES) -> datetime:
@@ -118,7 +120,8 @@ class CachedTransit:
 
     def _set(self, key: str, routes: list[Route]) -> None:
         try:
-            self.client.set(key, dump_routes(routes), ex=self.ttl_seconds)
+            ttl = self.ttl_seconds if routes else min(self.ttl_seconds, EMPTY_TTL_SECONDS)
+            self.client.set(key, dump_routes(routes), ex=ttl)
         except redis.RedisError as exc:
             # 5.8：快取寫入失敗時忽略
             log.warning("寫路線快取失敗：%r", exc)

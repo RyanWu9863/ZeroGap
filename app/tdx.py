@@ -15,7 +15,7 @@ import math
 import time
 from collections.abc import Callable
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Any
 from zoneinfo import ZoneInfo
 
@@ -50,6 +50,10 @@ FIXED_PARAMS = {
 }
 # 回傳的時間不準，要多要幾條才篩得出合格的
 MIN_TOP = 5
+# 用 depart 查時，TDX 常給比要求更早出門的路線（實測：要 17:30 給 17:17～17:28），篩完會一條不剩。
+# 所以先用「要求時間＋15 分鐘」查；還是篩光就再延 15 分鐘，最多 2 次（2026-10-21 使用者決定）
+DEPART_SHIFT = timedelta(minutes=15)
+DEPART_RETRIES = 2
 # 點數（5.5）：基礎服務每次 2 單位、進階服務 15 單位、旅運規劃（MaaS）不扣點
 BASIC_UNITS = 2
 ADVANCED_UNITS = 15
@@ -332,6 +336,23 @@ class TdxTransit:
     def route(
         self, origin: Endpoint, dest: Endpoint, at: datetime, mode: TimeMode, top: int = 1
     ) -> list[Route]:
+        if mode == "arrival":
+            routes = valid_routes(self._query(origin, dest, at, mode, top), at, mode)
+            # 抵達期限：最晚的那班排第一（跟模擬版一樣）
+            routes.sort(key=lambda r: r.reach_at, reverse=True)
+            return routes[:top]
+        for k in range(1, DEPART_RETRIES + 2):
+            # 查詢時間往後延，但還是照使用者要求的時間檢查
+            routes = valid_routes(
+                self._query(origin, dest, at + DEPART_SHIFT * k, mode, top), at, mode
+            )
+            if routes:
+                break
+        return routes[:top]
+
+    def _query(
+        self, origin: Endpoint, dest: Endpoint, at: datetime, mode: TimeMode, top: int
+    ) -> list[Route]:
         params = {
             **FIXED_PARAMS,
             "origin": f"{origin.lat},{origin.lng}",
@@ -339,14 +360,9 @@ class TdxTransit:
             "top": str(max(top, MIN_TOP)),
             mode: at.astimezone(TZ).strftime("%Y-%m-%dT%H:%M:%S"),
         }
-        parsed = parse_routes(self._get(params))
-        routes = [
+        return [
             p.to_route(p.fare)
             if p.fare is not None
             else p.to_route(estimate_fare(p, self.rates), fare_estimated=True)
-            for p in parsed
+            for p in parse_routes(self._get(params))
         ]
-        routes = valid_routes(routes, at, mode)
-        if mode == "arrival":  # 抵達期限：最晚的那班排第一（跟模擬版一樣）
-            routes.sort(key=lambda r: r.reach_at, reverse=True)
-        return routes[:top]

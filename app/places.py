@@ -159,7 +159,9 @@ class GooglePlaces:
 
     def nearby(self, lat: float, lng: float, radius_m: float) -> list[NearbyPlace]:
         body = {
-            "includedTypes": MEAL_TYPES,
+            # 只收「主要類型」是餐廳類的店（2026-10-21 使用者決定），排除順便標成餐廳的麵包店等
+            # 官方文件：指定一般類型時，也會包含更細的主要類型（例如 chinese_restaurant）
+            "includedPrimaryTypes": MEAL_TYPES,
             "maxResultCount": 20,
             "locationRestriction": {
                 "circle": {"center": {"latitude": lat, "longitude": lng}, "radius": float(radius_m)}

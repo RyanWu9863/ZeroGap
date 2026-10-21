@@ -60,7 +60,7 @@ def test_fixed_params_and_time_format(r):
     )
     make(r).route(A, B, datetime(2026, 10, 21, 17, 10, tzinfo=TZ), "depart", top=1)
     params = dict(route.calls[0].request.url.params)
-    assert params["depart"] == "2026-10-21T17:10:00"
+    assert params["depart"] == "2026-10-21T17:25:00"  # 往後延 15 分鐘查（TDX 會給更早的）
     assert params["first_mile_mode"] == "0" and params["last_mile_mode"] == "0"
     assert params["transit"] == "3,4,5,6,7"
     assert params["first_mile_time"] == "20" and params["last_mile_time"] == "20"
@@ -78,6 +78,30 @@ def test_relaxed_results_are_filtered(r):
     # 17:05:52 出門的那條比要求的早，要刷掉
     assert len(routes) == 2
     assert all(x.leave_at >= at for x in routes)
+
+
+@respx.mock
+def test_depart_retries_later_when_all_routes_are_too_early(r):
+    respx.post(TOKEN_URL).mock(return_value=token_ok())
+    route = respx.get(ROUTING_URL).mock(
+        return_value=httpx.Response(200, json=fixture("routing_tra"))
+    )
+    # 範例的路線都在 17 點多出門，要求 18:00 出發就全部篩光：+15、+30、+45 分鐘各查一次就停
+    at = datetime(2026, 10, 21, 18, 0, tzinfo=TZ)
+    assert make(r).route(A, B, at, "depart") == []
+    assert [c.request.url.params["depart"] for c in route.calls] == [
+        "2026-10-21T18:15:00", "2026-10-21T18:30:00", "2026-10-21T18:45:00",
+    ]  # fmt: skip
+
+
+@respx.mock
+def test_depart_stops_at_first_query_with_valid_routes(r):
+    respx.post(TOKEN_URL).mock(return_value=token_ok())
+    route = respx.get(ROUTING_URL).mock(
+        return_value=httpx.Response(200, json=fixture("routing_tra"))
+    )
+    assert make(r).route(A, B, datetime(2026, 10, 21, 17, 10, tzinfo=TZ), "depart")
+    assert route.call_count == 1
 
 
 @respx.mock

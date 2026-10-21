@@ -163,6 +163,20 @@ class TestCachedTransit:
         cached.route(self.A, self.B, at, "depart")
         assert calls == [1]
 
+    def test_empty_result_is_cached_only_10_minutes(self, r):
+        class NoRoute(CountingTransit):
+            def route(self, origin, dest, at, mode, top=1):
+                self.calls.append(at)
+                return []
+
+        inner = NoRoute()
+        cached = CachedTransit(inner, r)
+        at = datetime(2026, 10, 22, 18, 15, tzinfo=TZ)
+        assert cached.route(self.A, self.B, at, "depart") == []
+        assert cached.route(self.A, self.B, at, "depart") == []
+        assert len(inner.calls) == 1  # 10 分鐘內不重查
+        assert 0 < r.ttl("tdx:route:v1:sta1:hub1:dep:202610221815:1") <= 600
+
     def test_cache_failure_falls_back_to_inner(self):
         class BrokenRedis:
             def get(self, key):
