@@ -2,7 +2,7 @@ import { taipeiNow } from '@/shared/lib/time'
 import { benchmarkRequest } from './request'
 
 /*
- * 開發用假資料：下拉選單和狀態列（格式照後端規格書 6.2、6.3；縣市、商圈、車站、類別的欄位是推測）。
+ * 開發用假資料：下拉選單和狀態列（格式照後端規格書 6.2、6.3，2026-10-21 對過後端實際的回應）。
  * 有場次的日期用「今天起 14 天」動態產生，讓試做稿哪天打開都能選。
  */
 export const counties = [
@@ -12,21 +12,24 @@ export const counties = [
   { code: 'HsinchuCounty', name: '新竹縣', has_open_areas: false },
 ]
 
+/** 跟後端一樣（v0.13）：青埔不開放（is_open: false），多了蘆竹（南崁） */
 export const areas = [
   { code: 'taoyuan', name: '桃園區', is_open: true },
   { code: 'zhongli', name: '中壢', is_open: true },
-  { code: 'qingpu', name: '青埔', is_open: true },
+  { code: 'qingpu', name: '青埔', is_open: false },
   { code: 'bade', name: '八德', is_open: true },
+  { code: 'luzhu', name: '蘆竹（南崁）', is_open: true },
 ]
 
+/** 站名的寫法跟後端一樣：台鐵、高鐵沒有「站」字，機捷有；台鐵和高鐵都有一個「桃園」 */
 export const stations = [
   { id: 101, name: '桃園', operator: 'TRA' },
   { id: 102, name: '內壢', operator: 'TRA' },
   { id: 103, name: '中壢', operator: 'TRA' },
   { id: 104, name: '埔心', operator: 'TRA' },
   { id: 105, name: '楊梅', operator: 'TRA' },
-  { id: 201, name: '高鐵桃園', operator: 'THSR' },
-  { id: 301, name: 'A18 高鐵桃園', operator: 'TYMC' },
+  { id: 201, name: '桃園', operator: 'THSR' },
+  { id: 301, name: '高鐵桃園站', operator: 'TYMC' },
 ]
 
 export const categories = {

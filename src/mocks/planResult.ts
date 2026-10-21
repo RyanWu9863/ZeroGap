@@ -2,10 +2,11 @@ import type { Place, Plan, PlanRequest, PlanResult } from '@/api/schemas'
 import { stations } from './catalog'
 
 /*
- * 開發用假資料（不是真實查詢結果）：POST /api/plans 的 result 事件（格式照後端規格書 v0.9 第 6.5 節）。
+ * 開發用假資料（不是真實查詢結果）：POST /api/plans 的 result 事件（格式照後端規格書 v0.13 第 6.5 節）。
  * 時間都放在使用者選的那一天；數字照規格書的算法湊過，緩衝、花費、特色標籤彼此對得上：
  *   開演前 15 分要到、候位 10 分、快速用餐 45 分、回程最晚 22:28 要離開、最晚 23:00 回到站。
- * 第 1、2 案的餐廳是 Google 來源（只有 place_id），第 3 案是 OSM 來源（有座標），兩種顯示都看得到。
+ * 第 1、2 案的餐廳是 Google 來源（只有 place_id），第 3 案是 OSM 來源（有座標），兩種顯示都看得到；
+ * 第 3 案的營業時間沒核對過（hours_verified: false），看得到「請向店家確認」的提示。
  */
 const KATSUYA: Place = { kind: 'restaurant', id: 7, name: '吉豚屋', place_id: 'mock-place-katsuya' }
 const FUKUSHO: Place = { kind: 'restaurant', id: 9, name: '福勝亭', lat: 24.9905, lng: 121.3122 }
@@ -14,8 +15,8 @@ const CINEMA: Place = { kind: 'cinema', id: 3, name: '桃園統領威秀', lat: 
 
 const MADOKA: Plan['movie'] = { id: 12, title: '劇場版 魔法少女小圓', genre: 'animation', genre_label: '動畫', runtime_min: 119, cinema: '桃園統領威秀', chain: 'vieshow', hall_type: 'standard', hall_type_label: '一般數位', language: '日語' }
 const SINNER: Plan['movie'] = { ...MADOKA, id: 15, title: '不存在的罪人', genre: 'drama', genre_label: '劇情', runtime_min: 105, language: '中文' }
-const katsuya: Plan['restaurant'] = { id: 7, name: '吉豚屋', cuisine: 'japanese', cuisine_label: '日式', address: '桃園市桃園區（示意地址）', price_range: 'under_200', last_order: '21:00', source: 'google', place_id: 'mock-place-katsuya' }
-const fukusho: Plan['restaurant'] = { id: 9, name: '福勝亭', cuisine: 'japanese', cuisine_label: '日式', address: '桃園市桃園區（示意地址）', price_range: '200_500', last_order: '20:30', source: 'osm', place_id: null }
+const katsuya: Plan['restaurant'] = { id: 7, name: '吉豚屋', cuisine: 'japanese', cuisine_label: '日式', address: '桃園市桃園區（示意地址）', price_range: 'under_200', last_order: '21:00', source: 'google', place_id: 'mock-place-katsuya', hours_verified: true }
+const fukusho: Plan['restaurant'] = { id: 9, name: '福勝亭', cuisine: 'japanese', cuisine_label: '日式', address: '桃園市桃園區（示意地址）', price_range: '200_500', last_order: '20:30', source: 'osm', place_id: null, hours_verified: false }
 
 const toMin = (hhmm: string) => Number(hhmm.slice(0, 2)) * 60 + Number(hhmm.slice(3))
 const toHm = (m: number) => `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`
@@ -94,9 +95,18 @@ export function mockResult(req: PlanRequest, lowConfidence: boolean): PlanResult
     p1.alternatives = {
       restaurant: [
         { restaurant_id: 9, name: '福勝亭', cuisine: 'japanese', probability: 0.31, home_at: at('21:40'), cost_per_person_total: 750, estimated: true },
-        { restaurant_id: 11, name: '示意餐廳 B', cuisine: 'western', probability: 0.12, home_at: at('21:52'), cost_per_person_total: 950, estimated: true },
+        // Google 額度用完時備選沒有店名，畫面改顯示料理類別（v0.10）
+        { restaurant_id: 11, name: null, cuisine: 'western', probability: 0.12, home_at: at('21:52'), cost_per_person_total: 950, estimated: true },
       ],
-      ...(req.movie_id == null ? { movie: [{ movie_id: 15, title: '不存在的罪人', probability: 0.33, home_at: at('21:10'), cost_per_person_total: 550, estimated: true }] } : {}),
+      ...(req.movie_id == null
+        ? {
+            movie: [
+              // 換這部片的話，搭配的餐廳也不同（v0.11：restaurant_* 有值）
+              { movie_id: 15, title: '不存在的罪人', probability: 0.33, home_at: at('21:10'), cost_per_person_total: 650, estimated: true, restaurant_id: 9, restaurant_name: '福勝亭', restaurant_cuisine: 'japanese' },
+              { movie_id: 16, title: '示意電影 C', probability: 0.18, home_at: at('21:35'), cost_per_person_total: 560, estimated: true, restaurant_id: null, restaurant_name: null, restaurant_cuisine: null },
+            ],
+          }
+        : {}),
     }
     // 第 2 案：回程路線由 LLM 代選，另外兩條是 TDX 的精確值
     p2.decided_by = { ...p2.decided_by, route_return: 'llm' }

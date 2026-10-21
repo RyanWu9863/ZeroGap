@@ -1,4 +1,4 @@
-import { stationLabel } from '@/shared/lib/format'
+import { stationDisplay } from '@/shared/lib/format'
 import { useAreas, useCategories, useCoverage, useStations } from './queries'
 import type { PlanRequest } from './schemas'
 
@@ -23,7 +23,7 @@ export function useRequestLabels(r: PlanRequest): RequestLabels {
   const day = useCoverage(r.area || undefined, r.date || undefined).data
   const station = stations?.find((s) => s.id === r.origin_station_id)
   return {
-    station: station ? stationLabel(station.name) : '出發站',
+    station: station ? stationDisplay(station) : '出發站',
     area: areas?.find((a) => a.code === r.area)?.name ?? r.area,
     movie: r.movie_id == null ? null : (day?.movies.find((m) => m.id === r.movie_id)?.title ?? '指定的電影'),
     genre: r.movie_genre == null ? null : (genres?.find((g) => g.code === r.movie_genre)?.label ?? r.movie_genre),

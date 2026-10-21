@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import { PlanError, postPlan } from './client'
@@ -41,7 +41,9 @@ type Store = { runs: Record<string, Run>; lastDoneKey: string | null }
 export const usePlanRunStore = create<Store>()(
   persist((): Store => ({ runs: {}, lastDoneKey: null }), {
     name: 'zg-plan-runs',
-    version: 1,
+    // version 2：結果格式改成 v0.13（餐廳多了 hours_verified 等欄位），舊版存的結果直接丟掉
+    version: 2,
+    migrate: () => ({ runs: {}, lastDoneKey: null }),
     // 只存跑完的；最多留最近 6 組
     partialize: (s) => ({
       lastDoneKey: s.lastDoneKey,
@@ -159,7 +161,10 @@ function unwatch(key: string) {
  */
 export function usePlanRun(req: PlanRequest, fresh = false) {
   const key = requestKey(req)
-  const run = usePlanRunStore((s) => s.runs[key])
+  const stored = usePlanRunStore((s) => s.runs[key])
+  // fresh 時，掛上之前就跑完的舊結果不算數：第一個畫面才不會先閃出舊結果、再跳回等待畫面
+  const [since] = useState(() => Date.now())
+  const run = fresh && stored?.finishedAt != null && stored.finishedAt < since ? undefined : stored
   useEffect(() => {
     const existing = usePlanRunStore.getState().runs[key]
     const finished = existing?.status === 'done' || existing?.status === 'failed'
