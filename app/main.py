@@ -41,6 +41,21 @@ app = FastAPI(
 )
 app.include_router(router)
 app.mount("/mcp", mcp_app)
+
+
+class McpWithoutSlash:
+    """`/mcp` 直接當成 `/mcp/`：Starlette 預設會轉址，但官方 MCP 客戶端不跟著轉址。"""
+
+    def __init__(self, inner):
+        self.inner = inner
+
+    async def __call__(self, scope, receive, send):
+        if scope["type"] == "http" and scope["path"] == "/mcp":
+            scope = {**scope, "path": "/mcp/", "raw_path": b"/mcp/"}
+        await self.inner(scope, receive, send)
+
+
+app.add_middleware(McpWithoutSlash)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=get_settings().cors_origins,
