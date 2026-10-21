@@ -106,8 +106,8 @@
     <text class="ps" x="820" y="892">步行估算・查 TDX・路線快取</text>
 
     <rect class="p" x="70" y="940" width="360" height="70" rx="12"/>
-    <text class="pt" x="250" y="969">匯入 ingest.py</text>
-    <text class="ps" x="250" y="994">UPSERT 寫入・Jev 預判</text>
+    <text class="pt" x="250" y="969">匯入 *_import.py</text>
+    <text class="ps" x="250" y="994">UPSERT 寫入・店家屬性判斷</text>
 
     <rect class="p" x="600" y="940" width="440" height="70" rx="12"/>
     <text class="pt" x="820" y="969">爬蟲 collectors/</text>
@@ -128,7 +128,7 @@
 
     <rect class="g" x="1100" y="692" width="210" height="60" rx="12"/>
     <text class="gt" x="1205" y="717">Ollama</text>
-    <text class="gs" x="1205" y="740">本機 qwen2.5:3b</text>
+    <text class="gs" x="1205" y="740">本機 qwen2.5:3b・代選與判斷</text>
 
     <rect class="g" x="1100" y="768" width="210" height="60" rx="12"/>
     <text class="gt" x="1205" y="793">Google Places</text>
@@ -136,11 +136,11 @@
 
     <rect class="g" x="1100" y="844" width="210" height="60" rx="12"/>
     <text class="gt" x="1205" y="869">TDX</text>
-    <text class="gs" x="1205" y="892">旅運規劃・每分鐘 5 次</text>
+    <text class="gs" x="1205" y="892">旅運規劃（12/31 下架）</text>
 
     <rect class="g" x="1100" y="940" width="210" height="70" rx="12"/>
     <text class="gt" x="1205" y="969">開眼電影網・OSM</text>
-    <text class="gs" x="1205" y="994">場次・備案餐廳</text>
+    <text class="gs" x="1205" y="994">場次・餐廳（目前為主）</text>
 
     <line class="ln" x1="1040" y1="646" x2="1098" y2="646" marker-end="url(#arrow)"/>
     <line class="ln" x1="1040" y1="722" x2="1098" y2="722" marker-end="url(#arrow)"/>
@@ -172,5 +172,5 @@
   <text class="lbl" x="608" y="1293" font-size="14">Docker 容器</text>
   <line class="dash" x1="720" y1="1288" x2="760" y2="1288"/>
   <text class="lbl" x="768" y="1293" font-size="14">備援</text>
-  <text class="lbl" x="880" y="1293" font-size="14">★ 三大亮點　｜　對應規格書 v0.8</text>
+  <text class="lbl" x="880" y="1293" font-size="14">★ 三大亮點　｜　對應規格書 v0.13</text>
 </svg>
