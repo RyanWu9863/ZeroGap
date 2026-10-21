@@ -1,0 +1,175 @@
+{
+  "schemaVersion": "presentation-finalization.v1",
+  "finalSha256": "682e1d52cb4d333c0b74f1cf9fb0444c824839dec596a5c6bee44bdfca0b84cc",
+  "byteCount": 110187,
+  "packageIntegrity": {
+    "chart_count": 0,
+    "claim_boundary": "Structural package checks only; no slide text, notes, formulas, chart values, or native PowerPoint execution were inspected.",
+    "finding_count": 0,
+    "findings": [],
+    "notes_parts_skipped": 20,
+    "relationship_part_count": 50,
+    "slide_count": 20,
+    "status": "pass",
+    "exitCode": 0,
+    "findingCount": 0,
+    "warnings": []
+  },
+  "presentationLayout": {
+    "finding_count": 0,
+    "findings": [],
+    "font_policy": {
+      "checked_text_script_count": 318,
+      "native_font_rendering_verified": false,
+      "observed_font_families": [
+        "Microsoft JhengHei"
+      ],
+      "observed_font_use_counts": {
+        "Microsoft JhengHei": 318
+      },
+      "passed": true,
+      "performed": true
+    },
+    "slide_count": 20,
+    "slide_size_in": [
+      13.3333,
+      7.5
+    ],
+    "warning_count": 0,
+    "warnings": [],
+    "exitCode": 0,
+    "findingCount": 0,
+    "fontPolicy": {
+      "checked_text_script_count": 318,
+      "native_font_rendering_verified": false,
+      "observed_font_families": [
+        "Microsoft JhengHei"
+      ],
+      "observed_font_use_counts": {
+        "Microsoft JhengHei": 318
+      },
+      "passed": true,
+      "performed": true
+    }
+  },
+  "fontSelection": {
+    "basis": "design",
+    "approvedFamilies": [
+      "Microsoft JhengHei"
+    ],
+    "scriptFonts": {},
+    "referenceSha256": null,
+    "referenceFontsVerifiedInEncodedText": false,
+    "checked_text_script_count": 318,
+    "native_font_rendering_verified": false,
+    "observed_font_families": [
+      "Microsoft JhengHei"
+    ],
+    "observed_font_use_counts": {
+      "Microsoft JhengHei": 318
+    },
+    "passed": true,
+    "performed": true
+  },
+  "firstPartyImport": {
+    "performed": true,
+    "passed": true,
+    "slideCount": 20,
+    "sha256": "682e1d52cb4d333c0b74f1cf9fb0444c824839dec596a5c6bee44bdfca0b84cc",
+    "runtimeNodeModules": "C:/Users/User/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules",
+    "nodeExecutable": "C:\\Users\\User\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\node\\bin\\node.exe"
+  },
+  "nativeTableArithmetic": {
+    "performed": true,
+    "checked_column_count": 0,
+    "checks": [],
+    "claim_boundary": "Displayed-value arithmetic with rounding tolerance; not source-data verification.",
+    "eligible_table_count": 0,
+    "finding_count": 0,
+    "findings": [],
+    "native_table_count": 6,
+    "passed": true,
+    "schema_version": "presentation-native-table-arithmetic.v1",
+    "skipped_tables": [
+      {
+        "reason": "no_numeric_amounts",
+        "slide": 7,
+        "table": 1
+      },
+      {
+        "reason": "no_numeric_amounts",
+        "slide": 9,
+        "table": 1
+      },
+      {
+        "reason": "no_numeric_amounts",
+        "slide": 14,
+        "table": 1
+      },
+      {
+        "reason": "no_numeric_amounts",
+        "slide": 17,
+        "table": 1
+      },
+      {
+        "reason": "no_numeric_amounts",
+        "slide": 19,
+        "table": 1
+      },
+      {
+        "reason": "no_numeric_amounts",
+        "slide": 20,
+        "table": 1
+      }
+    ],
+    "slide_count": 20,
+    "warning_count": 0,
+    "warnings": []
+  },
+  "nativeChartTitles": {
+    "performed": true,
+    "checks": [],
+    "finding_count": 0,
+    "findings": [],
+    "native_chart_count": 0,
+    "native_powerpoint_verified": false,
+    "passed": true,
+    "presentation_sha256": "682e1d52cb4d333c0b74f1cf9fb0444c824839dec596a5c6bee44bdfca0b84cc",
+    "schema_version": "presentation-native-chart-titles.v1",
+    "slide_count": 20,
+    "source_text_emitted": false,
+    "unresolved_linked_title_count": 0
+  },
+  "sourceDerivedPolicyFlags": [
+    "--expected-slide-size-emu",
+    "12192000,6858000",
+    "--validate-bullet-geometry",
+    "--validate-heading-fit",
+    "--require-native-table-slide",
+    "7",
+    "--require-native-table-slide",
+    "9",
+    "--require-native-table-slide",
+    "14",
+    "--require-native-table-slide",
+    "17",
+    "--require-native-table-slide",
+    "19",
+    "--require-native-table-slide",
+    "20",
+    "--cover-role",
+    "none",
+    "--expected-slide-count",
+    "20",
+    "--approved-font-family",
+    "Microsoft JhengHei"
+  ],
+  "nativeChartValidation": {
+    "detectedOwnerSlides": [],
+    "detectedChartCount": 0,
+    "targetApplication": "portable",
+    "sourceChartOwnersExplicitlyDeclared": true,
+    "validatorRan": false,
+    "passed": true
+  }
+}

@@ -41,6 +41,8 @@ class Settings(BaseSettings):
 
     # --- 時間規則（7.1） ---
     arrive_before_showtime_minutes: int = 15
+    # 去程整段走路時，再提早幾分鐘到（2026-10-21 使用者決定）：走路隨時能出發，不提早的話緩衝會是 0
+    walk_arrive_early_minutes: int = 10
     wait_minutes: int = 10
     meal_minutes: dict[str, int] = {"fast": 45, "normal": 75, "slow": 105}
     last_order_before_close_minutes: int = 30

@@ -80,6 +80,18 @@ class _RestaurantRow:
     lng: float
 
 
+def _walk_earlier(route: Route, minutes: int, earliest: datetime) -> Route:
+    """整段走路的去程提早 `minutes` 分鐘到，但不早於最早出門（2026-10-21 使用者決定）。
+
+    步驟 6 用 arrival 查「最晚幾點出發還趕得上」，搭車時是最後一班趕得上的車；
+    走路隨時能出發，照這樣排會剛好在關卡時間走到，緩衝變成 0。
+    """
+    if not route.walk_only:
+        return route
+    shift = min(timedelta(minutes=minutes), max(route.leave_at - earliest, timedelta(0)))
+    return replace(route, depart_at=route.depart_at - shift, arrive_at=route.arrive_at - shift)
+
+
 @dataclass
 class _Candidate:
     ranked: Ranked
@@ -590,6 +602,7 @@ class Planner:
             latest_hub = combo.arrive_hub + timedelta(minutes=slack)
             go = self.transit.route(self.station_ep, hub, latest_hub, "arrival", top=3)
             ret = self.transit.route(cinema, self.station_ep, combo.leave_area_at, "depart", top=3)
+        go = [_walk_earlier(r, self.s.walk_arrive_early_minutes, self.earliest) for r in go]
         c.go = [r for r in go if r.leave_at >= self.earliest]
         c.ret = [r for r in ret if r.reach_at <= self.latest_home]
         # 查詢時間往前、往後取整到 15 分鐘，緊的組合可能查不到合用的車；
