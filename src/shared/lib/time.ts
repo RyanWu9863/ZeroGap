@@ -15,6 +15,9 @@ export const taipeiDate = (iso: string) => dayFmt.format(new Date(iso))
 /** 跨過午夜的時間加「隔天」：行程最晚可以到隔天凌晨 02:00（規格書 6.4） */
 export const clockOn = (iso: string, date: string) => (taipeiDate(iso) > date ? `隔天 ${clock(iso)}` : clock(iso))
 
+/** "2026-10-21T09:36:45+08:00" → "10/21 09:36"（資料更新時間用） */
+export const stamp = (iso: string) => `${taipeiDate(iso).slice(5).replace('-', '/')} ${clock(iso)}`
+
 export const minutesBetween = (from: string, to: string) => Math.round((Date.parse(to) - Date.parse(from)) / 60_000)
 
 export const addMinutes = (iso: string, min: number) => new Date(Date.parse(iso) + min * 60_000).toISOString()

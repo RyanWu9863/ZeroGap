@@ -8,7 +8,8 @@ import { formatMoney } from '@/shared/lib/format'
  * 後端的 NO_FEASIBLE 只給「各條件排除了幾組」（reasons），沒有算好的放寬建議，
  * 所以由前端依排除最多的條件排序，每個條件給一個「往寬鬆調一級」的一鍵重算按鈕。
  * 不顯示「放寬後可找到 N 組」：後端沒有這個數字。
- * reasons 的 key 規格書只舉了 last_train、budget，其他是推測，認不得的只列原因、不給按鈕。
+ * reasons 的 key 照規格書 6.4 的表：showtime、walk、opening_hours、last_order、last_train、budget；
+ * 認不得的（後端之後加的）只列原因、不給按鈕。
  */
 const LATEST = 26 * 60 // 隔天 02:00
 const EARLIEST = 10 * 60
@@ -19,8 +20,9 @@ export function reasonLabel(key: string, r: PlanRequest): string {
     case 'showtime':
       return '趕得上開演'
     case 'last_order':
-    case 'opening_hours':
       return '趕得上點餐'
+    case 'opening_hours':
+      return '在營業時間內用餐'
     case 'walk':
       return `走路不超過 ${r.max_walk_minutes} 分`
     case 'last_train':

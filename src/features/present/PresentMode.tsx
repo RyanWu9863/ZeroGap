@@ -1,13 +1,13 @@
 import { useEffect } from 'react'
 import { useNavigate } from 'react-router'
 import { SCENARIOS } from '@/features/intro/scenarios'
-import { benchmarkRequest } from '@/mocks/request'
+import { resolveBenchmark } from '@/api/benchmark'
 import { usePlanStore } from '@/store/planStore'
 import { usePresentStore } from './presentStore'
 
 /**
  * 簡報模式的快捷鍵（Q95）：
- *   1／2／3 → 直接用該情境卡排行程（播完整動畫）
+ *   1／2／3 → 直接用該情境卡排行程（重新規劃）；接真後端時車站 id 和日期換成真的（api/benchmark.ts）
  *   B → 系統幕後；H → 首頁
  * 字體放大 15%，投影時後排也看得到。正在輸入文字時不攔截按鍵。
  */
@@ -24,8 +24,12 @@ export function PresentMode() {
       if (e.metaKey || e.ctrlKey || e.altKey || t.closest('input, textarea, [contenteditable]')) return
       const i = ['1', '2', '3'].indexOf(e.key)
       if (i >= 0) {
-        replaceRequest({ ...benchmarkRequest, ...SCENARIOS[i].patch })
-        navigate('/result', { state: { replay: true } })
+        void resolveBenchmark(SCENARIOS[i].patch)
+          .then((r) => {
+            replaceRequest(r)
+            navigate('/result', { state: { replay: true } })
+          })
+          .catch(() => navigate('/plan/1'))
       } else if (e.key.toLowerCase() === 'b') navigate('/behind')
       else if (e.key.toLowerCase() === 'h') navigate('/')
     }

@@ -1,8 +1,10 @@
 import { Check, Copy } from 'lucide-react'
 import { useState } from 'react'
-import type { ItineraryRequest, Proposal } from '@/api/schemas'
+import { useRequestLabels } from '@/api/labels'
+import type { Plan, PlanRequest } from '@/api/schemas'
 import { cn } from '@/lib/utils'
 import { itineraryToText } from '@/shared/lib/copyText'
+import type { SwapView } from './swap'
 
 /** 先用新式剪貼簿；被瀏覽器擋下（LINE 內建瀏覽器、權限未開）就改用舊方法 */
 async function writeClipboard(text: string): Promise<boolean> {
@@ -24,9 +26,10 @@ async function writeClipboard(text: string): Promise<boolean> {
 }
 
 /** 「複製行程」（Q27、Q61）：純前端。兩種方法都失敗時，直接把文字秀出來讓人手動複製。 */
-export function CopyButton({ request, plan, className }: { request: ItineraryRequest; plan: Proposal; className?: string }) {
+export function CopyButton({ request, plan, swapped, className }: { request: PlanRequest; plan: Plan; swapped: SwapView | null; className?: string }) {
   const [state, setState] = useState<'idle' | 'done' | 'manual'>('idle')
-  const text = itineraryToText(request, plan)
+  const labels = useRequestLabels(request)
+  const text = itineraryToText(request, plan, labels, swapped)
   const copy = async () => {
     const ok = await writeClipboard(text)
     setState(ok ? 'done' : 'manual')

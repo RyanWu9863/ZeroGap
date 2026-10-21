@@ -1,42 +1,70 @@
 import { expect, test, type Page } from '@playwright/test'
 
-/** 結果頁網址（基準案例條件），可以另外加參數 */
-const resultUrl = (extra: string) =>
-  `/result?from=${encodeURIComponent('中壢站')}&to=${encodeURIComponent('桃園區')}&date=2026-10-30&t=17:00-23:00&budget=1000&walk=12&${extra}`
+/** 結果頁網址（基準案例條件：中壢站 id 103 → 桃園區，照規格書 6.4 存代碼和 id），可以另外加參數 */
+const resultUrl = (extra: string) => `/result?from=103&to=taoyuan&date=2026-10-30&t=17:00-23:00&food=japanese&budget=1000&walk=12${extra ? `&${extra}` : ''}`
 
 const resultsHeading = (page: Page) => page.getByRole('heading', { name: '這 3 個行程，每一段都接得上。' })
 
-test('有解：介紹頁 → 四步精靈 → 篩選動畫 → 三個方案，估計值是黃底（A8）', async ({ page }) => {
+test('有解：介紹頁 → 四步精靈 → 等待畫面 → 三個方案，估計值是黃底（A8）、Google 標誌看得到', async ({ page }) => {
   await page.goto('/?proto=timetable')
   await page.getByRole('main').getByRole('link', { name: '開始規劃' }).first().click()
   for (let i = 0; i < 3; i++) await page.getByRole('button', { name: '下一步' }).click()
   await page.getByRole('button', { name: '排出接得上的行程' }).click()
 
-  await expect(page.getByText('趕得上開演')).toBeVisible() // 五道關卡動畫
+  await expect(page.getByText('篩出每一段都接得上的組合')).toBeVisible() // 等待畫面（SSE 進度）
   await expect(resultsHeading(page)).toBeVisible()
   await expect(page.getByRole('radiogroup', { name: '選擇方案' }).getByRole('radio')).toHaveCount(3)
   await expect(page.locator('[data-estimated="true"]').first()).toHaveCSS('background-color', 'rgb(255, 241, 184)')
+  await expect(page.locator('img[alt="Google Maps"]:visible').first()).toBeVisible()
 
   await page.getByRole('radio', { name: /^最穩/ }).click()
   await expect(page).toHaveURL(/plan=2/)
   await expect(page.getByLabel('行程時間軸').locator('li').first()).toContainText('17:05')
+
+  // 第 3 案：OSM 來源標出處、營業時間沒核對過要提醒
+  await page.getByRole('radio', { name: /^最早回到站/ }).click()
+  await expect(page.getByRole('link', { name: 'OpenStreetMap' })).toBeVisible()
+  await expect(page.getByText('營業時間未確認，請向店家確認')).toBeVisible()
 })
 
-test('無解：停在卡住的關卡，一鍵放寬預算後有解（Q23）', async ({ page }) => {
-  await page.goto(resultUrl('budget=500&mock=no_solution').replace('budget=1000&', ''))
+test('等待畫面可以取消，回到精靈第 4 步', async ({ page }) => {
+  await page.goto('/plan/4')
+  await page.getByRole('button', { name: '排出接得上的行程' }).click()
+  await page.getByRole('button', { name: '取消規劃' }).click()
+  await expect(page).toHaveURL(/\/plan\/4/)
+})
+
+test('無解：列出卡住的條件，一鍵放寬預算後有解（Q23）', async ({ page }) => {
+  await page.goto(resultUrl('mock=no_solution').replace('budget=1000', 'budget=500'))
   await expect(page.getByRole('heading', { name: '這組條件，找不到每段都接得上的行程' })).toBeVisible()
-  await expect(page.getByText('每人不超過 $500')).toBeVisible()
+  await expect(page.getByText('每人不超過 $500').first()).toBeVisible()
   await page.getByRole('button', { name: /每人預算改成 \$800/ }).click()
   await expect(resultsHeading(page)).toBeVisible()
   await expect(page).toHaveURL(/budget=800/)
 })
 
-test('低信心：先問想看哪一部，挑完重算並寫進網址（Q22、Q87）', async ({ page }) => {
+test('沒有場次、排隊已滿：白話說明', async ({ page }) => {
+  await page.goto(resultUrl('mock=no_showtimes'))
+  await expect(page.getByRole('heading', { name: '這天沒有符合條件的場次' })).toBeVisible()
+  await page.goto(resultUrl('mock=queue_full&budget=1500').replace('budget=1000&', ''))
+  await expect(page.getByText('現在排隊的人太多了')).toBeVisible()
+})
+
+test('低信心：不插頁，在用餐那步換一家，到家時間和花費變成估計值（D2）', async ({ page }) => {
   await page.goto(resultUrl('mock=low_confidence'))
-  await expect(page.getByRole('heading', { name: '這幾部都接得上，你比較想看哪一部？' })).toBeVisible()
-  await page.getByRole('radio', { name: '不存在的罪人' }).click()
   await expect(resultsHeading(page)).toBeVisible()
-  await expect(page).toHaveURL(new RegExp(`movie=${encodeURIComponent('不存在的罪人')}`))
+  // 電影備選搭配的餐廳不同時要講出來（v0.11）
+  await expect(page.getByTestId('swap-movie')).toContainText('餐廳也會跟著換成福勝亭')
+  await page.getByTestId('swap-restaurant').getByRole('button', { name: /換福勝亭/ }).click()
+  await expect(page.getByText('時間軸仍是原本的吉豚屋；換成福勝亭的到家時間和花費是估計。')).toBeVisible()
+  await expect(page.getByRole('radiogroup', { name: '選擇方案' })).toContainText('約 $750')
+  // 一次只換一項：換電影就取消換餐廳
+  await page.getByTestId('swap-movie').getByRole('button', { name: /不存在的罪人/ }).click()
+  await expect(page.getByText(/換成《不存在的罪人》（餐廳也換成福勝亭）/)).toBeVisible()
+  await expect(page.getByTestId('swap-restaurant').getByRole('button', { pressed: true })).toHaveCount(0)
+  // 第 2 案：回程的其他班次只看不換（D4）
+  await page.getByRole('radio', { name: /^最穩/ }).click()
+  await expect(page.getByTestId('other-trains')).toContainText('21:15 出發')
 })
 
 test('改條件小視窗：預算改 $1,500 重算，網址和花費區同步（Q58、Q62）', async ({ page }) => {
@@ -91,7 +119,7 @@ test('手機版：畫面不會左右晃、輸入框不會讓 iOS 自動放大', 
   test.skip(!isMobile, '只在 iPhone 專案跑')
   for (const path of ['/', '/plan/1', '/plan/2', '/plan/4', resultUrl(''), '/behind']) {
     await page.goto(path)
-    await page.waitForTimeout(path.startsWith('/result') ? 5000 : 800)
+    await page.waitForTimeout(path.startsWith('/result') ? 6000 : 800)
     const [scrollW, vw] = await page.evaluate(() => [document.documentElement.scrollWidth, window.innerWidth])
     expect(scrollW, `${path} 超出畫面寬度`).toBeLessThanOrEqual(vw)
   }

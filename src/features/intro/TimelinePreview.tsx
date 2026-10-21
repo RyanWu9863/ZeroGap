@@ -1,10 +1,13 @@
 import { motion } from 'motion/react'
-import { itineraryOk } from '@/mocks/itineraryOk'
+import { mockResult } from '@/mocks/planResult'
+import { benchmarkRequest } from '@/mocks/request'
 import { bufferSentence } from '@/shared/lib/buffer'
+import { describeTimeline } from '@/shared/lib/steps'
 import { BufferChip } from '@/shared/ui/BufferChip'
 import { StepIcon } from '@/shared/ui/StepIcon'
 
-const plan = itineraryOk.top_3_proposals[0]
+/** 範例用假資料的基準案例第 1 案，不打後端 */
+const steps = describeTimeline(mockResult(benchmarkRequest, false).plans[0], benchmarkRequest.date)
 
 /** 介紹頁第 2 區：直接秀成品，每段緩衝一格一格打勾（Q44） */
 export function TimelinePreview() {
@@ -26,21 +29,21 @@ export function TimelinePreview() {
           transition={{ staggerChildren: 0.18 }}
         >
           <span className="absolute right-4 top-4 rounded-full border px-2 py-0.5 text-[11px] text-muted-foreground">範例</span>
-          {plan.timeline_steps.map((s) => (
+          {steps.map((s) => (
             <motion.li
-              key={s.time + s.type}
+              key={s.key}
               variants={{ hidden: { opacity: 0, x: -8 }, show: { opacity: 1, x: 0 } }}
               className="flex flex-wrap items-center gap-3 py-1.5"
             >
               <span className="zg-num w-12 text-sm font-semibold">{s.time}</span>
-              <StepIcon type={s.type} className="size-7" />
+              <StepIcon type={s.type} bus={s.bus} className="size-7" />
               <span className="min-w-0 flex-1 truncate text-sm">{s.desc}</span>
-              {s.buffer_minutes != null && s.buffer_gate && (
+              {s.buffer && (
                 <motion.span
                   className="basis-full sm:pl-[5.5rem]"
                   variants={{ hidden: { opacity: 0, scale: 0.9 }, show: { opacity: 1, scale: 1 } }}
                 >
-                  <BufferChip minutes={s.buffer_minutes} text={bufferSentence(s.buffer_gate, s.buffer_minutes, '中壢站')} />
+                  <BufferChip minutes={s.buffer.minutes} text={bufferSentence(s.buffer.gate, s.buffer.minutes, '中壢站', s.buffer.window)} />
                 </motion.span>
               )}
             </motion.li>

@@ -46,9 +46,8 @@ function Flow({ rows }: { rows: Row[] }) {
   const nodes: SNode[] = [{ name: `全部 ${rows[0].remaining.toLocaleString()}`, kind: 'keep' }]
   const links: { source: number; target: number; value: number }[] = []
   let from = 0
-  rows.slice(1).forEach((r, i) => {
-    const last = i === rows.length - 2
-    nodes.push({ name: last ? `接得上 ${r.remaining}` : '', kind: 'keep' })
+  rows.slice(1).forEach((r) => {
+    nodes.push({ name: `${r.label} ${r.remaining.toLocaleString()}`, kind: 'keep' })
     const keepIdx = nodes.length - 1
     nodes.push({ name: `✗ ${r.label} −${r.eliminated.toLocaleString()}`, kind: 'drop' })
     links.push({ source: from, target: keepIdx, value: r.remaining }, { source: from, target: keepIdx + 1, value: r.eliminated })

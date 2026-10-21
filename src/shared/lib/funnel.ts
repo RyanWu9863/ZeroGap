@@ -1,20 +1,16 @@
-import type { ItineraryResponse } from '@/api/schemas'
-import type { ItineraryRequest } from '@/api/schemas'
-import { gateLabels } from './gates'
+import type { PlanResult } from '@/api/schemas'
 
 export type FunnelStage = { label: string; tech: string; remaining: number; eliminated: number }
 
 /**
- * 漏斗資料（Q65、Q67）：全部組合 → 每過一關還剩幾組。
- * 後端沒給每關剔除數（提案 #7）時回傳 null，畫面只顯示「全部 → 接得上」。
+ * 漏斗資料（Q65、Q67）：全部組合 → 每段都接得上 → 給你的方案。
+ * 後端只給 stats 的兩個數字，不給每道關卡剔除幾組（提案 #7 這一版不做），所以只有三層。
  */
-export function funnelStages(req: ItineraryRequest, data: ItineraryResponse): FunnelStage[] | null {
-  const by = data.funnel_stats.by_filter
-  if (!by) return null
-  const labels = gateLabels(req)
-  let remaining = data.funnel_stats.total_checked
-  return by.map((f) => {
-    remaining -= f.eliminated
-    return { label: labels.find((g) => g.id === f.id)?.label ?? f.name, tech: f.name, remaining, eliminated: f.eliminated }
-  })
+export function funnelStages(result: PlanResult): FunnelStage[] {
+  const { combinations, feasible } = result.stats
+  const shown = result.plans.length
+  return [
+    { label: '每段都接得上', tech: '五道關卡（Python）', remaining: feasible, eliminated: combinations - feasible },
+    { label: '給你的方案', tech: 'Jev 排序', remaining: shown, eliminated: feasible - shown },
+  ]
 }
