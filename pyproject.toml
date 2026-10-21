@@ -41,6 +41,12 @@ markers = [
 [tool.ruff]
 line-length = 100
 target-version = "py313"
+# 組員網頁的產生工具是早期寫的，不在這次的檢查範圍
+extend-exclude = ["tools/spec-page"]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B"]
+
+[tool.ruff.lint.per-file-ignores]
+# 要先把專案根目錄加進 sys.path 才能 import app
+"tools/contract-check/collect.py" = ["E402"]

@@ -87,7 +87,21 @@ uv run python -m app.jobs.refresh atmovies
 OLLAMA_BASE_URL=http://localhost:11434 uv run python -m app.jobs.refresh osm
 ```
 
-## 7. 結束
+## 7. 前後端合約檢查
+
+前端改過 `schemas.ts`、或後端改過回應格式時，跑一次就知道前端會不會擋下後端的資料：
+
+```bash
+uv run python tools/contract-check/collect.py
+```
+
+```bash
+node tools/contract-check/check.ts tools/contract-check/out
+```
+
+每一種回應印出 OK 或 FAIL（附上哪個欄位不相容）。用的是 `frontend/` 裡的前端程式，要先把前端更新到最新版。
+
+## 8. 結束
 
 ```bash
 docker compose down
