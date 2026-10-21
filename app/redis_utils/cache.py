@@ -9,6 +9,7 @@
 import json
 import logging
 from collections.abc import Callable
+from dataclasses import replace
 from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 
@@ -46,7 +47,7 @@ def route_cache_key(
 
 
 _FIELDS = ("summary", "fare", "board_name", "alight_name", "walk_before", "walk_after", "transfers",
-           "fare_estimated")  # fmt: skip
+           "fare_estimated", "walk_only")  # fmt: skip
 
 
 def dump_routes(routes: list[Route]) -> str:
@@ -72,6 +73,11 @@ def load_routes(raw: str) -> list[Route]:
         )
         for d in json.loads(raw)
     ]
+
+
+def _walk_at(route: Route, at: datetime, mode: TimeMode) -> Route:
+    start = at if mode == "depart" else at - timedelta(minutes=route.walk_after)
+    return replace(route, depart_at=start, arrive_at=start)
 
 
 class CachedTransit:
@@ -107,6 +113,8 @@ class CachedTransit:
                 self.before_call()
             routes = valid_routes(self.inner.route(origin, dest, slot, mode, top), slot, mode)
             self._set(key, routes)
+        # 步行（TDX 查不到、1 公里內）不用等車，照原本要求的時間走，不跟著取整
+        routes = [_walk_at(x, at, mode) if x.walk_only else x for x in routes]
         # 取整後的時間比使用者要求的更保守，結果一定符合原本的要求；這裡再確認一次
         return valid_routes(routes, at, mode)
 

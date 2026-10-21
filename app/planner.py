@@ -99,6 +99,11 @@ class Planner:
         inner_limited = hasattr(deps.transit, "limiter")
         if inner_limited:
             deps.transit.limiter = self._wait_tdx
+        if hasattr(deps.transit, "on_rate_limited"):
+            # TDX 回 429 時等 60 秒再試，也推送「等待額度」
+            deps.transit.on_rate_limited = lambda sec: self.progress(
+                "waiting_quota", service="tdx", wait_seconds=sec
+            )
         # 真的 Jev 一樣：每次請求（含重試）都等每分鐘 300 次的額度
         self.jev_limited = hasattr(deps.jev, "limiter")
         if self.jev_limited:

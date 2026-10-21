@@ -118,6 +118,56 @@ def test_arrival_filters_late_ones_and_puts_latest_first(r):
 
 
 @respx.mock
+def test_rate_limited_waits_60_seconds_and_retries_once(r):
+    respx.post(TOKEN_URL).mock(return_value=token_ok())
+    route = respx.get(ROUTING_URL).mock(
+        side_effect=[httpx.Response(429, json={"message": "API rate limit exceeded"}),
+                     httpx.Response(200, json=fixture("routing_tra"))]
+    )  # fmt: skip
+    slept, waited = [], []
+    tdx = TdxTransit("id", "secret", r, sleep=slept.append, on_rate_limited=waited.append)
+    assert tdx.route(A, B, datetime(2026, 10, 21, 17, 10, tzinfo=TZ), "depart")
+    assert route.call_count == 2
+    assert slept == [60] and waited == [60]
+
+
+@respx.mock
+def test_second_rate_limit_fails(r):
+    respx.post(TOKEN_URL).mock(return_value=token_ok())
+    respx.get(ROUTING_URL).mock(return_value=httpx.Response(429, json={"message": "limit"}))
+    with pytest.raises(TdxError, match="429"):
+        make(r).route(A, B, datetime(2026, 10, 21, 17, 10, tzinfo=TZ), "depart")
+
+
+@respx.mock
+def test_no_route_within_1km_becomes_walk(r):
+    respx.post(TOKEN_URL).mock(return_value=token_ok())
+    route = respx.get(ROUTING_URL).mock(
+        return_value=httpx.Response(200, json={"result": "success", "data": {"routes": []}})
+    )
+    near = Endpoint("hub2", "hub", "中壢站", 24.9537, 121.2257, rail=True)  # 跟 A 同一點
+    at = datetime(2026, 10, 21, 23, 30, tzinfo=TZ)
+    routes = make(r).route(near, A, at, "arrival", top=3)
+    assert route.call_count == 1
+    assert len(routes) == 1 and routes[0].walk_only and routes[0].fare == 0
+    assert routes[0].reach_at == at and routes[0].walk_after == 0
+    # 出發：TDX 根本查不到時不往後延，直接改走路
+    route.reset()
+    assert make(r).route(A, near, at, "depart")[0].walk_only
+    assert route.call_count == 1
+
+
+@respx.mock
+def test_no_route_far_away_stays_empty(r):
+    respx.post(TOKEN_URL).mock(return_value=token_ok())
+    respx.get(ROUTING_URL).mock(
+        return_value=httpx.Response(200, json={"result": "success", "data": {"routes": []}})
+    )
+    # A（中壢）→ B（桃園）約 9 公里
+    assert make(r).route(A, B, datetime(2026, 10, 21, 17, 10, tzinfo=TZ), "depart") == []
+
+
+@respx.mock
 def test_arrival_puts_latest_departure_first(r):
     respx.post(TOKEN_URL).mock(return_value=token_ok())
     respx.get(ROUTING_URL).mock(

@@ -16,22 +16,24 @@
 - 用繁體中文。
 - 每輪得到答案後，更新 `docs/spec-discussion.md`，讓紀錄跟著進度走。
 
-## 目前進度（2026-10-20）
+## 目前進度（2026-10-21）
 
-- **第二階段（2026-10-21）**：使用者最後決定留在原本的電腦。TDX（真的）、車站、OSM 餐廳、開眼爬蟲、`rq cron`、MCP 都做好了；剩 Google、Jev（等金鑰）。進度和待問的問題在 `docs/plans/2026-10-20-backend-phase2.md` 和討論紀錄最後幾節。[交接文件](docs/交接_後端第二階段.md) 留著，換電腦時照它做（裡面的進度是 10/20 的）。
+- **第二階段（2026-10-21）**：使用者最後決定留在原本的電腦。TDX（真的）、車站、OSM 餐廳、開眼爬蟲、`rq cron`、MCP 都做好了。Google Places 用測試金鑰實測過（`GOOGLE_MODE=real`，4 個商圈共 381 家，只存 `place_id` 和座標），真的資料端到端排得出行程。剩 Jev（等金鑰）。進度和待問的問題在 `docs/plans/2026-10-20-backend-phase2.md` 和討論紀錄最後幾節。[交接文件](docs/交接_後端第二階段.md) 留著，換電腦時照它做（裡面的進度是 10/20 的）。
 
 - **規格書目前是 v0.13**（v0.13 第二階段實作；v0.12 逐項確認實作時新增的預設值；v0.11 補上示意資料的 `demo` 來源、修正快取取整範例；v0.7 對照 `初步簡報.pdf` 並做過一致性檢查；v0.8～v0.10 對照組員的前端 ZeroGap 調整）：[docs/backend-spec.md](docs/backend-spec.md)。使用者要趕進度，所以未決定的項目先用預設值寫入，標記為【預設】，整理在第 10 節。
 - **前端 ZeroGap**（組員做的 React 前端，原本照另一份 `docs/API.md` 寫成）：使用者決定前端改照我們的規格書串接。串接說明在規格書 6.7；對照經過在討論紀錄的「對照前端 ZeroGap」一節。飲食限制這一版不做，設計留在規格書附錄 A。
-- **前端改接**：另一個 session 做到一半，已交接到另一台電腦繼續。交接文件和補丁在 `frontend-patches/`，程式在 `frontend/`（前端自己的 git，分支 `feature/backend-v0.9`）。主 session 不要動 `frontend/`。前端說規格書定案後，只要改 `src/api/schemas.ts` 和 `relax.ts`。
-- **後端第一階段完成**（2026-10-20）：照 [實作計畫](docs/plans/2026-10-20-backend-phase1.md) 做完 A～G，示意資料＋模擬版 TDX、Jev、Google，本機 Ollama（qwen2.5:3b）。`docker compose up -d --build` 後 `python -m app.seed.demo` 寫入示意資料，API 在 `localhost:8000`（文件 `/api/docs`）。測試：`uv run pytest`（整合測試要先開 Docker）。前端預計 10/27～28 串真後端。前端要配合三件事：`RestaurantSource` 加 `demo`；依 `alternatives` 的 key 顯示換一部／換一家；`hours_verified` 是 false 時提示請向店家確認。
+- **前端改接完成**（2026-10-21，另一個 session 做的）：程式在 `frontend/`（前端自己的 git，分支 `feature/backend-v0.9`），補丁在 `frontend-patches/`。我們請前端做的三件事都完成，也用 `VITE_USE_MOCK=false` 接本機後端實際排過。主 session 不要動 `frontend/`。還沒驗證：前端的 Docker 版本接後端 compose（要設 `BACKEND_URL`）、Google 來源餐廳在前端的顯示。前後端合約檢查：`tools/contract-check/`。
+- **後端第一階段完成**（2026-10-20）：照 [實作計畫](docs/plans/2026-10-20-backend-phase1.md) 做完 A～G，示意資料＋模擬版 TDX、Jev、Google，本機 Ollama（qwen2.5:3b）。`docker compose up -d --build` 後 `python -m app.seed.demo` 寫入示意資料，API 在 `localhost:8000`（文件 `/api/docs`）。測試：`uv run pytest`（整合測試要先開 Docker）。
 - **Demo 操作手冊**：[docs/Demo操作手冊.md](docs/Demo操作手冊.md)；Demo 前跑 `uv run python -m app.jobs.check`。
 - 規格書 10.1 實作時新增的預設值，2026-10-20 已和使用者逐項確認完（三輪，紀錄在討論紀錄）。
 - 接下來可能的工作：
   - 逐項調整【預設】的值
   - 確認仍是預設值的項目：其他 3 個商圈的代表點、片型主清單
   - 處理【實作前確認】的項目
-  - 前端改好後，用 `VITE_USE_MOCK=false` 實際排一次行程（第一階段最後一項驗收）
-  - 第二階段（實作計畫第 0 節）：真的 TDX、Google Places、Jev 用戶端（金鑰到了才做）、開眼／OSM／TDX 車站的爬蟲與匯入、`rq cron`、MCP
+  - Jev 金鑰到了之後實測（用戶端已照官方文件寫好）
+  - 前端的 Docker 版本接後端 compose；Google 來源餐廳在前端的顯示
+  - TDX 票價 API（使用者決定 Demo 之後再做）
+- **實測注意**：TDX 每分鐘只能查 5 次，前後端不要同時實測；除錯時直接呼叫 TDX 也要經過限流器，不然會 429。
 - 修改規格書時，同步更新 `docs/spec-discussion.md`。
 - **給組員看的網頁**：https://claude.ai/artifact/LzNC6Q716vraixUuoDsFKY
   - 架構圖的 PNG 用 headless Chrome 轉：寫一個用 `<img>` 載入 SVG 的 HTML，`chrome.exe --headless=new --force-device-scale-factor=2 --window-size=1340,1320 --screenshot=...`，輸出 2680×2640。

@@ -6,6 +6,7 @@ from zoneinfo import ZoneInfo
 import pytest
 import redis
 
+from app.planning.types import Route
 from app.redis_utils.cache import CachedTransit
 from app.redis_utils.lock import Lock, acquire, extend, release
 from app.redis_utils.quota import add_usage, has_room, used
@@ -176,6 +177,18 @@ class TestCachedTransit:
         assert cached.route(self.A, self.B, at, "depart") == []
         assert len(inner.calls) == 1  # 10 分鐘內不重查
         assert 0 < r.ttl("tdx:route:v1:sta1:hub1:dep:202610221815:1") <= 600
+
+    def test_walk_only_route_is_not_rounded(self, r):
+        class WalkOnly(CountingTransit):
+            def route(self, origin, dest, at, mode, top=1):
+                return [Route(summary="步行", fare=0, depart_at=at, arrive_at=at,
+                              board_name="中壢站", alight_name="中壢站", walk_after=0,
+                              walk_only=True)]  # fmt: skip
+
+        cached = CachedTransit(WalkOnly(), r)
+        at = datetime(2026, 10, 22, 22, 55, tzinfo=TZ)
+        # 查詢時取整成 23:00，但走路不用等車：22:55 出發、22:55 到
+        assert cached.route(self.A, self.B, at, "depart")[0].reach_at == at
 
     def test_cache_failure_falls_back_to_inner(self):
         class BrokenRedis:

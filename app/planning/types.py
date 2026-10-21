@@ -147,6 +147,7 @@ class Route:
     walk_after: int = 0
     transfers: int = 0
     fare_estimated: bool = False  # TDX 沒給車資，自己估的
+    walk_only: bool = False  # TDX 查不到、1 公里內改走路（3.2）：整段放在 walk_after
 
     @property
     def leave_at(self) -> datetime:

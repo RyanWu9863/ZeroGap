@@ -160,7 +160,13 @@ def test_meal_first_gates():
     )  # fmt: skip
     tl = build_timeline(combo, go, ret, PLACES, cond)
     types = [s["type"] for s in tl.steps]
-    assert types == ["transit", "walk", "wait", "meal", "walk", "movie", "transit", "home"]
+    # 回程先從影城走 4 分鐘到站牌，再搭車（2026-10-21：時間軸要接得起來）
+    assert types == ["transit", "walk", "wait", "meal", "walk", "movie", "walk", "transit", "home"]
+    walk_to_stop = tl.steps[6]
+    assert (walk_to_stop["from"], walk_to_stop["to"], walk_to_stop["minutes"]) == (
+        "示意影城 桃園 A", "影城站", 4,
+    )  # fmt: skip
+    assert walk_to_stop["arrive_at"] == t(21, 0)
     by_gate = {s["buffer_gate"]: s for s in tl.steps if s["buffer_gate"]}
     # 精確路線 17:18 就到桃園站，用餐也跟著提早：17:23 到店、17:33 開始、18:18 吃完、18:21 到影城
     assert by_gate["last_order"]["type"] == "wait"
@@ -178,10 +184,45 @@ def test_meal_first_gates():
         "latest_depart_at": t(22, 28),
         "minutes_to_latest": 99,
     }
-    assert tl.steps[6]["place"]["kind"] == "cinema"
+    assert tl.steps[7]["place"]["kind"] == "cinema"
     assert tl.home_at == t(21, 40)
     assert tl.min_buffer == 14
     assert tl.walk_minutes_total == 5 + 3 + 4
+
+
+def test_walk_only_routes_show_as_walks():
+    # TDX 查不到、1 公里內改走路（3.2）：出發站就在代表點旁邊
+    walk_go = Route(
+        summary="步行",
+        fare=0,
+        depart_at=t(17, 5),
+        arrive_at=t(17, 5),
+        board_name="中壢",
+        alight_name="中壢",
+        walk_after=20,
+        walk_only=True,
+    )
+    walk_ret = Route(
+        summary="步行",
+        fare=0,
+        depart_at=t(21, 5),
+        arrive_at=t(21, 5),
+        board_name="桃園站",
+        alight_name="桃園站",
+        walk_after=3,
+        walk_only=True,
+    )
+    combo = check_movie_first(
+        SHOW, REST, 3, Leg(at=t(17, 25), fare=0), Leg(at=t(22, 28), fare=0), COND
+    )  # fmt: skip
+    tl = build_timeline(combo, walk_go, walk_ret, PLACES, COND)
+    types = [s["type"] for s in tl.steps]
+    assert "transit" not in types
+    assert types == ["walk", "movie", "walk", "wait", "meal", "walk", "walk", "home"]
+    first, last_walk = tl.steps[0], tl.steps[6]
+    assert (first["from"], first["to"], first["minutes"]) == ("中壢", "示意影城 桃園 A", 20)
+    assert (last_walk["from"], last_walk["to"], last_walk["minutes"]) == ("桃園站", "中壢", 3)
+    assert tl.home_at == t(21, 8)
 
 
 def test_wait_step_includes_waiting_for_opening():

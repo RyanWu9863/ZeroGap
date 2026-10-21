@@ -57,6 +57,21 @@ def _transit(route: Route, place: Place) -> dict[str, Any]:
     )
 
 
+def _ride(route: Route, place: Place, from_place: Place) -> list[dict[str, Any]]:
+    """搭車這一段：先走到上車的站牌（有的話），再搭車。下車後的步行由呼叫的地方接。
+
+    TDX 查不到、改走路的（`walk_only`）不出現搭車，整段步行算在下車後（3.2）。
+    """
+    if route.walk_only:
+        return []
+    steps = []
+    if route.walk_before > 0:
+        steps.append(_walk(from_place.name, route.board_name, route.walk_before,
+                           route.depart_at, from_place))  # fmt: skip
+    steps.append(_transit(route, from_place))
+    return steps
+
+
 def _walk(from_: str | None, to: str | None, minutes: int, arrive_at: datetime, place: Place,
           note: str | None = None, gate: str | None = None,
           buffer: int | None = None) -> dict[str, Any]:  # fmt: skip
@@ -110,10 +125,16 @@ def build_timeline(
     home = _step("home", p.station, "latest_return",
                  minutes_between(ret.reach_at, cond.latest_home),
                  station=p.station.name, arrive_at=ret.reach_at)  # fmt: skip
+    # 回程下車後走回出發站（2026-10-21 使用者決定時間軸要接得起來）
+    walk_home = (
+        [_walk(ret.alight_name, p.station.name, ret.walk_after, ret.reach_at, p.station)]
+        if ret.walk_after > 0
+        else []
+    )
 
     if exact.order == "movie_first":
         steps = [
-            _transit(go, p.station),
+            *_ride(go, p.station, p.station),
             _walk(go.alight_name, p.cinema.name, go.walk_after, exact.arrive_cinema, p.cinema,
                   "取票", gate="showtime", buffer=b.showtime),
             _step("movie", p.cinema, starts_at=show.starts_at, ends_at=show.ends_at),
@@ -124,14 +145,16 @@ def build_timeline(
             {**_walk(p.restaurant.name, p.hub.name, rest.walk_to_hub, exact.leave_area_at, p.hub,
                      gate="return_trip", buffer=b.return_trip),
              "return_window": _return_window(exact, ret)},
-            _transit(ret, p.hub),
+            *_ride(ret, p.hub, p.hub),
+            *walk_home,
             home,
         ]  # fmt: skip
     else:
         steps = [
-            _transit(go, p.station),
-            _walk(go.alight_name, p.restaurant.name, rest.walk_to_hub, exact.arrive_restaurant,
-                  p.restaurant),
+            *_ride(go, p.station, p.station),
+            # 下車的站牌 → 代表點 → 餐廳
+            _walk(go.alight_name, p.restaurant.name, go.walk_after + rest.walk_to_hub,
+                  exact.arrive_restaurant, p.restaurant),
             wait,
             meal,
             _walk(p.restaurant.name, p.cinema.name, exact.walk_cinema_restaurant,
@@ -140,7 +163,8 @@ def build_timeline(
             {**_step("movie", p.cinema, "return_trip", b.return_trip,
                      starts_at=show.starts_at, ends_at=show.ends_at),
              "return_window": _return_window(exact, ret)},
-            _transit(ret, p.cinema),
+            *_ride(ret, p.cinema, p.cinema),
+            *walk_home,
             home,
         ]  # fmt: skip
 

@@ -22,6 +22,7 @@ from zoneinfo import ZoneInfo
 import httpx
 import redis
 
+from app.planning.rules import walk_minutes
 from app.planning.types import Route
 from app.redis_utils.lock import acquire, release
 from app.redis_utils.quota import add_usage, has_room
@@ -54,6 +55,11 @@ MIN_TOP = 5
 # 所以先用「要求時間＋15 分鐘」查；還是篩光就再延 15 分鐘，最多 2 次（2026-10-21 使用者決定）
 DEPART_SHIFT = timedelta(minutes=15)
 DEPART_RETRIES = 2
+# TDX 查不到路線、兩點又在 1 公里內就改排步行：出發站就是商圈代表點時，TDX 起訖點相同會回空的
+# （2026-10-21 實測、使用者決定先查 TDX，查不到才改步行）
+WALK_FALLBACK_M = 1000
+# 收到 429（超過每分鐘次數）時等 60 秒再試一次（2026-10-21 使用者決定）
+RATE_LIMIT_WAIT_SECONDS = 60
 # 點數（5.5）：基礎服務每次 2 單位、進階服務 15 單位、旅運規劃（MaaS）不扣點
 BASIC_UNITS = 2
 ADVANCED_UNITS = 15
@@ -221,6 +227,18 @@ def parse_routes(payload: dict[str, Any]) -> list[TdxRoute]:
     return out
 
 
+def walk_route(origin: Endpoint, dest: Endpoint, at: datetime, mode: TimeMode) -> Route | None:
+    """1 公里內的步行「路線」：整段算在下車後的步行，時間軸只會顯示一段 `walk`，車資 0。"""
+    meters = haversine_m(origin.lat, origin.lng, dest.lat, dest.lng)
+    if meters > WALK_FALLBACK_M:
+        return None
+    minutes = walk_minutes(meters)
+    start = at if mode == "depart" else at - timedelta(minutes=minutes)
+    return Route(summary="步行", fare=0, depart_at=start, arrive_at=start,
+                 board_name=origin.name, alight_name=origin.name, walk_after=minutes,
+                 walk_only=True)  # fmt: skip
+
+
 class TdxTransit:
     """真的 TDX。限流（每分鐘 5 次）和快取由外面的 CachedTransit 處理。"""
 
@@ -236,9 +254,11 @@ class TdxTransit:
         sleep: Callable[[float], None] = time.sleep,
         limiter: Callable[[], None] | None = None,
         points_limit: int | None = None,
+        on_rate_limited: Callable[[int], None] | None = None,
     ):
         """`limiter`：每次送出請求前呼叫（等每分鐘 5 次的額度），重試也算。
         `points_limit`：每月點數上限（單位）；有設就在每次請求前檢查並記帳（5.5）。
+        `on_rate_limited`：收到 429、要等之前呼叫（參數是秒數），planner 用來推送「等待額度」。
         """
         if not client_id or not client_secret:
             raise TdxError("TDX_MODE=real 要先在 .env 填 TDX_CLIENT_ID、TDX_CLIENT_SECRET")
@@ -250,6 +270,7 @@ class TdxTransit:
         self.sleep = sleep
         self.limiter = limiter
         self.points_limit = points_limit
+        self.on_rate_limited = on_rate_limited
 
     # ── token（5.3 A1）─────────────────────────────────────────
 
@@ -303,12 +324,14 @@ class TdxTransit:
             add_usage(self.r, "tdx_points", units)
 
     def _get(self, params: dict[str, str], url: str = ROUTING_URL, units: int = 0) -> Any:
-        """8.3：逾時或 5xx 最多重試 2 次（間隔 1、2 秒）；4xx 不重試；401 換一次 token。
+        """8.3：逾時或 5xx 最多重試 2 次（間隔 1、2 秒）；4xx 不重試；401 換一次 token；
+        429 等 60 秒再試一次（不算在重試次數裡）。
 
         每次真的送出請求前都先等額度、記點數，重試也算，才不會超過 TDX 的上限。
         """
-        refreshed = False
-        for attempt in range(self.retries + 1):
+        refreshed = rate_limited = False
+        attempt = 0
+        while attempt <= self.retries:
             self._before_request(units)
             try:
                 resp = self.http.get(
@@ -319,14 +342,25 @@ class TdxTransit:
             except httpx.TimeoutException:
                 if attempt == self.retries:
                     raise TdxError("TDX 逾時") from None
-                self.sleep(attempt + 1)
+                attempt += 1
+                self.sleep(attempt)
                 continue
             if resp.status_code == 401 and not refreshed:
                 self.r.delete(TOKEN_KEY)
                 refreshed = True
+                attempt += 1
+                continue
+            if resp.status_code == 429 and not rate_limited:
+                # 例如另一個人同時用同一把金鑰測試，我們的限流器算不到
+                rate_limited = True
+                log.warning("TDX 回 429，等 %d 秒再試", RATE_LIMIT_WAIT_SECONDS)
+                if self.on_rate_limited:
+                    self.on_rate_limited(RATE_LIMIT_WAIT_SECONDS)
+                self.sleep(RATE_LIMIT_WAIT_SECONDS)
                 continue
             if resp.status_code >= 500 and attempt < self.retries:
-                self.sleep(attempt + 1)
+                attempt += 1
+                self.sleep(attempt)
                 continue
             if resp.status_code != 200:
                 raise TdxError(f"TDX HTTP {resp.status_code}：{resp.text[:200]}")
@@ -341,14 +375,19 @@ class TdxTransit:
             # 抵達期限：最晚出發的那班排第一（跟模擬版一樣），步驟 2 才算得出「最晚要離開」。
             # 原本照最晚抵達排，會拿到比較早出發、路上比較久的那條（2026-10-21 前端實測發現）
             routes.sort(key=lambda r: (r.leave_at, r.reach_at), reverse=True)
-            return routes[:top]
-        for k in range(1, DEPART_RETRIES + 2):
-            # 查詢時間往後延，但還是照使用者要求的時間檢查
-            routes = valid_routes(
-                self._query(origin, dest, at + DEPART_SHIFT * k, mode, top), at, mode
-            )
-            if routes:
-                break
+        else:
+            routes = []
+            for k in range(1, DEPART_RETRIES + 2):
+                # 查詢時間往後延，但還是照使用者要求的時間檢查
+                found = self._query(origin, dest, at + DEPART_SHIFT * k, mode, top)
+                if not found:  # TDX 根本查不到（不是時間太早被刷掉），往後延也沒用
+                    break
+                routes = valid_routes(found, at, mode)
+                if routes:
+                    break
+        if not routes:
+            walk = walk_route(origin, dest, at, mode)
+            return [walk] if walk else []
         return routes[:top]
 
     def _query(
