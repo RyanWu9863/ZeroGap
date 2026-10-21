@@ -5,6 +5,7 @@
 ## 1. Demo 前一天
 
 1. **金鑰**：`.env` 裡有 `TDX_CLIENT_ID`、`TDX_CLIENT_SECRET`，`TDX_MODE=real`。
+   - Google：`GOOGLE_PLACES_API_KEY` 填好、`GOOGLE_MODE=real`（2026-10-21 用測試金鑰實測過）。商圈有 Google 的店時規劃只用 Google 的店；Google 額度用完會自動改用 OSM。
    - TypeSafe Jev 的金鑰還沒到：`JEV_MODE=mock`，狀態列會顯示「mock」。要跟廠商說明這一點，或在 Demo 前拿到金鑰。
 2. **跑一次檢查**（見第 3 節），全部「OK」或只有「注意」就可以。
 3. **場次只有今天到後天**：開眼只公布 2～3 天，系統每天 06:00、18:00 自動更新。Demo 的日期要選檢查結果「有場次的日期」裡的一天。
@@ -23,7 +24,9 @@
    ```bash
    uv run python -m app.jobs.check
    ```
-5. 開前端（照前端組員的說明）。前端開發模式會把 `/api` 轉到 `localhost:8000`。
+5. 開前端（照前端組員的說明）：`frontend/` 的分支 `feature/backend-v0.9`，`.env` 設 `VITE_USE_MOCK=false`。前端開發模式會把 `/api` 轉到 `localhost:8000`（2026-10-21 前端已用這個方式實際排過行程）。
+   - 前端的 Docker 版本還沒跟後端一起測過：前端的 nginx 預設把 `/api` 轉給 `http://backend:8000`，我們的 compose 沒有叫 `backend` 的服務，要另外設 `BACKEND_URL`。
+6. **同一時間只讓一個人實測**：TDX 每分鐘只能查 5 次，前後端同時排行程會互相搶額度，排得比較慢。
 
 ## 3. 檢查結果怎麼看
 

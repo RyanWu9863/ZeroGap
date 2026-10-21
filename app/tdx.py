@@ -338,8 +338,9 @@ class TdxTransit:
     ) -> list[Route]:
         if mode == "arrival":
             routes = valid_routes(self._query(origin, dest, at, mode, top), at, mode)
-            # 抵達期限：最晚的那班排第一（跟模擬版一樣）
-            routes.sort(key=lambda r: r.reach_at, reverse=True)
+            # 抵達期限：最晚出發的那班排第一（跟模擬版一樣），步驟 2 才算得出「最晚要離開」。
+            # 原本照最晚抵達排，會拿到比較早出發、路上比較久的那條（2026-10-21 前端實測發現）
+            routes.sort(key=lambda r: (r.leave_at, r.reach_at), reverse=True)
             return routes[:top]
         for k in range(1, DEPART_RETRIES + 2):
             # 查詢時間往後延，但還是照使用者要求的時間檢查

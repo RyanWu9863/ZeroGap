@@ -118,6 +118,18 @@ def test_arrival_filters_late_ones_and_puts_latest_first(r):
 
 
 @respx.mock
+def test_arrival_puts_latest_departure_first(r):
+    respx.post(TOKEN_URL).mock(return_value=token_ok())
+    respx.get(ROUTING_URL).mock(
+        return_value=httpx.Response(200, json=fixture("routing_mixed_arrival"))
+    )
+    at = datetime(2026, 10, 21, 23, 5, tzinfo=TZ)
+    routes = make(r).route(B, A, at, "arrival", top=3)
+    # 兩條都 23:02 到，22:15 出發的排在 22:04 出發的前面：「最晚要離開」要看出發時間
+    assert [x.leave_at.strftime("%H:%M") for x in routes] == ["22:15", "22:04", "21:37"]
+
+
+@respx.mock
 def test_fare_is_estimated_when_tdx_has_no_price(r):
     respx.post(TOKEN_URL).mock(return_value=token_ok())
     respx.get(ROUTING_URL).mock(return_value=httpx.Response(200, json=fixture("routing_tra")))
