@@ -686,6 +686,10 @@ rq cron（只負責觸發）── 每天 06:00 ──▶ 抓取佇列 ──▶
 - **規格書 v0.13**、架構圖文字更新並重新轉出 PNG，組員網頁已重新發布。
 - **前後端合約檢查**（`tools/contract-check/`）：拿後端真正的回應跑前端 `schemas.ts` 的 zod 驗證。用交接前的前端（`feature/backend-v0.9`）：14 種回應全部相容。故意把餐廳的 `source` 改成 `demo` 時會失敗，證實前端還是要加 `demo`；`hours_verified` 和 `alternatives` 的新用法不會報錯，但前端還沒顯示。
 
+### 2026-10-21 真的 Jev 用戶端（等金鑰實測）
+
+查 TypeSafe 官方文件（quickstart、api/system-one、api/errors），照格式寫好規劃時用的 Jev 用戶端（`app/jev/client.py`）：選項用 `criteria`（代碼 → 說明物件）；回應取 `answers[題目].probabilities`、`model`、`usage.input_tokens`；429、529 指數退避重試；每次請求（含重試）都等每分鐘 300 次的額度。`JEV_MODE=real` 就會用。官方文件沒寫錯誤回應的欄位名稱、也沒寫速率限制的標頭，要實測。寫入時的判斷（店家屬性、片型）還是 Ollama。
+
 ## 6. 剩下的步驟
 
 - **第 5 步：部署、測試、錯誤處理**

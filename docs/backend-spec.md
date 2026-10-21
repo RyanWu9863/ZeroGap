@@ -159,6 +159,12 @@ docker-compose.yml
 ### 3.1 TypeSafe Jev
 
 - 端點：`POST https://api.typesafe.ai/v1/systemone`，模型 `jev-latest`。Python SDK 是 `typesafe-sdk`。
+- **請求與回應格式**（2026-10-21 查官方文件，金鑰到了再實測；`app/jev/client.py` 直接用 HTTP，不用 SDK）：
+  - 請求：`Authorization: Bearer <金鑰>`；body 是 `model`、`state`（可以是物件）、`questions`：{題目 id: {`type: "choice"`, `instructions`, `criteria`}}。choice 的 `criteria` 是「選項代碼 → 說明」，說明可以是物件，最多 255 個選項。
+  - 回應：`model`（實際回答的版本）、`answers`：{題目 id: {`choice`, `confidence`, `probabilities`}}、`usage.input_tokens`。
+  - 錯誤：429（超過限制）和 529（過載）用指數退避重試；400、401、413、415、422 是請求本身的問題，不重試。
+  - 每次請求（含重試）都先等每分鐘 300 次的額度。
+  - 寫入時的判斷（店家屬性、片型）目前用 Ollama，金鑰到了再改成 Jev。
 - 題型只用 `choice` 和 `score`。
 - **沒把握的判斷標準**：**最高機率低於 0.6**，照簡報的規則。
   - 回應裡的信心值（confidence）只記錄、不用來判斷。

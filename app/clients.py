@@ -1,9 +1,10 @@
-"""依設定建立外部服務的用戶端：mock 用模擬版；real 用真的服務（TDX 已接上；Jev、Google 等金鑰）。"""
+"""依設定建立外部服務的用戶端：mock 用模擬版；real 用真的服務（TDX、Jev；Google 之後）。"""
 
 import redis
 
 from app.config import Settings
 from app.jev.base import Jev
+from app.jev.client import JevClient
 from app.jev.mock import MockJev
 from app.llm import Llm, LlmPicker, MockLlm
 from app.places import MockPlaces, Places
@@ -28,7 +29,10 @@ def make_transit(s: Settings, r: redis.Redis) -> Transit:
 def make_jev(s: Settings) -> Jev:
     if s.jev_mode == "mock":
         return MockJev()
-    raise NotImplementedError("真的 Jev 用戶端第二階段才做；先把 JEV_MODE 設成 mock")
+    # limiter 由 planner 設定（每分鐘 300 次，重試也算）
+    return JevClient(
+        s.typesafe_api_key, s.jev_model, timeout=s.http_timeout_seconds, retries=s.http_retries
+    )
 
 
 def make_places(s: Settings) -> Places:

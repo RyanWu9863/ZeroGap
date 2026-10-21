@@ -14,10 +14,11 @@ from rq.timeouts import JobTimeoutException
 from app.clients import make_jev, make_llm, make_places, make_transit
 from app.config import get_settings
 from app.db import sync_session
+from app.jev.client import JevError
 from app.planner import Deps, PlanError, run_plan
 from app.redis_client import sync_redis
 from app.schemas import ErrorBody, PlanRequest, PlanResult
-from app.tdx import TdxError
+from app.tdx import TdxError, TdxQuotaExhausted
 
 log = logging.getLogger(__name__)
 
@@ -62,9 +63,12 @@ def plan_job(request: dict[str, Any]) -> None:
         publish("result", PlanResult.model_validate(result).to_json())
     except PlanError as exc:
         error(exc.code, exc.message, exc.reasons)
-    except TdxError as exc:
+    except (TdxError, TdxQuotaExhausted) as exc:
         log.warning("規劃工作 %s：TDX 出錯 %s", job_id, exc)
         error("UPSTREAM_ERROR", "交通查詢暫時無法使用，請稍後再試")
+    except JevError as exc:
+        log.warning("規劃工作 %s：Jev 出錯 %s", job_id, exc)
+        error("UPSTREAM_ERROR", "Jev 暫時無法使用，請稍後再試")
     except JobTimeoutException:
         error("TIMEOUT", "規劃超過時間上限，請再試一次")
     except Exception:

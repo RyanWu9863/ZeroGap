@@ -99,6 +99,10 @@ class Planner:
         inner_limited = hasattr(deps.transit, "limiter")
         if inner_limited:
             deps.transit.limiter = self._wait_tdx
+        # 真的 Jev 一樣：每次請求（含重試）都等每分鐘 300 次的額度
+        self.jev_limited = hasattr(deps.jev, "limiter")
+        if self.jev_limited:
+            deps.jev.limiter = lambda: self._wait("rl:jev", self.s.jev_per_minute, "jev")
         self.transit = CachedTransit(
             deps.transit,
             deps.redis,
@@ -140,7 +144,8 @@ class Planner:
                 q.id: ChoiceAnswer({o.code: 1 / len(q.options) for o in q.options})
                 for q in questions
             }
-        self._wait("rl:jev", self.s.jev_per_minute, "jev")
+        if not self.jev_limited:
+            self._wait("rl:jev", self.s.jev_per_minute, "jev")
         result = self.d.jev.choose(questions)
         add_usage(self.d.redis, "jev_cost_micro_usd", jev_cost_micro_usd(result.input_tokens))
         return result.answers
