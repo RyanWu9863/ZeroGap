@@ -24,6 +24,7 @@
 - **前端 ZeroGap**（組員做的 React 前端，原本照另一份 `docs/API.md` 寫成）：使用者決定前端改照我們的規格書串接。串接說明在規格書 6.7；對照經過在討論紀錄的「對照前端 ZeroGap」一節。飲食限制這一版不做，設計留在規格書附錄 A。
 - **前端改接**：另一個 session 做到一半，已交接到另一台電腦繼續。交接文件和補丁在 `frontend-patches/`，程式在 `frontend/`（前端自己的 git，分支 `feature/backend-v0.9`）。主 session 不要動 `frontend/`。前端說規格書定案後，只要改 `src/api/schemas.ts` 和 `relax.ts`。
 - **後端第一階段完成**（2026-10-20）：照 [實作計畫](docs/plans/2026-10-20-backend-phase1.md) 做完 A～G，示意資料＋模擬版 TDX、Jev、Google，本機 Ollama（qwen2.5:3b）。`docker compose up -d --build` 後 `python -m app.seed.demo` 寫入示意資料，API 在 `localhost:8000`（文件 `/api/docs`）。測試：`uv run pytest`（整合測試要先開 Docker）。前端預計 10/27～28 串真後端。前端要配合三件事：`RestaurantSource` 加 `demo`；依 `alternatives` 的 key 顯示換一部／換一家；`hours_verified` 是 false 時提示請向店家確認。
+- **Demo 操作手冊**：[docs/Demo操作手冊.md](docs/Demo操作手冊.md)；Demo 前跑 `uv run python -m app.jobs.check`。
 - 規格書 10.1 實作時新增的預設值，2026-10-20 已和使用者逐項確認完（三輪，紀錄在討論紀錄）。
 - 接下來可能的工作：
   - 逐項調整【預設】的值
