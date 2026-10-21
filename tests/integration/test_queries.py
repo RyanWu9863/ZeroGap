@@ -61,7 +61,7 @@ def test_nearest_hub_for_each_restaurant(session):
             {"a": area},
         )
     }
-    assert len(hubs) == 2  # 八德：大湳、廣豐新天地
+    assert len(hubs) == 1  # 八德只有廣豐新天地（2026-10-21）
     result = nearest_hubs(session, area)
     assert len(result) == 15
     used = set()

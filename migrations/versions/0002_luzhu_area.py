@@ -39,9 +39,7 @@ def upgrade() -> None:
 def downgrade() -> None:
     conn = op.get_bind()
     conn.execute(
-        sa.text(
-            "DELETE FROM area_hubs WHERE area_id = (SELECT id FROM areas WHERE code = 'luzhu')"
-        )
+        sa.text("DELETE FROM area_hubs WHERE area_id = (SELECT id FROM areas WHERE code = 'luzhu')")
     )
     conn.execute(sa.text("DELETE FROM areas WHERE code = 'luzhu'"))
     conn.execute(sa.text("UPDATE areas SET is_open = true WHERE code = 'qingpu'"))

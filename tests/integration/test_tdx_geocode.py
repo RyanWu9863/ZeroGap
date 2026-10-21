@@ -41,4 +41,4 @@ def test_station_hubs_use_station_coordinates(session):
     assert coords(session, "中壢站") == pytest.approx((24.9537, 121.2257))
     assert "中壢站" not in geocoder.asked and "桃園站" not in geocoder.asked
     assert coords(session, "台茂購物中心") == pytest.approx((25.0534, 121.2884))
-    assert {x["hub"] for x in stats["needs_review"]} == {"大湳", "廣豐新天地"}
+    assert {x["hub"] for x in stats["needs_review"]} == {"廣豐新天地"}
