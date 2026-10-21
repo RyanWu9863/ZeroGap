@@ -7,7 +7,7 @@ from app.jev.base import Jev
 from app.jev.client import JevClient
 from app.jev.mock import MockJev
 from app.llm import Llm, LlmPicker, MockLlm
-from app.places import MockPlaces, Places
+from app.places import GooglePlaces, MockPlaces, Places
 from app.tdx import TdxTransit
 from app.transit import MockTransit, Transit
 
@@ -38,7 +38,9 @@ def make_jev(s: Settings) -> Jev:
 def make_places(s: Settings) -> Places:
     if s.google_mode == "mock":
         return MockPlaces()
-    raise NotImplementedError("真的 Google Places 用戶端第二階段才做；先把 GOOGLE_MODE 設成 mock")
+    return GooglePlaces(
+        s.google_places_api_key, timeout=s.http_timeout_seconds, retries=s.http_retries
+    )
 
 
 def make_llm(s: Settings) -> Llm:

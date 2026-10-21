@@ -356,3 +356,34 @@ def test_estimated_fares_are_flagged(session, r):
     assert plans[0]["estimated"] == ["ticket", "meal", "fare_go", "fare_return"]
     # 模擬版和真的 TDX 的路線快取分開存
     assert r.keys("tdx:route:v1mock:*") and not r.keys("tdx:route:v2:*")
+
+
+def test_google_restaurants_replace_others_in_the_same_area(session, r):
+    # 同一家店可能同時在 Google 和 OSM（或示意資料）出現：商圈裡有 Google 的店就只用 Google
+    from app.planner import Planner
+
+    session.execute(
+        text(
+            "INSERT INTO restaurants (source, external_id, geom, area_id, category_code, "
+            "price_range, meal_duration, date_suitability, is_active) "
+            "SELECT 'google', 'ChIJtest', 'SRID=4326;POINT(121.3115 24.9920)', id, 'japanese', "
+            "'200_500', 'normal', 2, true FROM areas WHERE code = 'taoyuan'"
+        )
+    )
+    session.commit()
+    try:
+        deps = Deps(
+            session=session, redis=r, transit=MockTransit(), jev=MockJev(), llm=MockLlm(),
+            places=MockPlaces(), settings=Settings(_env_file=None, tdx_per_minute=1000),
+        )  # fmt: skip
+        planner = Planner(request(session), "job-test", deps, lambda *a, **k: None)
+        planner._load()
+        assert {row.source for row in planner.restaurant_rows.values()} == {"google"}
+        # Google 規劃用的額度用完：改用其他來源
+        add_usage(r, "google:details_enterprise", 950)
+        planner = Planner(request(session), "job-test", deps, lambda *a, **k: None)
+        planner._load()
+        assert "google" not in {row.source for row in planner.restaurant_rows.values()}
+    finally:
+        session.execute(text("DELETE FROM restaurants WHERE external_id = 'ChIJtest'"))
+        session.commit()

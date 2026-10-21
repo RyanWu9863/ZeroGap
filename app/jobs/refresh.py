@@ -10,6 +10,7 @@ import time
 from sqlalchemy import text
 
 from app.collectors.atmovies_import import make_fetcher, refresh_atmovies
+from app.collectors.google_import import refresh_google_geom, refresh_google_places
 from app.collectors.osm_import import refresh_osm
 from app.collectors.tdx_geocode import Geocoder, geocode_hubs
 from app.collectors.tdx_stations import refresh_stations
@@ -17,6 +18,7 @@ from app.config import get_settings
 from app.db import sync_session
 from app.jobs.crawl import run_crawl
 from app.judge import MovieJudge, RestaurantJudge
+from app.places import GooglePlaces
 from app.redis_client import sync_redis
 from app.redis_utils.ratelimit import wait_for_slot
 from app.tdx import TdxTransit
@@ -121,11 +123,59 @@ def refresh_atmovies_job() -> dict | None:
         )  # fmt: skip
 
 
+def _restaurant_judge(session, s) -> RestaurantJudge:
+    cuisines = dict(
+        session.execute(
+            text(
+                "SELECT code, label || '：' || coalesce(jev_description, '') FROM categories "
+                "WHERE kind = 'cuisine' ORDER BY sort_order"
+            )
+        ).all()
+    )
+    return RestaurantJudge(
+        s.ollama_base_url, s.ollama_model, cuisines=cuisines, timeout=s.ollama_timeout_seconds,
+        keep_alive=s.ollama_keep_alive, think=s.ollama_think,
+    )  # fmt: skip
+
+
+def refresh_google_places_job() -> dict | None:
+    """Google Places 找新餐廳（每週一 05:00）。GOOGLE_MODE=mock 時跳過。"""
+    s, r = get_settings(), sync_redis()
+    if s.google_mode != "real":
+        return {"skipped": "GOOGLE_MODE 不是 real"}
+    google = GooglePlaces(s.google_places_api_key, timeout=s.http_timeout_seconds)
+    with sync_session()() as session:
+        judge = _restaurant_judge(session, s)
+        return run_crawl(
+            session, r, "refresh_google_places", "google_places",
+            lambda keep_alive: refresh_google_places(
+                session, r, google, judge, s.quota_google_nearby_enterprise, keep_alive
+            ),
+        )  # fmt: skip
+
+
+def refresh_google_geom_job() -> dict | None:
+    """Google 來源的座標超過 25 天就更新（每天 03:00）。GOOGLE_MODE=mock 時跳過。"""
+    s, r = get_settings(), sync_redis()
+    if s.google_mode != "real":
+        return {"skipped": "GOOGLE_MODE 不是 real"}
+    google = GooglePlaces(s.google_places_api_key, timeout=s.http_timeout_seconds)
+    with sync_session()() as session:
+        return run_crawl(
+            session, r, "rejudge_and_refresh_geom", "geom_refresh",
+            lambda keep_alive: refresh_google_geom(
+                session, r, google, s.quota_google_details_essentials
+            ),
+        )  # fmt: skip
+
+
 JOBS = {
     "stations": refresh_stations_job,
     "hubs": geocode_hubs_job,
     "osm": refresh_osm_job,
     "atmovies": refresh_atmovies_job,
+    "google": refresh_google_places_job,
+    "google_geom": refresh_google_geom_job,
 }
 
 

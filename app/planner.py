@@ -333,7 +333,18 @@ class Planner:
         if self.req.cuisine is not None:
             where.append("category_code = :cuisine")
             params["cuisine"] = self.req.cuisine
-        if self.restaurant_source == "osm":
+        # 同一家店可能同時在 Google 和 OSM 出現：商圈裡有 Google 的店就只用 Google；
+        # Google 規劃用的額度用完（5.5）或還沒有 Google 的店時，用 OSM（2026-10-21）
+        has_google = self.d.session.scalar(
+            text(
+                "SELECT EXISTS (SELECT 1 FROM restaurants WHERE area_id = :a AND is_active "
+                "AND source = 'google' AND geom IS NOT NULL)"
+            ),
+            {"a": self.area_id},
+        )
+        if self.restaurant_source == "google" and has_google:
+            where.append("source = 'google'")
+        else:
             where.append("source <> 'google'")
         rows = self.d.session.execute(
             text(
