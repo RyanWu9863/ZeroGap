@@ -1,7 +1,9 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
-import { PICK_FOR_ME, type ItineraryRequest } from '@/api/schemas'
+import { z } from 'zod'
+import { ItineraryRequest, PICK_FOR_ME } from '@/api/schemas'
 import { benchmarkRequest } from '@/mocks/request'
+import { keepAsIs, pickValid, STORAGE_VERSION } from './persistSafe'
 
 /** 「清空重來」後的空白點餐單：地點、出發站、日期要重選，其他用常見預設值 */
 export const blankRequest: ItineraryRequest = {
@@ -34,6 +36,18 @@ type PlanState = {
   markAnimated: (key: string) => void
 }
 
+/** 從暫存讀回時逐欄驗證（P1-3）：條件格式不對（舊版、被改過）就用預設條件，不讓畫面出錯 */
+export function mergePlanState(persisted: unknown, current: PlanState): PlanState {
+  return {
+    ...current,
+    ...pickValid<PlanState>(persisted, {
+      request: ItineraryRequest,
+      selectedRank: z.number().int().min(1).max(3),
+      animatedKey: z.string().nullable(),
+    }),
+  }
+}
+
 /** 同一組條件 → 同一把鑰匙 */
 export const requestKey = (r: ItineraryRequest) => JSON.stringify(r)
 
@@ -49,6 +63,11 @@ export const usePlanStore = create<PlanState>()(
       selectRank: (rank) => set({ selectedRank: rank }),
       markAnimated: (key) => set({ animatedKey: key }),
     }),
-    { name: 'zg-plan' },
+    {
+      name: 'zg-plan',
+      version: STORAGE_VERSION,
+      migrate: keepAsIs,
+      merge: mergePlanState,
+    },
   ),
 )

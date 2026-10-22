@@ -47,18 +47,25 @@ test('找不到頁面：亂打網址顯示中文說明，導覽列還在，可�
   await expect(page).toHaveURL(/\/$/)
 })
 
-test('頁面出錯：暫存的條件壞掉時顯示中文錯誤頁，清掉後恢復（P0-2）', async ({ page }) => {
-  // 只在第一次載入時塞壞資料，按「清掉」重新整理後就不再塞
+test('暫存的條件壞掉：自動改用預設條件，精靈照常能用（P1-3）', async ({ page }) => {
   await page.addInitScript(() => {
     if (sessionStorage.getItem('seeded')) return
     sessionStorage.setItem('seeded', '1')
-    localStorage.setItem('zg-plan', JSON.stringify({ state: { request: null }, version: 0 }))
+    localStorage.setItem('zg-plan', JSON.stringify({ state: { request: null, selectedRank: 7 }, version: 0 }))
   })
   await page.goto('/plan/1')
-  await expect(page.getByRole('heading', { name: '這一頁出了點問題' })).toBeVisible()
-  await expect(page.getByRole('banner').getByRole('link', { name: '系統幕後' })).toBeVisible()
-  await page.getByRole('button', { name: '清掉這台裝置記住的條件' }).click()
   await expect(page.getByRole('heading', { name: '從哪裡出發，去哪裡玩？' })).toBeVisible()
+  await expect(page.getByRole('radio', { name: /^桃園區/ })).toHaveAttribute('aria-checked', 'true')
+})
+
+test('頁面出錯：頁面檔案下載失敗時顯示中文錯誤頁，導覽列還在（P0-2）', async ({ page }) => {
+  // 模擬「更新後舊分頁抓不到新的頁面檔案」：系統幕後的程式檔下載失敗
+  await page.route(/BehindPage/, (route) => route.abort())
+  await page.goto('/')
+  await page.getByRole('banner').getByRole('link', { name: '系統幕後' }).click()
+  await expect(page.getByRole('heading', { name: '這一頁出了點問題' })).toBeVisible()
+  await expect(page.getByRole('button', { name: '重新整理' })).toBeVisible()
+  await expect(page.getByRole('banner').getByRole('link', { name: '開始規劃' })).toBeVisible()
 })
 
 test('選項載入失敗：精靈顯示白話說明和重試，按了就恢復（P1-1）', async ({ page }) => {

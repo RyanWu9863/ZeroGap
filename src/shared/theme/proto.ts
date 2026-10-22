@@ -1,6 +1,8 @@
 import { useEffect } from 'react'
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
+import { z } from 'zod'
+import { keepAsIs, pickValid, STORAGE_VERSION } from '@/store/persistSafe'
 
 /*
  * 試做稿（決策 Q37b、Q38）：A 時刻表（淺色）／B 電影感（深色）／C Linear 風（深色極簡，2026-10-19 加）。
@@ -19,7 +21,13 @@ const fromUrl = (): Proto | null => {
 export const useProtoStore = create<{ proto: Proto; setProto: (p: Proto) => void }>()(
   persist((set) => ({ proto: fromUrl() ?? 'timetable', setProto: (proto) => set({ proto }) }), {
     name: 'zg-proto',
-    merge: (persisted, current) => ({ ...current, ...(persisted as object), ...(fromUrl() ? { proto: fromUrl()! } : {}) }),
+    version: STORAGE_VERSION,
+    migrate: keepAsIs,
+    merge: (persisted, current) => ({
+      ...current,
+      ...pickValid<{ proto: Proto }>(persisted, { proto: z.enum(PROTOS as [Proto, ...Proto[]]) }),
+      ...(fromUrl() ? { proto: fromUrl()! } : {}),
+    }),
   }),
 )
 
