@@ -19,7 +19,7 @@ export function StationPicker({ stations, value, onChange }: {
           onChange={(e) => setQ(e.target.value)}
           placeholder="搜尋車站，例如：中壢"
           aria-label="搜尋出發站"
-          className="h-11 min-w-0 flex-1 bg-transparent text-base outline-none placeholder:text-muted-foreground sm:text-sm"
+          className="h-11 min-w-0 flex-1 bg-transparent text-base outline-none placeholder:text-muted-foreground sm:text-sm pointer-coarse:text-base"
         />
       </label>
       <div role="radiogroup" aria-label="出發站" className="grid max-h-56 grid-cols-2 gap-1 overflow-y-auto p-2 sm:grid-cols-3">
