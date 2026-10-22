@@ -1,10 +1,12 @@
-# GitHub Pages 展示版（決策 Q78）：推到 main 就自動打包並發布。
-# 展示版固定用假資料（VITE_USE_MOCK=true），畫面上會標「假資料（開發用）」。
+# GitHub Pages 展示版（決策 Q78）：打包並發布。展示版固定用假資料（VITE_USE_MOCK=true），畫面上會標「假資料（開發用）」。
+# 目前只能手動執行（GitHub → Actions → 這個 workflow → Run workflow）：小組還沒決定要公開發布（2026-10-22）。
+# 決定要「推到 main 就自動發布」時，在 on: 底下加回：
+#   push:
+#     branches: [main]
+# 注意：私人 repo 要用 GitHub Pages 需要付費方案（或改成公開 repo）。
 name: Deploy demo to GitHub Pages
 
 on:
-  push:
-    branches: [main]
   workflow_dispatch:
 
 permissions:

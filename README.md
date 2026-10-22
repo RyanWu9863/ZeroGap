@@ -10,7 +10,7 @@ npm run dev        # http://localhost:5173
 npm test           # 單元測試（Vitest，55 個）
 npm run e2e        # 流程測試＋無障礙檢查（Playwright＋axe：桌機 Chromium、桌機 WebKit、iPhone 13；第一次要先 npx playwright install chromium webkit）
 npm run build      # 正式打包到 dist/
-npm run build:pages  # GitHub Pages 版（預設網址多一層 /zerogap/，可用環境變數 PAGES_BASE 改）
+npm run build:pages  # GitHub Pages 版（預設網址多一層 /zerogap-frontend/，可用環境變數 PAGES_BASE 改）
 npm run og         # 重新產生連結預覽圖 public/og.png
 npm run icons      # 重新產生 iOS 主畫面圖示 public/apple-touch-icon.png
 npm run predemo    # Demo 前一鍵檢查：型別＋單元測試＋流程測試＋打包
@@ -83,9 +83,12 @@ nginx 提供打包好的網頁，`/api/` 轉給 `BACKEND_URL`（預設 `http://b
 
 ## 部署
 
-推到 GitHub 的 `main` 後，`.github/workflows/pages.yml` 會自動打包並發布到 GitHub Pages（固定假資料）。需要在 repo 的 Settings → Pages 把 Source 設成「GitHub Actions」。
+- `.github/workflows/ci.yml`：每次推上 GitHub，在 macOS、Windows、Linux 各跑型別、lint、測試、打包。
+- `.github/workflows/pages.yml`：GitHub Pages 展示版（固定假資料）。**目前只能手動執行**，因為小組還沒決定要公開發布；改成自動發布的方法寫在檔案開頭。私人 repo 要用 Pages 需要付費方案，或改成公開 repo。
 
 ## 文件
+
+- **`docs/接手指南.md`：新加入的組員從這裡開始**
 
 - `docs/前端決策紀錄.md`：102 題問答定下來的所有決定
 - `docs/API變更提案_前端需求.md`：要請後端加的欄位
