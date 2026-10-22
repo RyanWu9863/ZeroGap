@@ -1,7 +1,7 @@
 import { itineraryLowConfidence } from '@/mocks/itineraryLowConfidence'
 import { itineraryNoSolution } from '@/mocks/itineraryNoSolution'
-import { itineraryOk } from '@/mocks/itineraryOk'
 import { optionsMock } from '@/mocks/options'
+import { pickItinerary } from '@/mocks/pickItinerary'
 import { statusMock } from '@/mocks/status'
 import { API_TIMEOUT_MS } from '@/shared/lib/config'
 import { useDemoStore } from '@/store/demoStore'
@@ -57,7 +57,8 @@ export async function postItineraries(req: ItineraryRequest, signal?: AbortSigna
     const scenario = mockScenario()
     if (scenario === 'no_solution' && req.budget_per_person < 800) return parseOrThrow(ItineraryResponse, itineraryNoSolution, '行程')
     if (scenario === 'low_confidence' && req.movie_title === PICK_FOR_ME) return parseOrThrow(ItineraryResponse, itineraryLowConfidence, '行程')
-    return parseOrThrow(ItineraryResponse, itineraryOk, '行程')
+    // 其他情況：挑條件對得上的那組（情境卡 ①②③），對不上就用基準那組
+    return parseOrThrow(ItineraryResponse, pickItinerary(req), '行程')
   }
   const body = await getJson('/api/itineraries', { method: 'POST', body: JSON.stringify(req), signal, timeoutMs: API_TIMEOUT_MS.itineraries })
   return parseOrThrow(ItineraryResponse, body, '行程')

@@ -61,7 +61,7 @@ export function BehindPage() {
               {stages ? (
                 <FunnelCharts total={data.funnel_stats.total_checked} stages={stages} />
               ) : (
-                <p className="text-sm text-muted-foreground">後端還沒回傳每一關的剔除數（API 變更提案 #7）。</p>
+                <p className="text-sm text-muted-foreground">這次的結果沒有附上每一關剔除了幾組，只能顯示全部組合和最後接得上的組數。</p>
               )}
             </div>
             <div className="zg-surface min-w-0 p-5">

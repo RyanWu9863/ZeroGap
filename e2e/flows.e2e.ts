@@ -142,6 +142,23 @@ test('簡報模式：按 2 直接排「週末午後，先吃再看」，按 B �
   await expect(page.getByRole('heading', { name: '數字交給程式，選擇交給機率。' })).toBeVisible()
 })
 
+test('簡報模式：情境 2、3 的行程跟條件對得上（時段、先吃再看、預算）', async ({ page }) => {
+  await page.goto('/?present=1')
+  await page.keyboard.press('2') // 週末午後：12:00–18:00、先吃再看、每人 $800
+  await expect(resultsHeading(page)).toBeVisible()
+  const timeline = page.getByLabel('行程時間軸')
+  await expect(timeline.locator('li').first()).toContainText('12:10')
+  await expect(timeline.locator('li').last()).toContainText('17:03')
+  const steps = await timeline.locator('li').allInnerTexts()
+  expect(steps.findIndex((t) => t.includes('午餐'))).toBeLessThan(steps.findIndex((t) => t.includes('片長')))
+
+  await page.keyboard.press('3') // 小資之夜：18:00–23:00、每人 $500
+  await expect(page.getByRole('button', { name: '每人 $500' })).toBeVisible()
+  await expect(resultsHeading(page)).toBeVisible()
+  await expect(timeline.locator('li').first()).toContainText('18:20')
+  await expect(page.getByText(/未超過預算 \$500/)).toBeVisible()
+})
+
 test('手機版：畫面不會左右晃、輸入框不會讓 iOS 自動放大', async ({ page, isMobile }) => {
   test.skip(!isMobile, '只在 iPhone、iPad 專案跑')
   for (const path of ['/', '/plan/1', '/plan/2', '/plan/4', resultUrl(''), '/behind']) {
