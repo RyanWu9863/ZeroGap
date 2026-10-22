@@ -143,7 +143,7 @@ test('簡報模式：按 2 直接排「週末午後，先吃再看」，按 B �
 })
 
 test('手機版：畫面不會左右晃、輸入框不會讓 iOS 自動放大', async ({ page, isMobile }) => {
-  test.skip(!isMobile, '只在 iPhone 專案跑')
+  test.skip(!isMobile, '只在 iPhone、iPad 專案跑')
   for (const path of ['/', '/plan/1', '/plan/2', '/plan/4', resultUrl(''), '/behind']) {
     await page.goto(path)
     await page.waitForTimeout(path.startsWith('/result') ? 5000 : 800)
@@ -156,9 +156,17 @@ test('手機版：畫面不會左右晃、輸入框不會讓 iOS 自動放大', 
 })
 
 test('手機版：估計值的 ⓘ 點一下就看得到說明', async ({ page, isMobile }) => {
-  test.skip(!isMobile, '只在 iPhone 專案跑')
+  test.skip(!isMobile, '只在 iPhone、iPad 專案跑')
   await page.goto(resultUrl(''))
   await expect(resultsHeading(page)).toBeVisible()
   await page.getByRole('button', { name: '這是估計值，點一下看說明' }).first().tap()
   await expect(page.getByRole('tooltip').first()).toHaveText('此價格為估計，實際以現場為準')
+})
+
+test('平板直放：路線示意圖不會被放大到滿版（P2-5）', async ({ page }, info) => {
+  test.skip(info.project.name !== 'ipad', '只在 iPad 專案跑')
+  await page.goto(resultUrl(''))
+  await expect(resultsHeading(page)).toBeVisible()
+  const box = await page.getByRole('group', { name: /^路線：/ }).boundingBox()
+  expect(box!.width).toBeLessThanOrEqual(320)
 })

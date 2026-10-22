@@ -18,6 +18,7 @@ function toNodes(plan: Proposal): Node[] {
 /**
  * 路線示意圖（Q28）：不是真實地圖比例，只畫「先到哪、再到哪」。
  * 點站點或下方按鈕都會開 Google 地圖（Q28b）。
+ * 平板直放時側欄變成整行寬，圖最多 20rem 寬，不然字會被放大到快 3 倍（P2-5）。
  */
 export function RouteSketch({ plan }: { plan: Proposal }) {
   const nodes = toNodes(plan)
@@ -31,7 +32,7 @@ export function RouteSketch({ plan }: { plan: Proposal }) {
       <p className="text-sm font-medium">路線示意</p>
       <p className="text-xs text-muted-foreground">非實際比例</p>
       {/* role="group"（不是 img）：裡面的站點是可以點的連結，img 裡不能放可互動的東西（P2-2） */}
-      <svg viewBox={`0 0 ${W} ${H}`} className="mt-3 w-full" role="group" aria-label={`路線：${nodes.map((n) => n.name).join(' → ')}`}>
+      <svg viewBox={`0 0 ${W} ${H}`} className="mt-3 w-full md:mx-auto md:max-w-xs" role="group" aria-label={`路線：${nodes.map((n) => n.name).join(' → ')}`}>
         {pos.slice(1).map((p, i) => {
           const a = pos[i]
           const walk = nodes[i + 1].via === 'walk'
