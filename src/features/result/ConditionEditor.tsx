@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { PICK_FOR_ME, type ItineraryRequest } from '@/api/schemas'
-import { useOptions } from '@/api/queries'
+import { failure, useOptions } from '@/api/queries'
+import { LoadError } from '@/shared/ui/LoadError'
 import { todayISO } from '@/shared/lib/dates'
 import { formatMoney, stationLabel, walkDistance } from '@/shared/lib/format'
 import { Chips, Field } from '@/features/wizard/parts/Choice'
@@ -19,6 +20,8 @@ export function ConditionEditor({ kind, value: r, onChange }: Props) {
   const day = useOptions(r.date, districtId)
   const [today] = useState(todayISO)
   const o = base.data
+  const failed = failure(base)
+  if (failed) return <LoadError error={failed} onRetry={() => base.refetch()} compact />
   if (!o) return <p className="py-6 text-center text-muted-foreground">載入中…</p>
 
   switch (kind) {

@@ -1,6 +1,6 @@
 import { CalendarClock, Clapperboard, TriangleAlert, UtensilsCrossed } from 'lucide-react'
 import { useEffect, useState } from 'react'
-import { useOptions } from '@/api/queries'
+import { failure, useOptions } from '@/api/queries'
 import { nearestAvailable } from '@/shared/lib/dates'
 import { formatDate, stationLabel } from '@/shared/lib/format'
 import { usePlanStore } from '@/store/planStore'
@@ -14,7 +14,8 @@ import { StepShell } from './StepShell'
 /** ② 時間（Q47、Q48、Q49、Q70、Q97） */
 export function StepTime() {
   const { request, setRequest } = usePlanStore()
-  const { data } = useOptions()
+  const options = useOptions()
+  const { data } = options
   const station = request.origin_station ? stationLabel(request.origin_station) : '出發站'
   const dateCtx = useDateContext()
   const { today, available } = dateCtx
@@ -31,7 +32,7 @@ export function StepTime() {
   }, [needsFix, available, today, setRequest])
 
   return (
-    <StepShell title="哪一天、幾點到幾點？" loading={!data}>
+    <StepShell title="哪一天、幾點到幾點？" loading={!data} error={failure(options)} onRetry={() => options.refetch()}>
       {data && (
         <>
           <Field title="日期" hint="灰色的日子還沒有場次資料。">

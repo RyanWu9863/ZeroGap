@@ -61,6 +61,15 @@ test('頁面出錯：暫存的條件壞掉時顯示中文錯誤頁，清掉後�
   await expect(page.getByRole('heading', { name: '從哪裡出發，去哪裡玩？' })).toBeVisible()
 })
 
+test('選項載入失敗：精靈顯示白話說明和重試，按了就恢復（P1-1）', async ({ page }) => {
+  await page.goto('/plan/1?mock=options_error') // 假資料情境：前 2 次失敗（含自動重試一次）
+  await expect(page.getByRole('alert')).toContainText('現在連不上排程服務')
+  await expect(page.getByRole('radiogroup', { name: '商圈' })).toHaveCount(0)
+  await page.getByRole('button', { name: '重試' }).click()
+  await expect(page.getByRole('radiogroup', { name: '商圈' })).toBeVisible()
+  await expect(page.getByRole('alert')).toHaveCount(0)
+})
+
 test('無解：停在卡住的關卡，一鍵放寬預算後有解（Q23）', async ({ page }) => {
   await page.goto(resultUrl('budget=500&mock=no_solution').replace('budget=1000&', ''))
   await expect(page.getByRole('heading', { name: '這組條件，找不到每段都接得上的行程' })).toBeVisible()

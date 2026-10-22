@@ -1,4 +1,4 @@
-import { useStatus } from '@/api/queries'
+import { failure, useStatus } from '@/api/queries'
 import { USE_MOCK } from '@/api/client'
 import { useDemoStore } from '@/store/demoStore'
 
@@ -6,12 +6,21 @@ const NAMES: Record<string, string> = { atmovies: '開眼電影網（場次）',
 
 /** 系統幕後 ③：資料來源狀態（驗收 A9）＋展示模式開關（Q69） */
 export function SourcesSection() {
-  const { data } = useStatus()
+  const status = useStatus()
+  const { data } = status
   const { demo, setDemo } = useDemoStore()
   return (
     <div className="grid gap-4 md:grid-cols-2 [&>*]:min-w-0">
       <div className="zg-surface p-5">
         <h3 className="font-semibold">資料來源</h3>
+        {failure(status) != null && (
+          <p className="mt-3 text-sm text-muted-foreground" role="alert">
+            目前讀不到系統狀態。
+            <button type="button" onClick={() => status.refetch()} className="ml-1 underline underline-offset-4">
+              重試
+            </button>
+          </p>
+        )}
         {data && (
           <dl className="mt-3 space-y-2 text-sm">
             <div className="flex justify-between"><dt className="text-muted-foreground">推薦引擎</dt><dd>Jev {data.jev_mode}</dd></div>

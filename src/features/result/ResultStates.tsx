@@ -1,5 +1,5 @@
-import { RotateCw } from 'lucide-react'
 import { LogoMark } from '@/shared/brand/Logo'
+import { LoadError } from '@/shared/ui/LoadError'
 
 /** 載入中：錶盤轉動（Q84）。動畫播完、資料還沒回來時才會看到；五道關卡動畫在 FilterRun（Q21、Q54）。 */
 export function ResultLoading() {
@@ -11,15 +11,7 @@ export function ResultLoading() {
   )
 }
 
-/** 系統錯誤（Q68）：白話說明＋重試，絕不偷用假資料頂替 */
-export function ResultError({ onRetry }: { onRetry: () => void }) {
-  return (
-    <div className="mx-auto max-w-md py-32 text-center">
-      <p className="text-lg font-semibold">現在連不上排程服務</p>
-      <p className="mt-2 text-sm text-muted-foreground">你填的條件都還在，稍等一下再試一次。</p>
-      <button onClick={onRetry} className="mt-6 inline-flex items-center gap-2 rounded-lg border px-4 py-2 text-sm hover:bg-muted">
-        <RotateCw className="size-4" /> 重試
-      </button>
-    </div>
-  )
+/** 系統錯誤（Q68）：依錯誤種類講白話＋重試，絕不偷用假資料頂替 */
+export function ResultError({ error, onRetry }: { error: unknown; onRetry: () => void }) {
+  return <LoadError error={error} onRetry={onRetry} />
 }

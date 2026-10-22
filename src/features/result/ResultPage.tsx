@@ -4,6 +4,7 @@ import { TrialSurvey } from '@/features/trial/TrialSurvey'
 import { useTrialStore } from '@/features/trial/trialStore'
 import { Link, useLocation, useNavigate } from 'react-router'
 import type { ItineraryRequest } from '@/api/schemas'
+import { ApiError } from '@/api/errors'
 import { useItineraries } from '@/api/queries'
 import { isPastDate } from '@/shared/lib/dates'
 import { stationLabel } from '@/shared/lib/format'
@@ -31,7 +32,7 @@ export function ResultPage() {
   const { animatedKey, markAnimated } = usePlanStore()
   // 日期已經過了就先不查，改問使用者要換哪天（P0-1）
   const stale = isPastDate(request.date, today)
-  const { data, isPending, isError, refetch } = useItineraries(request, !stale)
+  const { data, isPending, isError, error, refetch } = useItineraries(request, !stale)
   const station = stationLabel(request.origin_station)
   const key = requestKey(request)
   const location = useLocation()
@@ -60,7 +61,7 @@ export function ResultPage() {
   }
 
   if (stale) return <StaleDate request={request} today={today} onFix={rerun} />
-  if (isError) return <ResultError onRetry={() => refetch()} />
+  if (isError) return <ResultError error={error} onRetry={() => refetch()} />
   if (runMode) return <FilterRun key={key} request={request} data={data} mode={runMode} onDone={finish} />
   if (isPending) return <ResultLoading />
   if (data.result_status === 'no_solution') return <NoSolution request={request} data={data} onRelax={rerun} />
@@ -71,7 +72,7 @@ export function ResultPage() {
 
   // 閥門沒過又選「都可以」時，後端可能只給 alternatives
   const plans = data.top_3_proposals.length ? data.top_3_proposals : data.alternatives.slice(0, 3)
-  if (plans.length === 0) return <ResultError onRetry={() => refetch()} />
+  if (plans.length === 0) return <ResultError error={new ApiError('format', '有解卻沒有任何方案')} onRetry={() => refetch()} />
   const plan = plans.find((p) => p.rank === rank) ?? plans[0]
   const f = data.funnel_stats
 

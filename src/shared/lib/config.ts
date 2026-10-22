@@ -8,3 +8,6 @@ export const BUFFER_LEVELS = {
 
 /** 出門到回到站少於幾小時，精靈就柔性提醒「可能排不出來」 */
 export const MIN_COMFORT_HOURS = 4
+
+/** 等後端回應最多幾毫秒（計畫 P1-2）。排行程要算比較久，給長一點；超過就顯示「等太久了」 */
+export const API_TIMEOUT_MS = { itineraries: 30_000, default: 10_000 } as const

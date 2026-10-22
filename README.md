@@ -7,7 +7,7 @@
 ```bash
 npm install
 npm run dev        # http://localhost:5173
-npm test           # 單元測試（Vitest，45 個）
+npm test           # 單元測試（Vitest，48 個）
 npm run e2e        # 流程測試（Playwright：桌機 Chromium、桌機 WebKit、iPhone 13；第一次要先 npx playwright install chromium webkit）
 npm run build      # 正式打包到 dist/
 npm run build:pages  # GitHub Pages 版（預設網址多一層 /zerogap/，可用環境變數 PAGES_BASE 改）
@@ -69,6 +69,7 @@ $env:PAGES_BASE="/my-repo/"; npm run build:pages
 | `?trial=1`／`?trial=0` | 試用模式：自動計時＋3 題問卷，紀錄在系統幕後匯出 |
 | `?present=1`／`?present=0` | 簡報模式：字放大，按 1–3 套用情境卡、B 系統幕後、H 首頁 |
 | `?mock=no_solution`、`?mock=low_confidence` | 預覽無解、系統拿不定（只在假資料模式） |
+| `?mock=options_error` | 預覽精靈的「載入失敗＋重試」：前 2 次失敗，按重試就恢復（只在假資料模式） |
 
 ## Docker（決策 Q10）
 

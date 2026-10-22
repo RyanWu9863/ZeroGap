@@ -1,5 +1,5 @@
 import { MapPin } from 'lucide-react'
-import { useOptions } from '@/api/queries'
+import { failure, useOptions } from '@/api/queries'
 import { usePlanStore } from '@/store/planStore'
 import { ChoiceCard, Chips, Field } from '../parts/Choice'
 import { StationPicker } from '../parts/StationPicker'
@@ -8,9 +8,10 @@ import { StepShell } from './StepShell'
 /** ① 地點（Q17b、Q45、Q46）：縣市鎖住、商圈大卡片、出發站可搜尋 */
 export function StepPlace() {
   const { request, setRequest } = usePlanStore()
-  const { data } = useOptions()
+  const options = useOptions()
+  const { data } = options
   return (
-    <StepShell title="從哪裡出發，去哪裡玩？" loading={!data}>
+    <StepShell title="從哪裡出發，去哪裡玩？" loading={!data} error={failure(options)} onRetry={() => options.refetch()}>
       {data && (
         <>
           <Field title="縣市" hint="目前服務桃園市，其他縣市陸續開放。">

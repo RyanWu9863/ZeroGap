@@ -1,7 +1,7 @@
 import { Clapperboard, Sparkles } from 'lucide-react'
 import { useEffect } from 'react'
 import { PICK_FOR_ME } from '@/api/schemas'
-import { useOptions } from '@/api/queries'
+import { failure, useOptions } from '@/api/queries'
 import { formatDate } from '@/shared/lib/format'
 import { usePlanStore } from '@/store/planStore'
 import { ChoiceCard, Chips, Disclosure, Field } from '../parts/Choice'
@@ -12,7 +12,8 @@ export function StepFun() {
   const { request, setRequest } = usePlanStore()
   const base = useOptions()
   const districtId = base.data?.districts.find((d) => d.name === request.district_hub)?.id
-  const { data } = useOptions(request.date || undefined, districtId)
+  const day = useOptions(request.date || undefined, districtId)
+  const { data } = day
   const movies = data?.movies ?? []
   const picked = request.movie_title !== PICK_FOR_ME
 
@@ -24,7 +25,15 @@ export function StepFun() {
   const nextDate = data?.available_dates?.find((d) => d !== request.date)
 
   return (
-    <StepShell title="想看什麼？" loading={!data}>
+    <StepShell
+      title="想看什麼？"
+      loading={!data}
+      error={failure(base) ?? failure(day)}
+      onRetry={() => {
+        void base.refetch()
+        void day.refetch()
+      }}
+    >
       {data && (
         <>
           <Field title="娛樂類型" hint="展覽、KTV 等其他娛樂陸續加入。">

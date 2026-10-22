@@ -1,6 +1,7 @@
 import { ArrowRight } from 'lucide-react'
 import { Link } from 'react-router'
-import { useItineraries } from '@/api/queries'
+import { failure, useItineraries } from '@/api/queries'
+import { LoadError } from '@/shared/ui/LoadError'
 import { benchmarkRequest } from '@/mocks/request'
 import { funnelStages } from '@/shared/lib/funnel'
 import { LogoMark } from '@/shared/brand/Logo'
@@ -21,7 +22,9 @@ export function BehindPage() {
   const { request: mine, animatedKey } = usePlanStore()
   const isExample = animatedKey === null
   const request = isExample ? benchmarkRequest : mine
-  const { data } = useItineraries(request)
+  const query = useItineraries(request)
+  const { data } = query
+  const failed = failure(query)
   const stages = data ? funnelStages(request, data) : null
 
   return (
@@ -42,7 +45,9 @@ export function BehindPage() {
             </Link>
           )}
         </div>
-        {!data ? (
+        {failed ? (
+          <LoadError error={failed} onRetry={() => query.refetch()} compact />
+        ) : !data ? (
           <div className="grid place-items-center py-16 text-muted-foreground"><LogoMark size={40} spinning /></div>
         ) : (
           <div className="mt-6 grid gap-6 lg:grid-cols-2">
