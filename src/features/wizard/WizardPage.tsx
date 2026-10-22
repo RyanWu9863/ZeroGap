@@ -23,6 +23,8 @@ export function WizardPage() {
   const n = Number(useParams().step)
   const navigate = useNavigate()
   const request = usePlanStore((s) => s.request)
+  const setRequest = usePlanStore((s) => s.setRequest)
+  const [locating, setLocating] = useState(false)
   const markTrial = useTrialStore((s) => s.mark)
   useEffect(() => markTrial('startClickAt'), [markTrial]) // 試用計時：按了開始（Q79）
   // 往後一步從右邊滑入、往前一步從左邊滑入（React 官方「依前一次的值調整 state」寫法）
@@ -37,8 +39,6 @@ export function WizardPage() {
   const View = STEP_VIEWS[n as keyof typeof STEP_VIEWS]
   const complete = stepComplete(n, request)
 
-  const setRequest = usePlanStore((s) => s.setRequest)
-  const [locating, setLocating] = useState(false)
   const submit = async () => {
     const missing = firstIncomplete(request)
     if (missing) return navigate(`/plan/${missing}`)
