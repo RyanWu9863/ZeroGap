@@ -1,0 +1,283 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+@import "@fontsource-variable/noto-sans-tc";
+@import "@fontsource-variable/noto-serif-tc";
+@import "@fontsource-variable/jetbrains-mono";
+@import "@fontsource-variable/inter";
+
+@custom-variant dark (&:is(.dark *));
+
+/*
+ * 三版試做稿共用同一套元件，只換「設計代號（token）」：
+ *   A 時刻表（timetable，淺色）= :root 預設值
+ *   B 電影感（cinematic，深色）= [data-proto="cinematic"]
+ *   C Linear 風（linear，深色極簡）= [data-proto="linear"]
+ * 投票選定後，刪掉沒選上的組別即可。
+ */
+@theme inline {
+  --font-sans: "Noto Sans TC Variable", system-ui, sans-serif;
+  --font-serif: "Noto Serif TC Variable", serif;
+  --font-mono: "JetBrains Mono Variable", ui-monospace, monospace;
+  --font-inter: "Inter Variable", "Noto Sans TC Variable", system-ui, sans-serif;
+  --font-heading: var(--zg-heading-font);
+  --font-num: var(--zg-num-font);
+
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  /* ZeroGap 語意色：ok＝寬鬆、snug＝剛好、tight＝偏緊、fail＝接不上、est＝估計值黃底 */
+  --color-zg-ok: var(--zg-ok);
+  --color-zg-ok-soft: var(--zg-ok-soft);
+  --color-zg-snug: var(--zg-snug);
+  --color-zg-snug-soft: var(--zg-snug-soft);
+  --color-zg-tight: var(--zg-tight);
+  --color-zg-tight-soft: var(--zg-tight-soft);
+  --color-zg-fail: var(--zg-fail);
+  --color-zg-fail-soft: var(--zg-fail-soft);
+  --color-zg-est: var(--zg-est-bg);
+  --color-zg-est-ink: var(--zg-est-ink);
+
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+}
+
+/* ── A 時刻表（淺色）：紙白底、細黑線、鐵道綠訊號 ── */
+:root {
+  --background: #f7f6f2;
+  --foreground: #14161a;
+  --card: #ffffff;
+  --card-foreground: #14161a;
+  --popover: #ffffff;
+  --popover-foreground: #14161a;
+  --primary: #14161a;
+  --primary-foreground: #ffffff;
+  --secondary: #eeede8;
+  --secondary-foreground: #14161a;
+  --muted: #eeede8;
+  --muted-foreground: #5b6068;
+  --accent: #e3f1e9;
+  --accent-foreground: #14161a;
+  --destructive: #b42318;
+  --border: #d9d7cf;
+  --input: #d9d7cf;
+  --ring: #1e7a4c;
+  --radius: 0.5rem;
+
+  --zg-ok: #1e7a4c;
+  --zg-ok-soft: #e3f1e9;
+  --zg-snug: #2f5d8a;
+  --zg-snug-soft: #e5edf6;
+  --zg-tight: #b4520f;
+  --zg-tight-soft: #fbebdd;
+  --zg-fail: #b42318;
+  --zg-fail-soft: #fde8e6;
+  --zg-est-bg: #fff1b8;
+  --zg-est-ink: #6b4e00;
+
+  --zg-heading-font: var(--font-sans);
+  --zg-num-font: var(--font-mono);
+  --zg-body-font: var(--font-sans);
+
+  /* 圖表：保留＝強調色、淘汰＝弱化灰（已用 dataviz 驗證：色盲區分、3:1 對比） */
+  --zg-chart-keep: #14583a;
+  --zg-chart-drop: #8a8880;
+}
+
+/* ── B 電影感（深色）：夜色、光軌、毛玻璃、琥珀重點 ── */
+[data-proto="cinematic"] {
+  color-scheme: dark;
+  --background: #07090d;
+  --foreground: #edeff3;
+  --card: rgb(255 255 255 / 0.05);
+  --card-foreground: #edeff3;
+  --popover: #12161d;
+  --popover-foreground: #edeff3;
+  --primary: #f5b544;
+  --primary-foreground: #1a1206;
+  --secondary: rgb(255 255 255 / 0.08);
+  --secondary-foreground: #edeff3;
+  --muted: rgb(255 255 255 / 0.06);
+  --muted-foreground: #9aa3ae;
+  --accent: rgb(245 181 68 / 0.14);
+  --accent-foreground: #edeff3;
+  --destructive: #ff6b6b;
+  --border: rgb(255 255 255 / 0.12);
+  --input: rgb(255 255 255 / 0.16);
+  --ring: #f5b544;
+  --radius: 0.875rem;
+
+  --zg-ok: #5ee6a0;
+  --zg-ok-soft: rgb(94 230 160 / 0.12);
+  --zg-snug: #7cc4ff;
+  --zg-snug-soft: rgb(124 196 255 / 0.12);
+  --zg-tight: #ffa057;
+  --zg-tight-soft: rgb(255 160 87 / 0.14);
+  --zg-fail: #ff6b6b;
+  --zg-fail-soft: rgb(255 107 107 / 0.14);
+  --zg-est-bg: rgb(255 214 10 / 0.2);
+  --zg-est-ink: #ffe27a;
+
+  --zg-heading-font: var(--font-serif);
+  --zg-num-font: var(--font-sans);
+  --zg-body-font: var(--font-sans);
+  --zg-chart-keep: #f5b544;
+  --zg-chart-drop: #5b6470;
+}
+
+/* ── C Linear 風（深色極簡）：近黑底、細灰線、靛紫重點、Inter 字體、小圓角 ── */
+[data-proto="linear"] {
+  color-scheme: dark;
+  --background: #08090a;
+  --foreground: #f7f8f8;
+  --card: #0f1011;
+  --card-foreground: #f7f8f8;
+  --popover: #141516;
+  --popover-foreground: #f7f8f8;
+  --primary: #5e6ad2;
+  --primary-foreground: #ffffff;
+  --secondary: #1c1d1f;
+  --secondary-foreground: #f7f8f8;
+  --muted: #161718;
+  --muted-foreground: #8a8f98;
+  --accent: rgb(94 106 210 / 0.16);
+  --accent-foreground: #f7f8f8;
+  --destructive: #eb5757;
+  --border: rgb(255 255 255 / 0.08);
+  --input: rgb(255 255 255 / 0.1);
+  --ring: #5e6ad2;
+  --radius: 0.375rem;
+
+  --zg-ok: #4cb782;
+  --zg-ok-soft: rgb(76 183 130 / 0.14);
+  --zg-snug: #4ea7fc;
+  --zg-snug-soft: rgb(78 167 252 / 0.14);
+  --zg-tight: #f2994a;
+  --zg-tight-soft: rgb(242 153 74 / 0.14);
+  --zg-fail: #eb5757;
+  --zg-fail-soft: rgb(235 87 87 / 0.14);
+  --zg-est-bg: rgb(242 201 76 / 0.18);
+  --zg-est-ink: #f2c94c;
+
+  --zg-heading-font: var(--font-inter);
+  --zg-num-font: var(--font-inter);
+  --zg-body-font: var(--font-inter);
+  --zg-chart-keep: #7b86f0;
+  --zg-chart-drop: #60656e;
+}
+
+/* 卡片表面：A 是白卡細線，B 是毛玻璃 */
+@utility zg-surface {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xl);
+  [data-proto="cinematic"] & {
+    -webkit-backdrop-filter: blur(14px) saturate(140%); /* iOS Safari 17 以前需要前綴 */
+    backdrop-filter: blur(14px) saturate(140%);
+    box-shadow: 0 1px 0 rgb(255 255 255 / 0.06) inset, 0 20px 40px -20px rgb(0 0 0 / 0.6);
+  }
+  [data-proto="linear"] & {
+    box-shadow: 0 1px 0 rgb(255 255 255 / 0.04) inset;
+  }
+}
+
+/* 時間、金額用等寬數字，上下對齊像車站時刻表 */
+@utility zg-num {
+  font-family: var(--zg-num-font);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  html {
+    @apply antialiased;
+    font-family: var(--zg-body-font);
+    /* iOS 橫放時不要自動把字放大 */
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+    /* 點按時不要出現灰色方塊，改用各元件自己的按下效果 */
+    -webkit-tap-highlight-color: transparent;
+  }
+  /* iPhone 橫放時左右有瀏海：內容避開安全區域 */
+  body {
+    padding-left: env(safe-area-inset-left, 0px);
+    padding-right: env(safe-area-inset-right, 0px);
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+  h1, h2, h3 {
+    font-family: var(--zg-heading-font);
+  }
+  [data-proto="linear"] :is(h1, h2) {
+    letter-spacing: -0.03em;
+  }
+}
+
+@custom-variant cine (&:where([data-proto="cinematic"], [data-proto="cinematic"] *));
+@custom-variant lin (&:where([data-proto="linear"], [data-proto="linear"] *));
+
+/* 雙頭時間滑桿：兩個 range 疊在一起，只有圓鈕能被點到 */
+.zg-range {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  appearance: none;
+  background: transparent;
+  pointer-events: none;
+}
+.zg-range::-webkit-slider-thumb {
+  appearance: none;
+  pointer-events: auto;
+  width: 22px;
+  height: 22px;
+  border-radius: 9999px;
+  background: var(--background);
+  border: 2px solid var(--primary);
+  cursor: grab;
+}
+.zg-range::-moz-range-thumb {
+  pointer-events: auto;
+  width: 18px;
+  height: 18px;
+  border-radius: 9999px;
+  background: var(--background);
+  border: 2px solid var(--primary);
+  cursor: grab;
+}
+/* 手指操作（手機、平板）時圓鈕放大到 30px，比較好按 */
+@media (pointer: coarse) {
+  .zg-range::-webkit-slider-thumb { width: 30px; height: 30px; }
+  .zg-range::-moz-range-thumb { width: 26px; height: 26px; }
+}
+.zg-range:focus-visible::-webkit-slider-thumb {
+  outline: 3px solid var(--ring);
+  outline-offset: 2px;
+}
+
+/* 簡報模式（Q95）：整體字級放大 15%（所有 rem 單位一起放大） */
+html[data-present] {
+  font-size: 115%;
+}

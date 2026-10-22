@@ -1,0 +1,815 @@
+{
+ "job_id": "contract",
+ "restaurant_source": "google",
+ "stats": {
+  "combinations": 73038,
+  "feasible": 1201
+ },
+ "plans": [
+  {
+   "rank": 1,
+   "highlight": {
+    "key": "recommended",
+    "label": "最推薦",
+    "reason": "最符合你選的條件"
+   },
+   "score": 0.0193,
+   "probabilities": {
+    "movie": 0.1182,
+    "restaurant": 0.1636
+   },
+   "decided_by": {
+    "movie": "jev",
+    "restaurant": "jev",
+    "route_go": "jev",
+    "route_return": "jev"
+   },
+   "depart_at": "2026-10-21T18:30:00+08:00",
+   "home_at": "2026-10-21T22:35:00+08:00",
+   "minutes_before_deadline": 55,
+   "min_buffer_minutes": 5,
+   "movie": {
+    "id": 19,
+    "title": "惡靈古堡：爆發夜",
+    "genre": "horror",
+    "genre_label": "恐怖",
+    "runtime_min": 93,
+    "cinema": "威尼斯影城",
+    "chain": null,
+    "hall_type": "standard",
+    "hall_type_label": "一般數位",
+    "language": "英語"
+   },
+   "restaurant": {
+    "id": 134,
+    "name": "定食8",
+    "cuisine": "japanese",
+    "cuisine_label": "日式",
+    "address": null,
+    "price_range": "under_200",
+    "last_order": "21:00",
+    "source": "osm",
+    "place_id": null,
+    "hours_verified": true
+   },
+   "timeline": [
+    {
+     "place": {
+      "kind": "station",
+      "id": 49,
+      "name": "中壢",
+      "lat": 24.95374,
+      "lng": 121.22589,
+      "place_id": null
+     },
+     "buffer_minutes": null,
+     "buffer_gate": null,
+     "type": "transit",
+     "from": "中壢",
+     "to": "威尼斯影城附近站牌",
+     "summary": "公車",
+     "depart_at": "2026-10-21T18:30:00+08:00",
+     "arrive_at": "2026-10-21T18:38:00+08:00",
+     "fare_per_person": 15
+    },
+    {
+     "place": {
+      "kind": "cinema",
+      "id": 15,
+      "name": "威尼斯影城",
+      "lat": 24.96148837196725,
+      "lng": 121.2241488628234,
+      "place_id": null
+     },
+     "buffer_minutes": 12,
+     "buffer_gate": "showtime",
+     "type": "walk",
+     "from": "威尼斯影城附近站牌",
+     "to": "威尼斯影城",
+     "minutes": 5,
+     "arrive_at": "2026-10-21T18:43:00+08:00",
+     "note": "取票",
+     "return_window": null
+    },
+    {
+     "place": {
+      "kind": "cinema",
+      "id": 15,
+      "name": "威尼斯影城",
+      "lat": 24.96148837196725,
+      "lng": 121.2241488628234,
+      "place_id": null
+     },
+     "buffer_minutes": null,
+     "buffer_gate": null,
+     "type": "movie",
+     "starts_at": "2026-10-21T19:10:00+08:00",
+     "ends_at": "2026-10-21T20:43:00+08:00",
+     "return_window": null
+    },
+    {
+     "place": {
+      "kind": "restaurant",
+      "id": 134,
+      "name": "定食8",
+      "lat": 24.9615247,
+      "lng": 121.2234971,
+      "place_id": null
+     },
+     "buffer_minutes": null,
+     "buffer_gate": null,
+     "type": "walk",
+     "from": "威尼斯影城",
+     "to": "定食8",
+     "minutes": 2,
+     "arrive_at": "2026-10-21T20:45:00+08:00",
+     "note": null,
+     "return_window": null
+    },
+    {
+     "place": {
+      "kind": "restaurant",
+      "id": 134,
+      "name": "定食8",
+      "lat": 24.9615247,
+      "lng": 121.2234971,
+      "place_id": null
+     },
+     "buffer_minutes": 5,
+     "buffer_gate": "last_order",
+     "type": "wait",
+     "minutes": 10,
+     "note": "候位"
+    },
+    {
+     "place": {
+      "kind": "restaurant",
+      "id": 134,
+      "name": "定食8",
+      "lat": 24.9615247,
+      "lng": 121.2234971,
+      "place_id": null
+     },
+     "buffer_minutes": null,
+     "buffer_gate": null,
+     "type": "meal",
+     "starts_at": "2026-10-21T20:55:00+08:00",
+     "ends_at": "2026-10-21T22:10:00+08:00",
+     "duration": "normal"
+    },
+    {
+     "place": {
+      "kind": "hub",
+      "id": 2,
+      "name": "中壢站",
+      "lat": 24.95374,
+      "lng": 121.22589,
+      "place_id": null
+     },
+     "buffer_minutes": 54,
+     "buffer_gate": "return_trip",
+     "type": "walk",
+     "from": "定食8",
+     "to": "中壢站",
+     "minutes": 16,
+     "arrive_at": "2026-10-21T22:26:00+08:00",
+     "note": null,
+     "return_window": {
+      "planned_depart_at": "2026-10-21T22:30:00+08:00",
+      "minutes_to_planned": 4,
+      "latest_depart_at": "2026-10-21T23:20:00+08:00",
+      "minutes_to_latest": 54
+     }
+    },
+    {
+     "place": {
+      "kind": "hub",
+      "id": 2,
+      "name": "中壢站",
+      "lat": 24.95374,
+      "lng": 121.22589,
+      "place_id": null
+     },
+     "buffer_minutes": null,
+     "buffer_gate": null,
+     "type": "transit",
+     "from": "中壢站",
+     "to": "中壢",
+     "summary": "台鐵",
+     "depart_at": "2026-10-21T22:30:00+08:00",
+     "arrive_at": "2026-10-21T22:35:00+08:00",
+     "fare_per_person": 15
+    },
+    {
+     "place": {
+      "kind": "station",
+      "id": 49,
+      "name": "中壢",
+      "lat": 24.95374,
+      "lng": 121.22589,
+      "place_id": null
+     },
+     "buffer_minutes": 55,
+     "buffer_gate": "latest_return",
+     "type": "home",
+     "station": "中壢",
+     "arrive_at": "2026-10-21T22:35:00+08:00"
+    }
+   ],
+   "cost_per_person": {
+    "ticket": 330,
+    "meal": 150,
+    "fare_go": 15,
+    "fare_return": 15,
+    "total": 510
+   },
+   "estimated": [
+    "ticket",
+    "meal"
+   ],
+   "alternatives": {
+    "movie": [
+     {
+      "movie_id": 34,
+      "title": "復活男",
+      "probability": 0.11142398329593635,
+      "home_at": "2026-10-21T23:09:00+08:00",
+      "cost_per_person_total": 510,
+      "estimated": true,
+      "restaurant_id": 151,
+      "restaurant_name": "Subway",
+      "restaurant_cuisine": "western"
+     },
+     {
+      "movie_id": 14,
+      "title": "逃出鯨吞",
+      "probability": 0.1070335775626937,
+      "home_at": "2026-10-21T21:53:00+08:00",
+      "cost_per_person_total": 510,
+      "estimated": true,
+      "restaurant_id": null,
+      "restaurant_name": null,
+      "restaurant_cuisine": null
+     }
+    ],
+    "restaurant": [
+     {
+      "restaurant_id": 151,
+      "name": "Subway",
+      "cuisine": "western",
+      "probability": 0.1478379499879601,
+      "home_at": "2026-10-21T22:01:00+08:00",
+      "cost_per_person_total": 510,
+      "estimated": true
+     },
+     {
+      "restaurant_id": 159,
+      "name": "稻葉山城麻辣鍋",
+      "cuisine": "chinese",
+      "probability": 0.12727075437859636,
+      "home_at": "2026-10-21T22:59:00+08:00",
+      "cost_per_person_total": 510,
+      "estimated": true
+     }
+    ],
+    "route_go": [
+     {
+      "summary": "公車",
+      "depart_at": "2026-10-21T18:20:00+08:00",
+      "arrive_at": "2026-10-21T18:28:00+08:00",
+      "fare_per_person": 15,
+      "probability": 0.3257
+     },
+     {
+      "summary": "公車",
+      "depart_at": "2026-10-21T18:10:00+08:00",
+      "arrive_at": "2026-10-21T18:18:00+08:00",
+      "fare_per_person": 15,
+      "probability": 0.3155
+     }
+    ],
+    "route_return": [
+     {
+      "summary": "台鐵",
+      "depart_at": "2026-10-21T22:40:00+08:00",
+      "arrive_at": "2026-10-21T22:45:00+08:00",
+      "fare_per_person": 15,
+      "probability": 0.3257
+     },
+     {
+      "summary": "台鐵",
+      "depart_at": "2026-10-21T22:50:00+08:00",
+      "arrive_at": "2026-10-21T22:55:00+08:00",
+      "fare_per_person": 15,
+      "probability": 0.3155
+     }
+    ]
+   }
+  },
+  {
+   "rank": 2,
+   "highlight": {
+    "key": "cheapest",
+    "label": "最省",
+    "reason": "每人 510 元，三個方案中最便宜"
+   },
+   "score": 0.0175,
+   "probabilities": {
+    "movie": 0.107,
+    "restaurant": 0.1636
+   },
+   "decided_by": {
+    "movie": "jev",
+    "restaurant": "jev",
+    "route_go": "jev",
+    "route_return": "jev"
+   },
+   "depart_at": "2026-10-21T17:40:00+08:00",
+   "home_at": "2026-10-21T22:05:00+08:00",
+   "minutes_before_deadline": 85,
+   "min_buffer_minutes": 12,
+   "movie": {
+    "id": 14,
+    "title": "逃出鯨吞",
+    "genre": "adventure",
+    "genre_label": "冒險",
+    "runtime_min": 105,
+    "cinema": "威尼斯影城",
+    "chain": null,
+    "hall_type": "titan",
+    "hall_type_label": "TITAN",
+    "language": "英語"
+   },
+   "restaurant": {
+    "id": 134,
+    "name": "定食8",
+    "cuisine": "japanese",
+    "cuisine_label": "日式",
+    "address": null,
+    "price_range": "under_200",
+    "last_order": "21:00",
+    "source": "osm",
+    "place_id": null,
+    "hours_verified": true
+   },
+   "timeline": [
+    {
+     "place": {
+      "kind": "station",
+      "id": 49,
+      "name": "中壢",
+      "lat": 24.95374,
+      "lng": 121.22589,
+      "place_id": null
+     },
+     "buffer_minutes": null,
+     "buffer_gate": null,
+     "type": "transit",
+     "from": "中壢",
+     "to": "威尼斯影城附近站牌",
+     "summary": "公車",
+     "depart_at": "2026-10-21T17:40:00+08:00",
+     "arrive_at": "2026-10-21T17:48:00+08:00",
+     "fare_per_person": 15
+    },
+    {
+     "place": {
+      "kind": "cinema",
+      "id": 15,
+      "name": "威尼斯影城",
+      "lat": 24.96148837196725,
+      "lng": 121.2241488628234,
+      "place_id": null
+     },
+     "buffer_minutes": 12,
+     "buffer_gate": "showtime",
+     "type": "walk",
+     "from": "威尼斯影城附近站牌",
+     "to": "威尼斯影城",
+     "minutes": 5,
+     "arrive_at": "2026-10-21T17:53:00+08:00",
+     "note": "取票",
+     "return_window": null
+    },
+    {
+     "place": {
+      "kind": "cinema",
+      "id": 15,
+      "name": "威尼斯影城",
+      "lat": 24.96148837196725,
+      "lng": 121.2241488628234,
+      "place_id": null
+     },
+     "buffer_minutes": null,
+     "buffer_gate": null,
+     "type": "movie",
+     "starts_at": "2026-10-21T18:20:00+08:00",
+     "ends_at": "2026-10-21T20:05:00+08:00",
+     "return_window": null
+    },
+    {
+     "place": {
+      "kind": "restaurant",
+      "id": 134,
+      "name": "定食8",
+      "lat": 24.9615247,
+      "lng": 121.2234971,
+      "place_id": null
+     },
+     "buffer_minutes": null,
+     "buffer_gate": null,
+     "type": "walk",
+     "from": "威尼斯影城",
+     "to": "定食8",
+     "minutes": 2,
+     "arrive_at": "2026-10-21T20:07:00+08:00",
+     "note": null,
+     "return_window": null
+    },
+    {
+     "place": {
+      "kind": "restaurant",
+      "id": 134,
+      "name": "定食8",
+      "lat": 24.9615247,
+      "lng": 121.2234971,
+      "place_id": null
+     },
+     "buffer_minutes": 43,
+     "buffer_gate": "last_order",
+     "type": "wait",
+     "minutes": 10,
+     "note": "候位"
+    },
+    {
+     "place": {
+      "kind": "restaurant",
+      "id": 134,
+      "name": "定食8",
+      "lat": 24.9615247,
+      "lng": 121.2234971,
+      "place_id": null
+     },
+     "buffer_minutes": null,
+     "buffer_gate": null,
+     "type": "meal",
+     "starts_at": "2026-10-21T20:17:00+08:00",
+     "ends_at": "2026-10-21T21:32:00+08:00",
+     "duration": "normal"
+    },
+    {
+     "place": {
+      "kind": "hub",
+      "id": 2,
+      "name": "中壢站",
+      "lat": 24.95374,
+      "lng": 121.22589,
+      "place_id": null
+     },
+     "buffer_minutes": 92,
+     "buffer_gate": "return_trip",
+     "type": "walk",
+     "from": "定食8",
+     "to": "中壢站",
+     "minutes": 16,
+     "arrive_at": "2026-10-21T21:48:00+08:00",
+     "note": null,
+     "return_window": {
+      "planned_depart_at": "2026-10-21T22:00:00+08:00",
+      "minutes_to_planned": 12,
+      "latest_depart_at": "2026-10-21T23:20:00+08:00",
+      "minutes_to_latest": 92
+     }
+    },
+    {
+     "place": {
+      "kind": "hub",
+      "id": 2,
+      "name": "中壢站",
+      "lat": 24.95374,
+      "lng": 121.22589,
+      "place_id": null
+     },
+     "buffer_minutes": null,
+     "buffer_gate": null,
+     "type": "transit",
+     "from": "中壢站",
+     "to": "中壢",
+     "summary": "台鐵",
+     "depart_at": "2026-10-21T22:00:00+08:00",
+     "arrive_at": "2026-10-21T22:05:00+08:00",
+     "fare_per_person": 15
+    },
+    {
+     "place": {
+      "kind": "station",
+      "id": 49,
+      "name": "中壢",
+      "lat": 24.95374,
+      "lng": 121.22589,
+      "place_id": null
+     },
+     "buffer_minutes": 85,
+     "buffer_gate": "latest_return",
+     "type": "home",
+     "station": "中壢",
+     "arrive_at": "2026-10-21T22:05:00+08:00"
+    }
+   ],
+   "cost_per_person": {
+    "ticket": 330,
+    "meal": 150,
+    "fare_go": 15,
+    "fare_return": 15,
+    "total": 510
+   },
+   "estimated": [
+    "ticket",
+    "meal"
+   ],
+   "alternatives": {
+    "route_go": [
+     {
+      "summary": "公車",
+      "depart_at": "2026-10-21T17:30:00+08:00",
+      "arrive_at": "2026-10-21T17:38:00+08:00",
+      "fare_per_person": 15,
+      "probability": 0.4759
+     }
+    ],
+    "route_return": [
+     {
+      "summary": "台鐵",
+      "depart_at": "2026-10-21T22:10:00+08:00",
+      "arrive_at": "2026-10-21T22:15:00+08:00",
+      "fare_per_person": 15,
+      "probability": 0.3257
+     },
+     {
+      "summary": "台鐵",
+      "depart_at": "2026-10-21T22:20:00+08:00",
+      "arrive_at": "2026-10-21T22:25:00+08:00",
+      "fare_per_person": 15,
+      "probability": 0.3155
+     }
+    ]
+   }
+  },
+  {
+   "rank": 3,
+   "highlight": {
+    "key": "safest",
+    "label": "最穩",
+    "reason": "最緊的空檔也有 12 分鐘"
+   },
+   "score": 0.0175,
+   "probabilities": {
+    "movie": 0.1182,
+    "restaurant": 0.1478
+   },
+   "decided_by": {
+    "movie": "jev",
+    "restaurant": "jev",
+    "route_go": "jev",
+    "route_return": "jev"
+   },
+   "depart_at": "2026-10-21T18:30:00+08:00",
+   "home_at": "2026-10-21T22:05:00+08:00",
+   "minutes_before_deadline": 85,
+   "min_buffer_minutes": 12,
+   "movie": {
+    "id": 19,
+    "title": "惡靈古堡：爆發夜",
+    "genre": "horror",
+    "genre_label": "恐怖",
+    "runtime_min": 93,
+    "cinema": "威尼斯影城",
+    "chain": null,
+    "hall_type": "standard",
+    "hall_type_label": "一般數位",
+    "language": "英語"
+   },
+   "restaurant": {
+    "id": 151,
+    "name": "Subway",
+    "cuisine": "western",
+    "cuisine_label": "西式",
+    "address": null,
+    "price_range": "under_200",
+    "last_order": null,
+    "source": "osm",
+    "place_id": null,
+    "hours_verified": false
+   },
+   "timeline": [
+    {
+     "place": {
+      "kind": "station",
+      "id": 49,
+      "name": "中壢",
+      "lat": 24.95374,
+      "lng": 121.22589,
+      "place_id": null
+     },
+     "buffer_minutes": null,
+     "buffer_gate": null,
+     "type": "transit",
+     "from": "中壢",
+     "to": "威尼斯影城附近站牌",
+     "summary": "公車",
+     "depart_at": "2026-10-21T18:30:00+08:00",
+     "arrive_at": "2026-10-21T18:38:00+08:00",
+     "fare_per_person": 15
+    },
+    {
+     "place": {
+      "kind": "cinema",
+      "id": 15,
+      "name": "威尼斯影城",
+      "lat": 24.96148837196725,
+      "lng": 121.2241488628234,
+      "place_id": null
+     },
+     "buffer_minutes": 12,
+     "buffer_gate": "showtime",
+     "type": "walk",
+     "from": "威尼斯影城附近站牌",
+     "to": "威尼斯影城",
+     "minutes": 5,
+     "arrive_at": "2026-10-21T18:43:00+08:00",
+     "note": "取票",
+     "return_window": null
+    },
+    {
+     "place": {
+      "kind": "cinema",
+      "id": 15,
+      "name": "威尼斯影城",
+      "lat": 24.96148837196725,
+      "lng": 121.2241488628234,
+      "place_id": null
+     },
+     "buffer_minutes": null,
+     "buffer_gate": null,
+     "type": "movie",
+     "starts_at": "2026-10-21T19:10:00+08:00",
+     "ends_at": "2026-10-21T20:43:00+08:00",
+     "return_window": null
+    },
+    {
+     "place": {
+      "kind": "restaurant",
+      "id": 151,
+      "name": "Subway",
+      "lat": 24.9617112,
+      "lng": 121.2250149,
+      "place_id": null
+     },
+     "buffer_minutes": null,
+     "buffer_gate": null,
+     "type": "walk",
+     "from": "威尼斯影城",
+     "to": "Subway",
+     "minutes": 2,
+     "arrive_at": "2026-10-21T20:45:00+08:00",
+     "note": null,
+     "return_window": null
+    },
+    {
+     "place": {
+      "kind": "restaurant",
+      "id": 151,
+      "name": "Subway",
+      "lat": 24.9617112,
+      "lng": 121.2250149,
+      "place_id": null
+     },
+     "buffer_minutes": null,
+     "buffer_gate": null,
+     "type": "wait",
+     "minutes": 10,
+     "note": "候位"
+    },
+    {
+     "place": {
+      "kind": "restaurant",
+      "id": 151,
+      "name": "Subway",
+      "lat": 24.9617112,
+      "lng": 121.2250149,
+      "place_id": null
+     },
+     "buffer_minutes": null,
+     "buffer_gate": null,
+     "type": "meal",
+     "starts_at": "2026-10-21T20:55:00+08:00",
+     "ends_at": "2026-10-21T21:40:00+08:00",
+     "duration": "fast"
+    },
+    {
+     "place": {
+      "kind": "hub",
+      "id": 2,
+      "name": "中壢站",
+      "lat": 24.95374,
+      "lng": 121.22589,
+      "place_id": null
+     },
+     "buffer_minutes": 84,
+     "buffer_gate": "return_trip",
+     "type": "walk",
+     "from": "Subway",
+     "to": "中壢站",
+     "minutes": 16,
+     "arrive_at": "2026-10-21T21:56:00+08:00",
+     "note": null,
+     "return_window": {
+      "planned_depart_at": "2026-10-21T22:00:00+08:00",
+      "minutes_to_planned": 4,
+      "latest_depart_at": "2026-10-21T23:20:00+08:00",
+      "minutes_to_latest": 84
+     }
+    },
+    {
+     "place": {
+      "kind": "hub",
+      "id": 2,
+      "name": "中壢站",
+      "lat": 24.95374,
+      "lng": 121.22589,
+      "place_id": null
+     },
+     "buffer_minutes": null,
+     "buffer_gate": null,
+     "type": "transit",
+     "from": "中壢站",
+     "to": "中壢",
+     "summary": "台鐵",
+     "depart_at": "2026-10-21T22:00:00+08:00",
+     "arrive_at": "2026-10-21T22:05:00+08:00",
+     "fare_per_person": 15
+    },
+    {
+     "place": {
+      "kind": "station",
+      "id": 49,
+      "name": "中壢",
+      "lat": 24.95374,
+      "lng": 121.22589,
+      "place_id": null
+     },
+     "buffer_minutes": 85,
+     "buffer_gate": "latest_return",
+     "type": "home",
+     "station": "中壢",
+     "arrive_at": "2026-10-21T22:05:00+08:00"
+    }
+   ],
+   "cost_per_person": {
+    "ticket": 330,
+    "meal": 150,
+    "fare_go": 15,
+    "fare_return": 15,
+    "total": 510
+   },
+   "estimated": [
+    "ticket",
+    "meal"
+   ],
+   "alternatives": {
+    "route_go": [
+     {
+      "summary": "公車",
+      "depart_at": "2026-10-21T18:20:00+08:00",
+      "arrive_at": "2026-10-21T18:28:00+08:00",
+      "fare_per_person": 15,
+      "probability": 0.3257
+     },
+     {
+      "summary": "公車",
+      "depart_at": "2026-10-21T18:10:00+08:00",
+      "arrive_at": "2026-10-21T18:18:00+08:00",
+      "fare_per_person": 15,
+      "probability": 0.3155
+     }
+    ],
+    "route_return": [
+     {
+      "summary": "台鐵",
+      "depart_at": "2026-10-21T22:10:00+08:00",
+      "arrive_at": "2026-10-21T22:15:00+08:00",
+      "fare_per_person": 15,
+      "probability": 0.3257
+     },
+     {
+      "summary": "台鐵",
+      "depart_at": "2026-10-21T22:20:00+08:00",
+      "arrive_at": "2026-10-21T22:25:00+08:00",
+      "fare_per_person": 15,
+      "probability": 0.3155
+     }
+    ]
+   }
+  }
+ ]
+}
