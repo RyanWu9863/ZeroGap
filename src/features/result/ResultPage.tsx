@@ -7,6 +7,7 @@ import type { ItineraryRequest } from '@/api/schemas'
 import { ApiError } from '@/api/errors'
 import { useItineraries } from '@/api/queries'
 import { isPastDate } from '@/shared/lib/dates'
+import { usePageTitle } from '@/shared/lib/usePageTitle'
 import { stationLabel } from '@/shared/lib/format'
 import { requestKey, usePlanStore } from '@/store/planStore'
 import { useResultState } from './useResultState'
@@ -32,6 +33,7 @@ export function ResultPage() {
   const { animatedKey, markAnimated } = usePlanStore()
   // 日期已經過了就先不查，改問使用者要換哪天（P0-1）
   const stale = isPastDate(request.date, today)
+  usePageTitle(stale ? '日期已經過了' : '你的行程')
   const { data, isPending, isError, error, refetch } = useItineraries(request, !stale)
   const station = stationLabel(request.origin_station)
   const key = requestKey(request)

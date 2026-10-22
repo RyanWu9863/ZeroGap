@@ -54,7 +54,7 @@ export function DateCalendar({
             onClick={() => onChange(q.d)}
             className="rounded-full border bg-card px-3.5 py-1.5 text-sm hover:border-foreground/40 pointer-coarse:min-h-10 disabled:cursor-not-allowed disabled:opacity-40 aria-pressed:border-primary aria-pressed:bg-primary aria-pressed:text-primary-foreground lin:rounded-md"
           >
-            {q.label} <span className="zg-num text-xs opacity-70">{formatDate(q.d)}</span>
+            {q.label} <span className="zg-num text-xs">{formatDate(q.d)}</span>
           </button>
         ))}
       </div>
@@ -71,7 +71,7 @@ export function DateCalendar({
         <div className="grid grid-cols-7 gap-1 text-center text-xs text-muted-foreground">
           {['日', '一', '二', '三', '四', '五', '六'].map((w) => <span key={w}>{w}</span>)}
         </div>
-        <div className="mt-1 grid grid-cols-7 gap-1" role="grid" aria-label="選擇日期">
+        <div className="mt-1 grid grid-cols-7 gap-1" role="group" aria-label="選擇日期">
           {cells.map((d, i) =>
             d ? (
               <button

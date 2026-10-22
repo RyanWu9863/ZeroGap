@@ -8,7 +8,7 @@
 npm install
 npm run dev        # http://localhost:5173
 npm test           # 單元測試（Vitest，55 個）
-npm run e2e        # 流程測試（Playwright：桌機 Chromium、桌機 WebKit、iPhone 13；第一次要先 npx playwright install chromium webkit）
+npm run e2e        # 流程測試＋無障礙檢查（Playwright＋axe：桌機 Chromium、桌機 WebKit、iPhone 13；第一次要先 npx playwright install chromium webkit）
 npm run build      # 正式打包到 dist/
 npm run build:pages  # GitHub Pages 版（預設網址多一層 /zerogap/，可用環境變數 PAGES_BASE 改）
 npm run og         # 重新產生連結預覽圖 public/og.png

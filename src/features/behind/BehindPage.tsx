@@ -2,6 +2,7 @@ import { ArrowRight } from 'lucide-react'
 import { Link } from 'react-router'
 import { failure, useItineraries } from '@/api/queries'
 import { LoadError } from '@/shared/ui/LoadError'
+import { usePageTitle } from '@/shared/lib/usePageTitle'
 import { benchmarkRequest } from '@/mocks/request'
 import { funnelStages } from '@/shared/lib/funnel'
 import { LogoMark } from '@/shared/brand/Logo'
@@ -19,6 +20,7 @@ import { TrialRecords } from '@/features/trial/TrialRecords'
  * 還沒排過行程時，用基準案例當範例（Q66）。
  */
 export function BehindPage() {
+  usePageTitle('系統幕後')
   const { request: mine, animatedKey } = usePlanStore()
   const isExample = animatedKey === null
   const request = isExample ? benchmarkRequest : mine

@@ -2,6 +2,7 @@ import { Home, RotateCw } from 'lucide-react'
 import type { ReactNode } from 'react'
 import { isRouteErrorResponse, Link, useRouteError } from 'react-router'
 import { LogoMark } from '@/shared/brand/Logo'
+import { usePageTitle } from '@/shared/lib/usePageTitle'
 
 /*
  * 錯誤頁和找不到頁面（計畫 P0-2）。取代 React Router 預設的英文白底錯誤頁。
@@ -26,6 +27,7 @@ function ErrorLayout({ title, children, actions, footer }: { title: string; chil
 
 /** 網址打錯、或舊連結已經沒有這一頁 */
 export function NotFound() {
+  usePageTitle('找不到這一頁')
   return (
     <ErrorLayout
       title="找不到這一頁"
@@ -58,7 +60,9 @@ function clearPlanAndReload() {
 /** 畫面程式出錯、或延遲載入的頁面下載失敗 */
 export function RouteError() {
   const error = useRouteError()
-  if (isRouteErrorResponse(error) && error.status === 404) return <NotFound />
+  const notFound = isRouteErrorResponse(error) && error.status === 404
+  usePageTitle(notFound ? '找不到這一頁' : '出了點問題') // 外層的標題會蓋過內層，所以這裡也要分清楚
+  if (notFound) return <NotFound />
   const detail = error instanceof Error ? `${error.name}: ${error.message}` : String(error)
   return (
     <ErrorLayout

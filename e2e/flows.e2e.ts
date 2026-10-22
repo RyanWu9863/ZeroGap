@@ -35,7 +35,7 @@ test('日期過期：舊網址先提示再一鍵重排；精靈把舊日期換�
   await expect(page.getByRole('heading', { name: '這組行程的日期已經過了' })).toBeVisible()
   await page.goto('/plan/2')
   await expect(page.getByText('原本選的 10/30（五） 已經過了或沒有場次')).toBeVisible()
-  await expect(page.getByRole('grid', { name: '選擇日期' }).getByRole('button', { name: '11/2（一）' })).toHaveAttribute('aria-pressed', 'true')
+  await expect(page.getByRole('group', { name: '選擇日期' }).getByRole('button', { name: '11/2（一）' })).toHaveAttribute('aria-pressed', 'true')
   await expect(page.getByRole('button', { name: '下一步' })).toBeEnabled()
 })
 

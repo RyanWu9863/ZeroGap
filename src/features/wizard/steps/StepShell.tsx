@@ -12,7 +12,9 @@ export function StepShell({ title, loading, error, onRetry, children }: {
 }) {
   return (
     <section>
-      <h1 className="text-2xl font-bold sm:text-3xl cine:font-semibold lin:font-semibold">{title}</h1>
+      <h1 tabIndex={-1} className="text-2xl font-bold outline-none sm:text-3xl cine:font-semibold lin:font-semibold">
+        {title}
+      </h1>
       {error && onRetry ? (
         <LoadError error={error} onRetry={onRetry} compact />
       ) : loading ? (

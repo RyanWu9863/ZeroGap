@@ -30,12 +30,13 @@ export function RouteSketch({ plan }: { plan: Proposal }) {
     <div className="zg-surface p-4">
       <p className="text-sm font-medium">路線示意</p>
       <p className="text-xs text-muted-foreground">非實際比例</p>
-      <svg viewBox={`0 0 ${W} ${H}`} className="mt-3 w-full" role="img" aria-label={`路線：${nodes.map((n) => n.name).join(' → ')}`}>
+      {/* role="group"（不是 img）：裡面的站點是可以點的連結，img 裡不能放可互動的東西（P2-2） */}
+      <svg viewBox={`0 0 ${W} ${H}`} className="mt-3 w-full" role="group" aria-label={`路線：${nodes.map((n) => n.name).join(' → ')}`}>
         {pos.slice(1).map((p, i) => {
           const a = pos[i]
           const walk = nodes[i + 1].via === 'walk'
           return (
-            <g key={i}>
+            <g key={i} aria-hidden="true">
               <line x1={a.x} y1={a.y} x2={p.x} y2={p.y} stroke="currentColor" strokeWidth={walk ? 1.5 : 3} strokeDasharray={walk ? '4 5' : undefined} opacity={walk ? 0.55 : 0.9} />
               <foreignObject x={(a.x + p.x) / 2 - 9} y={(a.y + p.y) / 2 - 9} width="18" height="18">
                 <span className="grid size-[18px] place-items-center rounded-full bg-background text-muted-foreground">
@@ -46,7 +47,7 @@ export function RouteSketch({ plan }: { plan: Proposal }) {
           )
         })}
         {nodes.map((n, i) => (
-          <a key={i} href={placeUrl(n)} target="_blank" rel="noreferrer">
+          <a key={i} href={placeUrl(n)} target="_blank" rel="noreferrer" aria-label={`${n.name}（在 Google 地圖開啟）`}>
             {/* 透明的大圓：手指比較好點到站點（看不到，只是放大點擊範圍） */}
             <circle cx={pos[i].x} cy={pos[i].y} r={16} fill="transparent" />
             <circle cx={pos[i].x} cy={pos[i].y} r={n.kind === 'station' ? 7 : 5.5} className={n.kind === 'station' ? 'fill-background stroke-foreground' : 'fill-zg-ok stroke-background cine:fill-primary'} strokeWidth="2.5" />
