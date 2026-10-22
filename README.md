@@ -28,7 +28,7 @@ npm run perf       # 手機 4G 載入時間量測（LCP 要在 2.5 秒內）
 | 編輯器 | `.editorconfig` 統一縮排 2 格、UTF-8、LF；VS Code 會提示安裝 EditorConfig 擴充套件 |
 | 流程測試瀏覽器 | 第一次執行 `npx playwright install chromium webkit`，Mac 和 Windows 都支援 |
 | 腳本 | `package.json` 的指令都不用 Mac 專屬語法；需要檔案操作的寫成 `scripts/*.mjs`（用 Node 跑） |
-| 自動檢查 | 推上 GitHub 後，`.github/workflows/ci.yml` 會在 macOS、Windows、Linux 各跑一次型別、lint、測試、打包 |
+| 自動檢查 | 推上 GitHub 後，`.github/workflows/ci.yml` 會在 Windows 和 Linux 各跑一次型別、lint、測試、打包；Mac 用本機的 `npm run predemo` |
 
 設定環境變數的寫法不一樣（只有 `build:pages` 換 repo 名稱時才需要）：
 
@@ -83,7 +83,7 @@ nginx 提供打包好的網頁，`/api/` 轉給 `BACKEND_URL`（預設 `http://b
 
 ## 部署
 
-- `.github/workflows/ci.yml`：每次推上 GitHub，在 macOS、Windows、Linux 各跑型別、lint、測試、打包。
+- `.github/workflows/ci.yml`：每次推上 GitHub，在 Windows 和 Linux 各跑型別、lint、測試、打包（Mac 由開發者本機的 `npm run predemo` 驗證）。
 - `.github/workflows/pages.yml`：GitHub Pages 展示版（固定假資料）。**目前只能手動執行**，因為小組還沒決定要公開發布；改成自動發布的方法寫在檔案開頭。私人 repo 要用 Pages 需要付費方案，或改成公開 repo。
 
 ## 文件
