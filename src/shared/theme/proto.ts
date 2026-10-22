@@ -37,6 +37,8 @@ export function useApplyProto() {
   useEffect(() => {
     const root = document.documentElement
     root.dataset.proto = proto
+    // 明體字型宣告很大（P2-4），只有 B 電影感用到才載入；載過一次瀏覽器就記得，不會重複下載
+    if (proto === 'cinematic') void import('@/fonts-serif.css')
     root.classList.toggle('dark', proto !== 'timetable')
     const bg = getComputedStyle(root).getPropertyValue('--background').trim()
     document.querySelector('meta[name="theme-color"]')?.setAttribute('content', bg)

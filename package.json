@@ -16,7 +16,8 @@
     "build:pages": "node scripts/build-pages.mjs",
     "og": "node scripts/make-og.mjs",
     "predemo": "tsc -b && vitest run && playwright test && vite build && echo ✅ Demo 前檢查全部通過",
-    "icons": "node scripts/make-icons.mjs"
+    "icons": "node scripts/make-icons.mjs",
+    "perf": "node scripts/measure-perf.mjs"
   },
   "dependencies": {
     "@base-ui/react": "^1.9.0",

@@ -14,6 +14,7 @@ npm run build:pages  # GitHub Pages 版（預設網址多一層 /zerogap/，可�
 npm run og         # 重新產生連結預覽圖 public/og.png
 npm run icons      # 重新產生 iOS 主畫面圖示 public/apple-touch-icon.png
 npm run predemo    # Demo 前一鍵檢查：型別＋單元測試＋流程測試＋打包
+npm run perf       # 手機 4G 載入時間量測（LCP 要在 2.5 秒內）
 ```
 
 ## Mac 和 Windows 都能開發
@@ -91,6 +92,7 @@ nginx 提供打包好的網頁，`/api/` 轉給 `BACKEND_URL`（預設 `http://b
 - `docs/導讀_01～05`：每一版程式的白話說明（05 是 iPhone 適配）
 - `docs/試用計畫_第13天.md`、`docs/彩排腳本_第14天.md`：試用與上台用
 - `docs/前端後續優化計畫.md`：下一階段的盤點與 Roadmap（P0～P3）
+- `docs/效能量測_P2-4.md`：手機 4G 載入時間量測與優化
 
 ## 技術
 

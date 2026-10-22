@@ -28,7 +28,10 @@ for (const proto of ['timetable', 'cinematic', 'linear']) {
       const sep = pg.path.includes('?') ? '&' : '?'
       await page.goto(`${pg.path}${sep}proto=${proto}`)
       await pg.ready(page)
-      await page.waitForTimeout(600) // 等進場動畫跑完，顏色對比才量得準
+      // 等進場動畫全部跑完（淡入到一半時顏色會比較淡），顏色對比才量得準
+      await page.waitForTimeout(300)
+      await page.waitForFunction(() => document.getAnimations().every((a) => a.playState !== 'running'))
+      await page.waitForTimeout(300)
       const { violations } = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']).analyze()
       const bad = violations.filter((v) => v.impact === 'serious' || v.impact === 'critical')
       const report = bad.map((v) => `${v.impact} ${v.id}：${v.help}\n  ${v.nodes.slice(0, 3).map((n) => n.target.join(' ')).join('\n  ')}`)
