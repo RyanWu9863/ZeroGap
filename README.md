@@ -7,7 +7,7 @@
 | 資料夾 | 內容 |
 |---|---|
 | `backend/` | 後端：FastAPI ＋ PostgreSQL（PostGIS）＋ Redis（RQ）。`app/` 程式、`tests/` 測試、`migrations/` 資料庫結構 |
-| `frontend/` | 前端：React（組員維護，有自己的 git） |
+| `frontend/` | 前端：React ＋ Vite（組員維護）。說明見 [frontend/README.md](frontend/README.md) |
 | `deploy/` | nginx 設定（反向代理、SSE、`/mcp`） |
 | `docs/` | 規格書 `backend-spec.md`、討論紀錄、Demo 操作手冊、架構圖、`報告/` |
 | `tools/` | 前後端合約檢查（`contract-check/`）、規格書網頁產生工具（`spec-page/`） |

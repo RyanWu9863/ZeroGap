@@ -5,7 +5,7 @@
 ## 資料夾
 
 - `backend/`：後端程式（`app/`、`tests/`、`migrations/`、Dockerfile、`pyproject.toml`）。後端的指令在 `backend/` 裡執行，或在根目錄用 `uv run --directory backend …`。
-- `frontend/`：前端（組員的 React，自己的 git，後端的 git 忽略它）。
+- `frontend/`：前端（組員的 React）。2026-10-22 起和後端放在同一個 git（前端原本的歷史保留在 merge commit 裡），推到 https://github.com/RyanWu9863/ZeroGap（私人）。
 - `docs/`：規格書、討論紀錄、手冊、架構圖（舊版在 `架構圖/舊版/`）、`報告/`（簡報）。
 - `tools/`：前後端合約檢查、組員網頁的產生工具。
 - 根目錄：`docker-compose.yml`、`deploy/nginx.conf`、`.env`（金鑰，不進 git）。
@@ -30,7 +30,7 @@
 
 - **規格書目前是 v0.14**（v0.14 規劃和抓取拆成 `worker`、`worker-crawl` 兩個容器；v0.13 第二階段實作；v0.12 逐項確認實作時新增的預設值；v0.11 補上示意資料的 `demo` 來源、修正快取取整範例；v0.7 對照 `初步簡報.pdf` 並做過一致性檢查；v0.8～v0.10 對照組員的前端 ZeroGap 調整）：[docs/backend-spec.md](docs/backend-spec.md)。使用者要趕進度，所以未決定的項目先用預設值寫入，標記為【預設】，整理在第 10 節。
 - **前端 ZeroGap**（組員做的 React 前端，原本照另一份 `docs/API.md` 寫成）：使用者決定前端改照我們的規格書串接。串接說明在規格書 6.7；對照經過在討論紀錄的「對照前端 ZeroGap」一節。飲食限制這一版不做，設計留在規格書附錄 A。
-- **前端改接完成**（2026-10-21，另一個 session 做的）：程式在 `frontend/`（前端自己的 git，分支 `feature/backend-v0.9`）。交接用的補丁 `frontend-patches/` 已刪掉（2026-10-21 使用者決定），內容都在前端的 git 裡。我們請前端做的三件事都完成，也用 `VITE_USE_MOCK=false` 接本機後端實際排過。主 session 不要動 `frontend/`。還沒驗證：前端的 Docker 版本接後端 compose（要設 `BACKEND_URL`）、Google 來源餐廳在前端的顯示。前後端合約檢查：`tools/contract-check/`。
+- **前端改接完成**（2026-10-21，另一個 session 做的）：程式在 `frontend/`（原本是前端自己的 git、分支 `feature/backend-v0.9`，2026-10-22 合進 main 後併進這個 repo）。交接用的補丁 `frontend-patches/` 已刪掉（2026-10-21 使用者決定）。我們請前端做的三件事都完成，也用 `VITE_USE_MOCK=false` 接本機後端實際排過。主 session 不要動 `frontend/`。還沒驗證：前端的 Docker 版本接後端 compose（要設 `BACKEND_URL`）、Google 來源餐廳在前端的顯示。前後端合約檢查：`tools/contract-check/`。
 - **後端第一階段完成**（2026-10-20）：照 [實作計畫](docs/plans/2026-10-20-backend-phase1.md) 做完 A～G，示意資料＋模擬版 TDX、Jev、Google，本機 Ollama（qwen2.5:3b）。`docker compose up -d --build` 後 `uv run --directory backend python -m app.seed.demo` 寫入示意資料，API 在 `localhost:8000`（文件 `/api/docs`）。測試：在 `backend/` 執行 `uv run pytest`（整合測試要先開 Docker）。
 - **Demo 操作手冊**：[docs/Demo操作手冊.md](docs/Demo操作手冊.md)；Demo 前跑 `uv run --directory backend python -m app.jobs.check`。
 - 規格書 10.1 實作時新增的預設值，2026-10-20 已和使用者逐項確認完（三輪，紀錄在討論紀錄）。
