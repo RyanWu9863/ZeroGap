@@ -1,4 +1,5 @@
 import type { ItineraryResponse, Proposal, TimelineStep } from '@/api/schemas'
+import { FRESHNESS } from './freshness'
 
 /*
  * 開發用假資料（不是真實查詢結果）。
@@ -97,7 +98,7 @@ export const itineraryOk: ItineraryResponse = {
   system_status: {
     jev_mode: '模擬模式',
     llm_status: '未啟用',
-    data_freshness: { atmovies: '10/28 19:49', osm: '10/28 20:06', tdx: '10/27 19:30' },
+    data_freshness: FRESHNESS,
   },
   funnel_stats: {
     total_checked: 1880,

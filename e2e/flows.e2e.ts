@@ -187,3 +187,11 @@ test('平板直放：路線示意圖不會被放大到滿版（P2-5）', async (
   const box = await page.getByRole('group', { name: /^路線：/ }).boundingBox()
   expect(box!.width).toBeLessThanOrEqual(320)
 })
+
+test('資料更新時間跟著今天走：昨晚更新、班次停在前天會提醒；11/10 不會被排在 11/9 前面', async ({ page }) => {
+  await page.clock.setFixedTime(new Date('2026-11-11T10:00:00'))
+  await page.goto(resultUrl(''))
+  await expect(resultsHeading(page)).toBeVisible()
+  await expect(page.getByText('場次、餐廳、班次資料更新於 11/10。')).toBeVisible()
+  await expect(page.getByText('班次資料為 11/9 19:30 的快照，出發前請再確認一次。')).toBeVisible()
+})
