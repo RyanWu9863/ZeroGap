@@ -12,6 +12,8 @@ import { stationLabel } from '@/shared/lib/format'
 import { requestKey, usePlanStore } from '@/store/planStore'
 import { useResultState } from './useResultState'
 import { FilterRun } from './FilterRun'
+import { FunnelRun } from './funnel/FunnelRun'
+import { useExperiment } from '@/shared/theme/experiment'
 import { NoSolution } from './NoSolution'
 import { PickChoice } from './PickChoice'
 import { ConditionBar } from './ConditionBar'
@@ -40,6 +42,7 @@ export function ResultPage() {
   const location = useLocation()
   const replay = (location.state as { replay?: boolean } | null)?.replay
   const navigate = useNavigate()
+  const exp = useExperiment()
   // 這組條件還沒播過動畫（或從精靈按「排出行程」進來）就播完整版；重新整理不重播（Q62）
   const [runMode, setRunMode] = useState<'full' | 'short' | null>(() => (replay || animatedKey !== key ? 'full' : null))
   const finish = useCallback(() => {
@@ -64,7 +67,10 @@ export function ResultPage() {
 
   if (stale) return <StaleDate request={request} today={today} onFix={rerun} />
   if (isError) return <ResultError error={error} onRetry={() => refetch()} />
-  if (runMode) return <FilterRun key={key} request={request} data={data} mode={runMode} onDone={finish} />
+  if (runMode) {
+    const Run = exp ? FunnelRun : FilterRun // 沉浸式新版（?exp=1）用新的漏斗
+    return <Run key={key} request={request} data={data} mode={runMode} onDone={finish} />
+  }
   if (isPending) return <ResultLoading />
   if (data.result_status === 'no_solution') return <NoSolution request={request} data={data} onRelax={rerun} />
   const gate = data.confidence_gate
