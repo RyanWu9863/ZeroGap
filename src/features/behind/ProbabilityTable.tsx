@@ -50,7 +50,7 @@ export function ProbabilityTable({ data }: { data: ItineraryResponse }) {
           </span>
         )}
       </p>
-      <p className="text-xs text-muted-foreground">組合信心度 = 選片機率 × 選餐廳機率。閥門要用在哪一步仍待定（AI_CONTEXT 待決 Q1）。</p>
+      <p className="text-xs text-muted-foreground">組合信心度 = 選片機率 × 選餐廳機率。低於閥門時系統不自己決定，改問使用者想看哪一部或吃哪一家。</p>
     </div>
   )
 }
