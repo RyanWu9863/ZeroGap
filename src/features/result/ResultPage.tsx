@@ -1,5 +1,5 @@
 import { ArrowRight } from 'lucide-react'
-import { useCallback, useEffect, useState } from 'react'
+import { lazy, Suspense, useCallback, useEffect, useState } from 'react'
 import { TrialSurvey } from '@/features/trial/TrialSurvey'
 import { useTrialStore } from '@/features/trial/trialStore'
 import { Link, useLocation, useNavigate } from 'react-router'
@@ -12,7 +12,6 @@ import { stationLabel } from '@/shared/lib/format'
 import { requestKey, usePlanStore } from '@/store/planStore'
 import { useResultState } from './useResultState'
 import { FilterRun } from './FilterRun'
-import { FunnelRun } from './funnel/FunnelRun'
 import { useExperiment } from '@/shared/theme/experiment'
 import { NoSolution } from './NoSolution'
 import { PickChoice } from './PickChoice'
@@ -21,12 +20,15 @@ import { CopyButton } from './CopyButton'
 import { CostPanel } from './CostPanel'
 import { FreshnessNote } from './FreshnessNote'
 import { PlanSwitcher } from './PlanSwitcher'
-import { PlanStage } from './stage/PlanStage'
 import { ResultError, ResultLoading } from './ResultStates'
 import { RouteSketch } from './RouteSketch'
-import { RouteMap } from './map/RouteMap'
 import { StaleDate } from './StaleDate'
 import { Timeline } from './Timeline'
+
+// 沉浸式新版（?exp=1）的元件：有打開開關才下載，預設畫面不多載任何東西
+const FunnelRun = lazy(() => import('./funnel/FunnelRun').then((m) => ({ default: m.FunnelRun })))
+const PlanStage = lazy(() => import('./stage/PlanStage').then((m) => ({ default: m.PlanStage })))
+const RouteMap = lazy(() => import('./map/RouteMap').then((m) => ({ default: m.RouteMap })))
 
 /**
  * 結果頁（Q13b）：五道關卡動畫 → 條件摘要 → 漏斗一行字 → 三方案切換 → 大時間軸＋右欄（路線、花費、動作）。
@@ -70,8 +72,12 @@ export function ResultPage() {
   if (stale) return <StaleDate request={request} today={today} onFix={rerun} />
   if (isError) return <ResultError error={error} onRetry={() => refetch()} />
   if (runMode) {
-    const Run = exp ? FunnelRun : FilterRun // 沉浸式新版（?exp=1）用新的漏斗
-    return <Run key={key} request={request} data={data} mode={runMode} onDone={finish} />
+    if (!exp) return <FilterRun key={key} request={request} data={data} mode={runMode} onDone={finish} />
+    return (
+      <Suspense fallback={<ResultLoading />}>
+        <FunnelRun key={key} request={request} data={data} mode={runMode} onDone={finish} />
+      </Suspense>
+    )
   }
   if (isPending) return <ResultLoading />
   if (data.result_status === 'no_solution') return <NoSolution request={request} data={data} onRelax={rerun} />
@@ -97,7 +103,9 @@ export function ResultPage() {
 
       <div className="mt-6">
         {exp ? (
-          <PlanStage plans={plans} selected={plan.rank} onSelect={choosePlan} stationName={station} request={request} />
+          <Suspense fallback={<PlanSwitcher plans={plans} selected={plan.rank} onSelect={choosePlan} stationName={station} />}>
+            <PlanStage plans={plans} selected={plan.rank} onSelect={choosePlan} stationName={station} request={request} />
+          </Suspense>
         ) : (
           <PlanSwitcher plans={plans} selected={plan.rank} onSelect={choosePlan} stationName={station} />
         )}
@@ -109,7 +117,13 @@ export function ResultPage() {
           <Timeline plan={plan} stationName={station} />
         </section>
         <aside className="space-y-4 lg:sticky lg:top-20 lg:self-start">
-          {exp ? <RouteMap plan={plan} /> : <RouteSketch plan={plan} />}
+          {exp ? (
+            <Suspense fallback={<RouteSketch plan={plan} />}>
+              <RouteMap plan={plan} />
+            </Suspense>
+          ) : (
+            <RouteSketch plan={plan} />
+          )}
           <CostPanel plan={plan} budget={request.budget_per_person} />
           <CopyButton request={request} plan={plan} className="hidden lg:block" />
           <Link to="/behind" className="flex items-center justify-center gap-1 py-2 text-sm text-muted-foreground hover:text-foreground">

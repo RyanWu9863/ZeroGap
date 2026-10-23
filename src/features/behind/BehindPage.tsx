@@ -1,4 +1,5 @@
 import { ArrowRight } from 'lucide-react'
+import { lazy, Suspense } from 'react'
 import { Link } from 'react-router'
 import { failure, useItineraries } from '@/api/queries'
 import { LoadError } from '@/shared/ui/LoadError'
@@ -14,7 +15,9 @@ import { ProbabilityTable } from './ProbabilityTable'
 import { SourcesSection } from './SourcesSection'
 import { TrialRecords } from '@/features/trial/TrialRecords'
 import { useExperiment } from '@/shared/theme/experiment'
-import { BehindViews } from './views/BehindViews'
+
+// 沉浸式新版（?exp=1）的三種視覺化：有打開開關才下載
+const BehindViews = lazy(() => import('./views/BehindViews').then((m) => ({ default: m.BehindViews })))
 
 /**
  * 系統幕後（Q15b、Q65）：給評審看深度的地方。由上往下「先講道理、再看證據」：
@@ -56,7 +59,9 @@ export function BehindPage() {
           <div className="grid place-items-center py-16 text-muted-foreground"><LogoMark size={40} spinning /></div>
         ) : exp ? (
           <div className="mt-6">
-            <BehindViews request={request} data={data} />
+            <Suspense fallback={<div className="grid place-items-center py-16 text-muted-foreground"><LogoMark size={40} spinning /></div>}>
+              <BehindViews request={request} data={data} />
+            </Suspense>
           </div>
         ) : (
           <div className="mt-6 grid gap-6 lg:grid-cols-2">
