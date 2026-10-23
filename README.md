@@ -7,7 +7,7 @@
 ```bash
 npm install
 npm run dev        # http://localhost:5173
-npm test           # 單元測試（Vitest，75 個）
+npm test           # 單元測試（Vitest，88 個）
 npm run e2e        # 流程測試＋無障礙檢查（Playwright＋axe：桌機 Chromium、桌機 WebKit、iPhone 13、iPad；第一次要先 npx playwright install chromium webkit）
 npm run build      # 正式打包到 dist/
 npm run build:pages  # GitHub Pages 版（預設網址多一層 /zerogap-frontend/，可用環境變數 PAGES_BASE 改）
@@ -44,7 +44,7 @@ $env:PAGES_BASE="/my-repo/"; npm run build:pages
 
 ## 假資料與後端
 
-預設使用假資料（`VITE_USE_MOCK=true`）。要接後端時複製 `.env.example` 成 `.env`，把 `VITE_USE_MOCK` 改成 `false`。開發時 `/api` 會自動轉給 `localhost:8000`。
+預設使用假資料（`VITE_USE_MOCK=true`）。要接後端時複製 `.env.example` 成 `.env`，把 `VITE_USE_MOCK` 改成 `false`。開發時 `/api` 會自動轉給 `localhost:8000`。新版的 Google 地圖模式需要 `VITE_GOOGLE_MAPS_KEY`（沒設就只有路線示意圖），設定方式見導讀 06。
 
 ## 目前進度
 
@@ -67,6 +67,7 @@ $env:PAGES_BASE="/my-repo/"; npm run build:pages
 | 參數 | 用途 |
 |---|---|
 | `?proto=timetable｜cinematic｜linear` | 切換試做版 |
+| `?exp=1`／`?exp=0` | 沉浸式新版：篩選漏斗、電影式三方案、路線地圖、幕後三種視覺化（見 `docs/導讀_06_沉浸式新版.md`）；預設關閉 |
 | `?trial=1`／`?trial=0` | 試用模式：自動計時＋3 題問卷，紀錄在系統幕後匯出 |
 | `?present=1`／`?present=0` | 簡報模式：字放大，按 1–3 套用情境卡、B 系統幕後、H 首頁 |
 | `?mock=no_solution`、`?mock=low_confidence` | 預覽無解、系統拿不定（只在假資料模式） |
