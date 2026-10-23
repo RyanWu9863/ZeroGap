@@ -24,6 +24,7 @@ import { PlanSwitcher } from './PlanSwitcher'
 import { PlanStage } from './stage/PlanStage'
 import { ResultError, ResultLoading } from './ResultStates'
 import { RouteSketch } from './RouteSketch'
+import { RouteMap } from './map/RouteMap'
 import { StaleDate } from './StaleDate'
 import { Timeline } from './Timeline'
 
@@ -108,7 +109,7 @@ export function ResultPage() {
           <Timeline plan={plan} stationName={station} />
         </section>
         <aside className="space-y-4 lg:sticky lg:top-20 lg:self-start">
-          <RouteSketch plan={plan} />
+          {exp ? <RouteMap plan={plan} /> : <RouteSketch plan={plan} />}
           <CostPanel plan={plan} budget={request.budget_per_person} />
           <CopyButton request={request} plan={plan} className="hidden lg:block" />
           <Link to="/behind" className="flex items-center justify-center gap-1 py-2 text-sm text-muted-foreground hover:text-foreground">

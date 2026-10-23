@@ -2,7 +2,7 @@
  * Google 地圖連結（決策 Q28b）。只是一般網址，不需要 API 金鑰。
  * 有座標就用座標，沒有就用地點名稱搜尋。
  */
-type MapPlace = { name: string; lat?: number; lng?: number }
+type MapPlace = { name: string; lat?: number | null; lng?: number | null }
 
 const BASE = 'https://www.google.com/maps'
 const where = (p: MapPlace) => (p.lat != null && p.lng != null ? `${p.lat},${p.lng}` : p.name)

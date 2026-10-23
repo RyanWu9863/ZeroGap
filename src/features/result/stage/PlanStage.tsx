@@ -9,11 +9,12 @@ import { PlanCardBody } from './PlanCardBody'
 import { PlanDetail } from './PlanDetail'
 
 type Slot = 'left' | 'center' | 'right'
-const SLOT = {
-  left: { x: '-74%', y: 18, scale: 0.84, opacity: 1, zIndex: 1 },
+/** 側邊卡片往外推多少（卡片寬的百分比）；平板比較窄，推少一點，免得超出畫面 */
+const slots = (push: number) => ({
+  left: { x: `-${push}%`, y: 18, scale: 0.84, opacity: 1, zIndex: 1 },
   center: { x: '0%', y: 0, scale: 1, opacity: 1, zIndex: 3 },
-  right: { x: '74%', y: 18, scale: 0.84, opacity: 1, zIndex: 1 },
-}
+  right: { x: `${push}%`, y: 18, scale: 0.84, opacity: 1, zIndex: 1 },
+})
 
 type Props = { plans: Proposal[]; selected: number; onSelect: (rank: number) => void; stationName: string; request: ItineraryRequest }
 
@@ -24,6 +25,7 @@ type Props = { plans: Proposal[]; selected: number; onSelect: (rank: number) => 
  */
 export function PlanStage({ plans, selected, onSelect, stationName, request }: Props) {
   const wide = useMediaQuery('(min-width: 768px)')
+  const SLOT = slots(useMediaQuery('(min-width: 1024px)') ? 74 : 58)
   const [detail, setDetail] = useState<number | null>(null)
   const radios = useRef(new Map<number, HTMLButtonElement>())
   const opener = useRef<HTMLButtonElement | null>(null)
@@ -80,7 +82,7 @@ export function PlanStage({ plans, selected, onSelect, stationName, request }: P
   return (
     <>
       {wide ? (
-        <div role="radiogroup" aria-label="選擇方案" className="relative mx-auto h-[23rem] max-w-5xl" data-testid="plan-stage">
+        <div role="radiogroup" aria-label="選擇方案" className="relative mx-auto h-[23rem] max-w-5xl overflow-x-clip" data-testid="plan-stage">
           {plans.map((p) => {
             const slot = SLOT[slotOf(p.rank)]
             if (detail === p.rank) return null // 展開成詳情時，卡片本身「飛」到詳情的位置

@@ -5,7 +5,7 @@ import { createPortal } from 'react-dom'
 import type { ItineraryRequest, Proposal } from '@/api/schemas'
 import { MOTION } from '@/shared/theme/motion'
 import { CostPanel } from '../CostPanel'
-import { RouteSketch } from '../RouteSketch'
+import { RouteMap } from '../map/RouteMap'
 import { Timeline } from '../Timeline'
 import { PlanCardBody } from './PlanCardBody'
 
@@ -87,7 +87,7 @@ export function PlanDetail({ plan, stationName, request, onClose, returnFocus }:
               >
                 <Timeline plan={plan} stationName={stationName} />
                 <div className="space-y-4">
-                  <RouteSketch plan={plan} />
+                  <RouteMap plan={plan} />
                   <CostPanel plan={plan} budget={request.budget_per_person} />
                 </div>
               </motion.div>

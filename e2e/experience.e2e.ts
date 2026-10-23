@@ -107,6 +107,14 @@ test.describe('三方案舞台與詳情（PR3）', () => {
     await expect(page.getByLabel('行程時間軸')).toBeVisible()
   })
 
+  test('平板、手機不會左右晃（側邊方案卡不能超出畫面）', async ({ page, isMobile }) => {
+    test.skip(!isMobile, '只在 iPhone、iPad 專案跑')
+    await open(page)
+    await page.waitForTimeout(800)
+    const [scrollW, vw] = await page.evaluate(() => [document.documentElement.scrollWidth, document.documentElement.clientWidth])
+    expect(scrollW).toBeLessThanOrEqual(vw)
+  })
+
   test('點遮罩或 X 都能關', async ({ page }) => {
     await open(page)
     await page.getByRole('button', { name: '看完整行程' }).click()
@@ -116,6 +124,41 @@ test.describe('三方案舞台與詳情（PR3）', () => {
     await expect(page.getByRole('dialog')).toBeVisible()
     await page.mouse.click(8, 8)
     await expect(page.getByRole('dialog')).toHaveCount(0)
+  })
+})
+
+test.describe('行程路線地圖（PR4）', () => {
+  const map = (page: Page) => page.getByRole('main').getByTestId('route-map')
+
+  test('照時間軸順序編號；點站點看時間和要做的事；鍵盤 Enter 也可以', async ({ page }) => {
+    await page.goto(resultUrl())
+    await expect(resultsHeading(page)).toBeVisible()
+    await expect(map(page).getByRole('group', { name: /^路線：1\. 中壢車站 → 2\. 桃園統領威秀 → 3\. 吉豚屋 → 4\. 桃園車站 → 5\. 中壢車站$/ })).toBeVisible()
+    await map(page).getByRole('button', { name: /第 3 站 吉豚屋/ }).click()
+    await expect(map(page).getByText('20:06–20:19')).toBeVisible()
+    await map(page).getByRole('button', { name: /第 2 站/ }).focus()
+    await page.keyboard.press('Enter')
+    await expect(map(page).getByText('17:40–17:55')).toBeVisible()
+  })
+
+  test('切到 Google 地圖：沒有金鑰時說明原因並保留示意圖和選中的站；切回來還在', async ({ page }) => {
+    await page.goto(resultUrl())
+    await map(page).getByRole('button', { name: /第 4 站/ }).click()
+    await map(page).getByRole('radio', { name: 'Google 地圖' }).click()
+    await expect(map(page).getByRole('status')).toContainText('還沒設定 Google 地圖金鑰')
+    await expect(map(page).getByText('4. 桃園車站')).toBeVisible()
+    await map(page).getByRole('radio', { name: '路線示意' }).click()
+    await expect(map(page).getByRole('button', { name: /第 4 站/ })).toHaveAttribute('aria-pressed', 'true')
+  })
+
+  test('換方案時地圖跟著換，選中的站清掉；詳情裡也有同一張地圖', async ({ page }) => {
+    await page.goto(resultUrl())
+    await map(page).getByRole('button', { name: /第 3 站/ }).click()
+    await page.getByTestId('plan-stage').getByRole('radio', { name: /最早回到站/ }).click()
+    await expect(map(page).getByRole('button', { name: /第 3 站 福勝亭/ })).toBeVisible()
+    await expect(map(page).getByText('點站點看那一站的時間和要做的事')).toBeVisible()
+    await page.getByRole('button', { name: '看完整行程' }).click()
+    await expect(page.getByRole('dialog').getByTestId('route-map')).toBeVisible()
   })
 })
 
