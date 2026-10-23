@@ -2,6 +2,7 @@ import { Palette } from 'lucide-react'
 import { useState } from 'react'
 import { usePresentStore } from '@/features/present/presentStore'
 import { useTrialStore } from '@/features/trial/trialStore'
+import { useExperimentStore } from '@/shared/theme/experiment'
 import { PROTO_NAME, useProtoStore, type Proto } from '@/shared/theme/proto'
 
 /**
@@ -15,12 +16,13 @@ export function ProtoSwitcher() {
   const trial = useTrialStore((s) => s.active)
   const present = usePresentStore((s) => s.on)
   const [open, setOpen] = useState(false)
+  const exp = useExperimentStore()
   if (trial || present) return null
   return (
     <div
       className="fixed bottom-[calc(5.5rem+env(safe-area-inset-bottom,0px))] left-[calc(1rem+env(safe-area-inset-left,0px))] z-50 flex items-center gap-1 rounded-full border bg-popover/90 p-1 text-xs shadow-lg backdrop-blur lg:bottom-[calc(1rem+env(safe-area-inset-bottom,0px))]"
-      role="radiogroup"
-      aria-label="試做版"
+      role="group"
+      aria-label="試做版與新版體驗"
     >
       <button
         className="grid size-9 place-items-center rounded-full text-muted-foreground lg:hidden"
@@ -31,6 +33,7 @@ export function ProtoSwitcher() {
         <Palette className="size-4" />
       </button>
       <span className="hidden px-2 text-muted-foreground lg:inline">試做版</span>
+      <div role="radiogroup" aria-label="試做版" className="flex items-center gap-1">
       {(Object.keys(PROTO_NAME) as Proto[]).map((p) => (
         <button
           key={p}
@@ -42,6 +45,17 @@ export function ProtoSwitcher() {
           {PROTO_NAME[p]}
         </button>
       ))}
+      </div>
+      {/* 沉浸式新版（?exp=1）：跟三個試做版是兩回事，獨立一顆開關 */}
+      <span className={`${open ? 'block' : 'hidden'} mx-1 h-5 w-px bg-border lg:block`} aria-hidden="true" />
+      <button
+        role="switch"
+        aria-checked={exp.on}
+        onClick={() => exp.setOn(!exp.on)}
+        className={`${open ? 'block' : 'hidden'} rounded-full px-3 py-1.5 transition-colors aria-checked:bg-primary aria-checked:text-primary-foreground pointer-coarse:py-2.5 lg:block`}
+      >
+        新版體驗
+      </button>
     </div>
   )
 }

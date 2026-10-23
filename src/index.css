@@ -98,6 +98,10 @@
   /* 圖表：保留＝強調色、淘汰＝弱化灰（已用 dataviz 驗證：色盲區分、3:1 對比） */
   --zg-chart-keep: #14583a;
   --zg-chart-drop: #8a8880;
+
+  /* 沉浸式新版（?exp=1）：遮罩和舞台層級，三版共用同一套名字 */
+  --zg-scrim: rgb(20 20 18 / 0.45);
+  --zg-stage-shadow: 0 24px 48px -24px rgb(20 20 18 / 0.35);
 }
 
 /* ── B 電影感（深色）：夜色、光軌、毛玻璃、琥珀重點 ── */
@@ -139,6 +143,8 @@
   --zg-body-font: var(--font-sans);
   --zg-chart-keep: #f5b544;
   --zg-chart-drop: #5b6470;
+  --zg-scrim: rgb(4 6 12 / 0.7);
+  --zg-stage-shadow: 0 30px 60px -24px rgb(0 0 0 / 0.75), 0 0 0 1px rgb(245 181 68 / 0.18);
 }
 
 /* ── C Linear 風（深色極簡）：近黑底、細灰線、靛紫重點、Inter 字體、小圓角 ── */
@@ -180,6 +186,8 @@
   --zg-body-font: var(--font-inter);
   --zg-chart-keep: #7b86f0;
   --zg-chart-drop: #60656e;
+  --zg-scrim: rgb(8 9 10 / 0.72);
+  --zg-stage-shadow: 0 24px 48px -24px rgb(0 0 0 / 0.8), 0 0 0 1px rgb(123 134 240 / 0.25);
 }
 
 /* 卡片表面：A 是白卡細線，B 是毛玻璃 */
