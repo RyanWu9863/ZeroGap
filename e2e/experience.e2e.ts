@@ -22,15 +22,12 @@ async function expectAxeClean(page: Page) {
 
 test.describe('篩選漏斗（PR2）', () => {
   test('等回應時不假裝逐關檢查：只說已送出、關卡都是待檢查、沒有任何數字', async ({ page }) => {
-    await page.clock.install()
-    await page.goto(resultUrl())
-    await expect(funnel(page)).toBeVisible()
-    await page.clock.pauseAt(Date.now() + 50) // 假資料 0.8 秒後才回應；先把時間停住
+    await page.goto(resultUrl('&mock=pending')) // 假資料情境：一直不回應
     await expect(page.getByText('已送出你的條件，正在等排程服務回應')).toBeVisible()
     await expect(page.getByText('待檢查')).toHaveCount(5)
     await expect(page.getByText('還沒收到回應，先不畫任何數字。')).toBeVisible()
-    await page.clock.resume()
-    await expect(page.getByText(/逐關重播/)).toBeVisible()
+    await expect(page.getByText(/已等 \d+ 秒/)).toBeVisible()
+    await expect(funnel(page).getByText(/逐關重播/)).toHaveCount(0)
   })
 
   test('重播用真實數字收斂到 3 個方案，然後自動進結果頁', async ({ page }) => {

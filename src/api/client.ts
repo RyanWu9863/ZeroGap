@@ -63,6 +63,8 @@ export async function postItineraries(req: ItineraryRequest, signal?: AbortSigna
 
 async function fetchItineraries(req: ItineraryRequest, signal?: AbortSignal): Promise<ItineraryResponse> {
   if (mocking()) {
+    // ?mock=pending：一直不回應，用來看（和測試）「等排程服務回應」的畫面
+    if (mockScenario() === 'pending') await new Promise(() => {})
     await wait(800)
     // 網址加 ?mock=no_solution：預算 $800 以下無解；?mock=low_confidence：「幫我挑」時系統拿不定
     const scenario = mockScenario()

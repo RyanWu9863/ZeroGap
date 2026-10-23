@@ -71,6 +71,7 @@ $env:PAGES_BASE="/my-repo/"; npm run build:pages
 | `?trial=1`／`?trial=0` | 試用模式：自動計時＋3 題問卷，紀錄在系統幕後匯出 |
 | `?present=1`／`?present=0` | 簡報模式：字放大，按 1–3 套用情境卡、B 系統幕後、H 首頁 |
 | `?mock=no_solution`、`?mock=low_confidence` | 預覽無解、系統拿不定（只在假資料模式） |
+| `?mock=pending` | 預覽「等排程服務回應」：一直不回應（只在假資料模式） |
 | `?mock=options_error` | 預覽精靈的「載入失敗＋重試」：前 2 次失敗，按重試就恢復（只在假資料模式） |
 
 ## Docker（決策 Q10）
