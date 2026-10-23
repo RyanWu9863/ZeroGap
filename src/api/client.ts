@@ -6,6 +6,7 @@ import { statusMock } from '@/mocks/status'
 import { API_TIMEOUT_MS } from '@/shared/lib/config'
 import { useDemoStore } from '@/store/demoStore'
 import { ApiError, parseOrThrow } from './errors'
+import { useTimingStore } from './timing'
 import { ItineraryResponse, OptionsResponse, PICK_FOR_ME, StatusResponse, type ItineraryRequest } from './schemas'
 
 /*
@@ -50,7 +51,17 @@ async function getJson(path: string, { timeoutMs = API_TIMEOUT_MS.default, signa
   }
 }
 
+/** 排行程：順便記下瀏覽器實測的「送出 → 收到」時間（系統幕後的決策時間軸用，見 timing.ts） */
 export async function postItineraries(req: ItineraryRequest, signal?: AbortSignal): Promise<ItineraryResponse> {
+  const sentAt = Date.now()
+  const t0 = performance.now()
+  const source = mocking() ? 'mock' : 'api'
+  const data = await fetchItineraries(req, signal)
+  useTimingStore.getState().record(req, { sentAt, ms: Math.round(performance.now() - t0), source })
+  return data
+}
+
+async function fetchItineraries(req: ItineraryRequest, signal?: AbortSignal): Promise<ItineraryResponse> {
   if (mocking()) {
     await wait(800)
     // 網址加 ?mock=no_solution：預算 $800 以下無解；?mock=low_confidence：「幫我挑」時系統拿不定

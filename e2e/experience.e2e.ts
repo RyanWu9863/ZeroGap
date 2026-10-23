@@ -181,3 +181,66 @@ for (const proto of ['timetable', 'cinematic', 'linear']) {
     await expectAxeClean(page)
   })
 }
+
+test.describe('系統幕後三種視覺化（PR5）', () => {
+  const views = (page: Page) => page.getByTestId('behind-views')
+
+  test('A 篩選漏斗：點某一關看到那一關後剩幾組；重播會從全部組合開始', async ({ page }) => {
+    await page.goto('/behind?exp=1')
+    const count = views(page).getByTestId('funnel-count')
+    await expect(count).toHaveText('39組接得上')
+    await views(page).getByRole('button', { name: /^2\. 趕得上點餐/ }).click()
+    await expect(count).toHaveText('450組還留著')
+    await views(page).getByRole('button', { name: '重播' }).click()
+    await expect(count).toHaveText('1,880組（全部）')
+    await expect(count).toHaveText('39組接得上', { timeout: 8000 })
+  })
+
+  test('B 決策時間軸：只有瀏覽器量得到的時間是真的，排程服務每一步寫明沒有回傳時間', async ({ page }) => {
+    await page.goto('/behind?exp=1')
+    await views(page).getByRole('tab', { name: 'B 決策時間軸' }).click()
+    await expect(views(page).getByText(/來回 \d+\.\d 秒・假資料（開發用）/)).toBeVisible()
+    await expect(views(page).getByText('排程服務沒有回傳這一步的時間')).toHaveCount(3)
+    await views(page).getByRole('button', { name: /Jev 排序/ }).click()
+    await expect(views(page).getByText(/Jev首選・最省：選片 0\.16 × 選餐廳 0\.44 ＝ 0\.07/)).toBeVisible()
+  })
+
+  test('C 決策比較：每一列標出最好的；寫明被淘汰的組合後端沒有給', async ({ page }) => {
+    await page.goto('/behind?exp=1')
+    const tabs = views(page).getByRole('tablist')
+    await tabs.getByRole('tab', { name: 'A 篩選漏斗' }).focus()
+    await page.keyboard.press('ArrowLeft') // 方向鍵循環到最後一個分頁
+    await expect(tabs.getByRole('tab', { name: 'C 決策比較' })).toHaveAttribute('aria-selected', 'true')
+    await expect(views(page).getByRole('row', { name: /每人花費 \$550 最佳/ })).toBeVisible()
+    await expect(views(page).getByText(/API 提案 #10/)).toBeVisible()
+  })
+
+  test('沒開開關時還是原本的長條圖和機率表', async ({ page }) => {
+    await page.goto('/behind?exp=0')
+    await expect(page.getByRole('heading', { name: '五道關卡漏斗' })).toBeVisible()
+    await expect(views(page)).toHaveCount(0)
+  })
+})
+
+for (const proto of ['timetable', 'cinematic', 'linear']) {
+  test(`無障礙：${proto}・系統幕後三種視覺化`, async ({ page }, info) => {
+    test.skip(info.project.name !== 'chromium', '只在桌機 Chromium 掃')
+    await page.goto(`/behind?exp=1&proto=${proto}`)
+    for (const tab of ['A 篩選漏斗', 'B 決策時間軸', 'C 決策比較']) {
+      await page.getByRole('tab', { name: tab }).click()
+      await expectAxeClean(page)
+    }
+  })
+}
+
+test('減少動態：漏斗、方案舞台、詳情都照常能用（動畫改成直接到位）', async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: 'reduce' })
+  await page.goto(resultUrl())
+  await expect(resultsHeading(page)).toBeVisible()
+  await page.getByTestId('plan-stage').getByRole('radio', { name: /最穩/ }).click()
+  await expect(page).toHaveURL(/plan=2/)
+  await page.getByRole('button', { name: '看完整行程' }).click()
+  await expect(page.getByRole('dialog', { name: '完整行程' })).toBeVisible()
+  await page.keyboard.press('Escape')
+  await expect(page.getByRole('dialog')).toHaveCount(0)
+})
