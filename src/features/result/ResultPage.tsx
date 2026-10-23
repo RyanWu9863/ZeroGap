@@ -21,6 +21,7 @@ import { CopyButton } from './CopyButton'
 import { CostPanel } from './CostPanel'
 import { FreshnessNote } from './FreshnessNote'
 import { PlanSwitcher } from './PlanSwitcher'
+import { PlanStage } from './stage/PlanStage'
 import { ResultError, ResultLoading } from './ResultStates'
 import { RouteSketch } from './RouteSketch'
 import { StaleDate } from './StaleDate'
@@ -94,7 +95,11 @@ export function ResultPage() {
       </p>
 
       <div className="mt-6">
-        <PlanSwitcher plans={plans} selected={plan.rank} onSelect={choosePlan} stationName={station} />
+        {exp ? (
+          <PlanStage plans={plans} selected={plan.rank} onSelect={choosePlan} stationName={station} request={request} />
+        ) : (
+          <PlanSwitcher plans={plans} selected={plan.rank} onSelect={choosePlan} stationName={station} />
+        )}
       </div>
 
       <div className="mt-8 grid gap-8 lg:grid-cols-[1fr_20rem]">

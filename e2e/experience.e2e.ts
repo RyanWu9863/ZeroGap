@@ -65,7 +65,71 @@ test.describe('篩選漏斗（PR2）', () => {
   })
 })
 
+test.describe('三方案舞台與詳情（PR3）', () => {
+  const stage = (page: Page) => page.getByTestId('plan-stage')
+  const open = async (page: Page) => {
+    await page.goto(resultUrl())
+    await expect(resultsHeading(page)).toBeVisible()
+  }
+
+  test('預設最推薦的方案選中；點側邊方案就換到中央，網址跟著換', async ({ page }) => {
+    await open(page)
+    await expect(stage(page).getByRole('radio', { checked: true })).toContainText('最省')
+    await stage(page).getByRole('radio', { name: /最穩/ }).click()
+    await expect(stage(page).getByRole('radio', { checked: true })).toContainText('最穩')
+    await expect(page).toHaveURL(/plan=2/)
+    await expect(page.getByLabel('行程時間軸').locator('li').first()).toContainText('17:05')
+  })
+
+  test('方向鍵換方案，焦點跟著走', async ({ page }) => {
+    await open(page)
+    await stage(page).getByRole('radio', { checked: true }).focus()
+    await page.keyboard.press('ArrowRight')
+    await expect(stage(page).getByRole('radio', { checked: true })).toBeFocused()
+    await expect(page).not.toHaveURL(/plan=1/)
+    await page.keyboard.press('ArrowLeft')
+    await page.keyboard.press('ArrowLeft')
+    await expect(stage(page).getByRole('radio', { checked: true })).toBeFocused()
+  })
+
+  test('看完整行程：展開成對話框、背景點不到；Esc 關掉，焦點回到按鈕，時間軸還在頁面上', async ({ page }) => {
+    await open(page)
+    await page.getByRole('button', { name: '看完整行程' }).click()
+    const dialog = page.getByRole('dialog', { name: '完整行程' })
+    await expect(dialog).toBeVisible()
+    await expect(dialog.getByLabel('行程時間軸')).toBeVisible()
+    await expect(page.getByRole('button', { name: '關閉完整行程' })).toBeFocused()
+    await expect(page.locator('#root')).toHaveAttribute('inert', '')
+    await page.keyboard.press('Escape')
+    await expect(dialog).toHaveCount(0)
+    await expect(page.locator('#root')).not.toHaveAttribute('inert', '')
+    await expect(page.getByRole('button', { name: '看完整行程' })).toBeFocused()
+    await expect(page.getByLabel('行程時間軸')).toBeVisible()
+  })
+
+  test('點遮罩或 X 都能關', async ({ page }) => {
+    await open(page)
+    await page.getByRole('button', { name: '看完整行程' }).click()
+    await page.getByRole('button', { name: '關閉完整行程' }).click()
+    await expect(page.getByRole('dialog')).toHaveCount(0)
+    await page.getByRole('button', { name: '看完整行程' }).click()
+    await expect(page.getByRole('dialog')).toBeVisible()
+    await page.mouse.click(8, 8)
+    await expect(page.getByRole('dialog')).toHaveCount(0)
+  })
+})
+
 for (const proto of ['timetable', 'cinematic', 'linear']) {
+  test(`無障礙：${proto}・三方案舞台和詳情`, async ({ page }, info) => {
+    test.skip(info.project.name !== 'chromium', '只在桌機 Chromium 掃')
+    await page.goto(resultUrl(`&proto=${proto}`))
+    await expect(resultsHeading(page)).toBeVisible()
+    await expectAxeClean(page)
+    await page.getByRole('button', { name: '看完整行程' }).click()
+    await expect(page.getByRole('dialog')).toBeVisible()
+    await expectAxeClean(page)
+  })
+
   test(`無障礙：${proto}・篩選漏斗（展開關卡）`, async ({ page }, info) => {
     test.skip(info.project.name !== 'chromium', '只在桌機 Chromium 掃')
     await page.goto(resultUrl(`&proto=${proto}`))
