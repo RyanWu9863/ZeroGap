@@ -1,4 +1,5 @@
 import { ArrowRight } from 'lucide-react'
+import { lazy, Suspense } from 'react'
 import { Link } from 'react-router'
 import { failure, useItineraries } from '@/api/queries'
 import { LoadError } from '@/shared/ui/LoadError'
@@ -13,6 +14,10 @@ import { MethodSection } from './MethodSection'
 import { ProbabilityTable } from './ProbabilityTable'
 import { SourcesSection } from './SourcesSection'
 import { TrialRecords } from '@/features/trial/TrialRecords'
+import { useExperiment } from '@/shared/theme/experiment'
+
+// 沉浸式新版（?exp=1）的三種視覺化：有打開開關才下載
+const BehindViews = lazy(() => import('./views/BehindViews').then((m) => ({ default: m.BehindViews })))
 
 /**
  * 系統幕後（Q15b、Q65）：給評審看深度的地方。由上往下「先講道理、再看證據」：
@@ -28,6 +33,7 @@ export function BehindPage() {
   const { data } = query
   const failed = failure(query)
   const stages = data ? funnelStages(request, data) : null
+  const exp = useExperiment()
 
   return (
     <div className="mx-auto max-w-6xl space-y-16 px-4 pt-10 sm:px-6">
@@ -51,6 +57,12 @@ export function BehindPage() {
           <LoadError error={failed} onRetry={() => query.refetch()} compact />
         ) : !data ? (
           <div className="grid place-items-center py-16 text-muted-foreground"><LogoMark size={40} spinning /></div>
+        ) : exp ? (
+          <div className="mt-6">
+            <Suspense fallback={<div className="grid place-items-center py-16 text-muted-foreground"><LogoMark size={40} spinning /></div>}>
+              <BehindViews request={request} data={data} />
+            </Suspense>
+          </div>
         ) : (
           <div className="mt-6 grid gap-6 lg:grid-cols-2">
             <div className="zg-surface min-w-0 p-5">

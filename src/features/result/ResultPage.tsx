@@ -1,5 +1,5 @@
 import { ArrowRight } from 'lucide-react'
-import { useCallback, useEffect, useState } from 'react'
+import { lazy, Suspense, useCallback, useEffect, useState } from 'react'
 import { TrialSurvey } from '@/features/trial/TrialSurvey'
 import { useTrialStore } from '@/features/trial/trialStore'
 import { Link, useLocation, useNavigate } from 'react-router'
@@ -12,6 +12,7 @@ import { stationLabel } from '@/shared/lib/format'
 import { requestKey, usePlanStore } from '@/store/planStore'
 import { useResultState } from './useResultState'
 import { FilterRun } from './FilterRun'
+import { useExperiment } from '@/shared/theme/experiment'
 import { NoSolution } from './NoSolution'
 import { PickChoice } from './PickChoice'
 import { ConditionBar } from './ConditionBar'
@@ -23,6 +24,11 @@ import { ResultError, ResultLoading } from './ResultStates'
 import { RouteSketch } from './RouteSketch'
 import { StaleDate } from './StaleDate'
 import { Timeline } from './Timeline'
+
+// 沉浸式新版（?exp=1）的元件：有打開開關才下載，預設畫面不多載任何東西
+const FunnelRun = lazy(() => import('./funnel/FunnelRun').then((m) => ({ default: m.FunnelRun })))
+const PlanStage = lazy(() => import('./stage/PlanStage').then((m) => ({ default: m.PlanStage })))
+const RouteMap = lazy(() => import('./map/RouteMap').then((m) => ({ default: m.RouteMap })))
 
 /**
  * 結果頁（Q13b）：五道關卡動畫 → 條件摘要 → 漏斗一行字 → 三方案切換 → 大時間軸＋右欄（路線、花費、動作）。
@@ -40,6 +46,7 @@ export function ResultPage() {
   const location = useLocation()
   const replay = (location.state as { replay?: boolean } | null)?.replay
   const navigate = useNavigate()
+  const exp = useExperiment()
   // 這組條件還沒播過動畫（或從精靈按「排出行程」進來）就播完整版；重新整理不重播（Q62）
   const [runMode, setRunMode] = useState<'full' | 'short' | null>(() => (replay || animatedKey !== key ? 'full' : null))
   const finish = useCallback(() => {
@@ -64,7 +71,14 @@ export function ResultPage() {
 
   if (stale) return <StaleDate request={request} today={today} onFix={rerun} />
   if (isError) return <ResultError error={error} onRetry={() => refetch()} />
-  if (runMode) return <FilterRun key={key} request={request} data={data} mode={runMode} onDone={finish} />
+  if (runMode) {
+    if (!exp) return <FilterRun key={key} request={request} data={data} mode={runMode} onDone={finish} />
+    return (
+      <Suspense fallback={<ResultLoading />}>
+        <FunnelRun key={key} request={request} data={data} mode={runMode} onDone={finish} />
+      </Suspense>
+    )
+  }
   if (isPending) return <ResultLoading />
   if (data.result_status === 'no_solution') return <NoSolution request={request} data={data} onRelax={rerun} />
   const gate = data.confidence_gate
@@ -88,7 +102,13 @@ export function ResultPage() {
       </p>
 
       <div className="mt-6">
-        <PlanSwitcher plans={plans} selected={plan.rank} onSelect={choosePlan} stationName={station} />
+        {exp ? (
+          <Suspense fallback={<PlanSwitcher plans={plans} selected={plan.rank} onSelect={choosePlan} stationName={station} />}>
+            <PlanStage plans={plans} selected={plan.rank} onSelect={choosePlan} stationName={station} request={request} />
+          </Suspense>
+        ) : (
+          <PlanSwitcher plans={plans} selected={plan.rank} onSelect={choosePlan} stationName={station} />
+        )}
       </div>
 
       <div className="mt-8 grid gap-8 lg:grid-cols-[1fr_20rem]">
@@ -97,7 +117,13 @@ export function ResultPage() {
           <Timeline plan={plan} stationName={station} />
         </section>
         <aside className="space-y-4 lg:sticky lg:top-20 lg:self-start">
-          <RouteSketch plan={plan} />
+          {exp ? (
+            <Suspense fallback={<RouteSketch plan={plan} />}>
+              <RouteMap plan={plan} />
+            </Suspense>
+          ) : (
+            <RouteSketch plan={plan} />
+          )}
           <CostPanel plan={plan} budget={request.budget_per_person} />
           <CopyButton request={request} plan={plan} className="hidden lg:block" />
           <Link to="/behind" className="flex items-center justify-center gap-1 py-2 text-sm text-muted-foreground hover:text-foreground">

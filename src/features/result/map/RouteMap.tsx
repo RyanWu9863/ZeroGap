@@ -1,0 +1,113 @@
+import { ExternalLink, MapPinOff, Route } from 'lucide-react'
+import { lazy, Suspense, useState } from 'react'
+import type { Proposal } from '@/api/schemas'
+import { cn } from '@/lib/utils'
+import { placeUrl, routeUrl } from '@/shared/lib/maps'
+import { useMapStore, type MapMode } from './mapStore'
+import { hasCoords, routeNodes } from './route'
+import { SketchRoute } from './SketchRoute'
+
+const GoogleRoute = lazy(() => import('./GoogleRoute'))
+const HAS_KEY = Boolean(import.meta.env.VITE_GOOGLE_MAPS_KEY)
+
+const MODES: { id: MapMode; label: string }[] = [
+  { id: 'sketch', label: '路線示意' },
+  { id: 'google', label: 'Google 地圖' },
+]
+
+/**
+ * 行程路線（沉浸式新版 PR4，取代右欄的 RouteSketch）。
+ * 兩種模式：簡潔示意圖（預設）／Google 地圖。切換時保留選中的站和地圖視角；換方案時跟著換。
+ * 誠實標示：Google 地圖上的連線是站和站之間的直線，不是導航路線；座標是示意表來的就標「示意座標」。
+ */
+export function RouteMap({ plan }: { plan: Proposal }) {
+  const nodes = routeNodes(plan)
+  const { mode, setMode } = useMapStore()
+  const [picked, setPicked] = useState<{ rank: number; n: number } | null>(null)
+  const [failed, setFailed] = useState(false)
+  const selected = picked?.rank === plan.rank ? picked.n : null // 換方案時清掉選中的站
+  const select = (n: number) => setPicked({ rank: plan.rank, n })
+  const node = nodes.find((x) => x.n === selected)
+  if (nodes.length < 2) return null
+  // 示意座標不夠準，開 Google 地圖網頁時改用地點名稱搜尋
+  const linkable = nodes.map((x) => (x.approx ? { name: x.name } : x))
+
+  const fallback = !HAS_KEY
+    ? '還沒設定 Google 地圖金鑰（VITE_GOOGLE_MAPS_KEY），先用路線示意圖。'
+    : !hasCoords(nodes)
+      ? '有地點缺少座標，畫不出真實地圖，先用路線示意圖。'
+      : failed
+        ? 'Google 地圖載入失敗（網路或金鑰設定），先用路線示意圖。'
+        : null
+  const showGoogle = mode === 'google' && !fallback
+
+  return (
+    <div className="zg-surface p-4" data-testid="route-map">
+      <div className="flex items-center justify-between gap-2">
+        <p className="text-sm font-medium">行程路線</p>
+        <div role="radiogroup" aria-label="地圖樣式" className="flex rounded-full border p-0.5 text-xs">
+          {MODES.map((m) => (
+            <button
+              key={m.id}
+              role="radio"
+              aria-checked={mode === m.id}
+              onClick={() => setMode(m.id)}
+              className="rounded-full px-2.5 py-1 aria-checked:bg-primary aria-checked:text-primary-foreground pointer-coarse:min-h-9"
+            >
+              {m.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <p className="mt-1 text-xs text-muted-foreground">
+        {showGoogle
+          ? `站和站之間是直線示意，不是導航路線${nodes.some((n) => n.approx) ? '・示意座標' : ''}`
+          : '非實際比例・實線搭車、虛線走路'}
+      </p>
+
+      {mode === 'google' && fallback && (
+        <p className="mt-3 flex items-start gap-2 rounded-md border border-dashed px-3 py-2 text-xs" role="status">
+          <MapPinOff className="mt-0.5 size-3.5 shrink-0 text-zg-tight" aria-hidden="true" />
+          {fallback}
+        </p>
+      )}
+
+      <div className="mt-3">
+        {showGoogle ? (
+          <Suspense fallback={<div className="grid h-72 place-items-center rounded-lg bg-muted text-xs text-muted-foreground">Google 地圖載入中…</div>}>
+            <GoogleRoute key={plan.rank} nodes={nodes} rank={plan.rank} selected={selected} onSelect={select} onError={() => setFailed(true)} />
+          </Suspense>
+        ) : (
+          <SketchRoute nodes={nodes} selected={selected} onSelect={select} />
+        )}
+      </div>
+
+      {/* 選中那一站的資訊（兩種模式共用，切換時不會不見） */}
+      <div className={cn('mt-3 rounded-lg border px-3 py-2.5 text-sm', !node && 'border-dashed text-xs text-muted-foreground')} aria-live="polite">
+        {node ? (
+          <>
+            <p className="flex items-baseline justify-between gap-2">
+              <span className="font-medium">
+                {node.n}. {node.name}
+              </span>
+              <span className="zg-num text-xs text-muted-foreground">{node.from === node.to ? node.from : `${node.from}–${node.to}`}</span>
+            </p>
+            <ul className="mt-1 space-y-0.5 text-xs text-muted-foreground">
+              {node.notes.map((t) => <li key={t}>{t}</li>)}
+            </ul>
+            <a href={placeUrl(linkable[node.n - 1])} target="_blank" rel="noreferrer" className="mt-1.5 inline-flex items-center gap-1 text-xs underline underline-offset-2">
+              在 Google 地圖開啟這一站 <ExternalLink className="size-3" aria-hidden="true" />
+            </a>
+          </>
+        ) : (
+          '點站點看那一站的時間和要做的事'
+        )}
+      </div>
+
+      <a href={routeUrl(linkable)} target="_blank" rel="noreferrer" className="mt-3 flex items-center justify-center gap-1.5 rounded-lg border py-2 text-sm hover:bg-muted">
+        <Route className="size-4" aria-hidden="true" /> 在 Google 地圖查看完整路線
+      </a>
+    </div>
+  )
+}

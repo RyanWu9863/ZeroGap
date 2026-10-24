@@ -20,5 +20,8 @@ export default defineConfig({
     { name: 'iphone', use: { ...devices['iPhone 13'] } },
     { name: 'ipad', use: { ...devices['iPad (gen 7)'] } },
   ],
-  webServer: { command: 'npm run dev -- --port 5174 --strictPort', url: 'http://localhost:5174', reuseExistingServer: false },
+  // 本機用開發伺服器；CI 先打包再用正式版跑（開發伺服器每個測試都要現場編譯，Windows 機器常常超過時限）
+  webServer: process.env.CI
+    ? { command: 'npx vite build --outDir dist-e2e && npx vite preview --outDir dist-e2e --port 5174 --strictPort', url: 'http://localhost:5174', reuseExistingServer: false, timeout: 240_000 }
+    : { command: 'npm run dev -- --port 5174 --strictPort', url: 'http://localhost:5174', reuseExistingServer: false },
 })
