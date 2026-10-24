@@ -444,6 +444,62 @@ def test_google_hours_are_remembered_and_plans_differ(session, r):
         session.commit()
 
 
+class GonePlaces(HoursPlaces):
+    """ChIJgone 歇業或 place ID 變了：Google 回 404。"""
+
+    def details(self, place_id):
+        from app.places import PlacesError
+
+        if place_id == "ChIJgone":
+            self.calls[place_id] = self.calls.get(place_id, 0) + 1
+            raise PlacesError("Google HTTP 404")
+        return super().details(place_id)
+
+    def basic(self, place_id):
+        from app.places import PlacesError
+
+        if place_id == "ChIJgone":
+            raise PlacesError("Google HTTP 404")
+        return super().basic(place_id)
+
+
+def test_google_lookup_failure_skips_that_restaurant(session, r):
+    # 一家店查不到，跳過這家換下一家，不是整個規劃失敗（2026-10-24 使用者決定）
+    session.execute(
+        text(
+            "INSERT INTO restaurants (source, external_id, geom, area_id, category_code, "
+            "price_range, meal_duration, date_suitability, is_active) "
+            "SELECT 'google', x.pid, 'SRID=4326;POINT(121.3115 24.9920)', a.id, 'japanese', "
+            "'200_500', 'normal', x.s, true FROM areas a, "
+            "(VALUES ('ChIJgone', 2), ('ChIJlate', 2)) AS x(pid, s) WHERE a.code = 'taoyuan'"
+        )
+    )
+    session.commit()
+    try:
+        places = GonePlaces()
+        deps = Deps(
+            session=session, redis=r, transit=MockTransit(), jev=MockJev(), llm=MockLlm(),
+            places=places, settings=Settings(_env_file=None, tdx_per_minute=1000),
+        )  # fmt: skip
+        req = request(session, earliest_departure="15:00", latest_home="23:59")
+        try:
+            result = run_plan(req, "job-test", deps, lambda *a, **k: None)
+        except PlanError as e:
+            raise AssertionError(e.reasons) from e
+        plans = PlanResult.model_validate(result).to_json()["plans"]
+        assert plans and all(p["restaurant"]["name"] == "ChIJlate" for p in plans)
+        # 查失敗的店只查一次，也不會出現在「換一家」
+        assert places.calls["ChIJgone"] == 1
+        alts = plans[0].get("alternatives", {}).get("restaurant", [])
+        gone_id = session.scalar(text("SELECT id FROM restaurants WHERE external_id = 'ChIJgone'"))
+        assert gone_id not in {a["id"] for a in alts}
+    finally:
+        session.execute(
+            text("DELETE FROM restaurants WHERE external_id IN ('ChIJgone', 'ChIJlate')")
+        )
+        session.commit()
+
+
 def test_plan_from_current_location(session, r):
     # 出發點是目前位置（2026-10-21）：座標取到小數點 3 位，回到同一個位置就算到家
     deps = Deps(

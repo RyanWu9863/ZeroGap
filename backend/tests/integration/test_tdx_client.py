@@ -105,6 +105,21 @@ def test_depart_stops_at_first_query_with_valid_routes(r):
 
 
 @respx.mock
+def test_depart_puts_earliest_arrival_first(r):
+    respx.post(TOKEN_URL).mock(return_value=token_ok())
+    # 公車 16:48 出門、17:34 才到；火車 17:05 出門、17:18 就到
+    mixed = fixture("routing_bus_depart")
+    mixed["data"]["routes"] = mixed["data"]["routes"][:1] + fixture("routing_tra")["data"]["routes"]
+    respx.get(ROUTING_URL).mock(return_value=httpx.Response(200, json=mixed))
+    at = datetime(2026, 10, 21, 16, 45, tzinfo=TZ)
+    # 步驟 2 只取第一條，要的是「最早幾點能到」，不是最早出門的那條
+    [first] = make(r).route(A, B, at, "depart")
+    assert first.reach_at.strftime("%H:%M") == "17:18"
+    routes = make(r).route(A, B, at, "depart", top=4)
+    assert [x.reach_at.strftime("%H:%M") for x in routes] == ["17:18", "17:24", "17:34", "17:36"]
+
+
+@respx.mock
 def test_arrival_filters_late_ones_and_puts_latest_first(r):
     respx.post(TOKEN_URL).mock(return_value=token_ok())
     respx.get(ROUTING_URL).mock(

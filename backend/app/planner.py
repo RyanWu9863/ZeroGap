@@ -22,7 +22,7 @@ from app.decision_trace import DecisionRecord, record_decision, summarize
 from app.jev.base import ChoiceAnswer, Jev, JevResult
 from app.labels import HALL_TYPE_LABELS
 from app.llm import Llm, LlmPick
-from app.places import PlaceDetails, Places
+from app.places import PlaceDetails, Places, PlacesError
 from app.planning import choose
 from app.planning.alternatives import movie_alternatives, restaurant_alternatives
 from app.planning.choose import (
@@ -126,6 +126,8 @@ class Planner:
         # 步驟 5 查到的 Google 店家資料，只放在這次規劃的記憶體裡（3.3 不能存）：
         # 同一家不重查，也用它刪掉這家店其他接不上的組合（2026-10-21 使用者決定）
         self.google_details: dict[int, PlaceDetails] = {}
+        # 查詢失敗的店（歇業、place ID 變了）：這次規劃跳過，也不放進備選（2026-10-24 使用者決定）
+        self.google_failed: set[int] = set()
         # 真的 TDX：限流放在用戶端裡，每次請求（含重試）都等額度，才不會超過上限。
         # 模擬版沒有重試，在快取沒命中時等一次就好
         inner_limited = hasattr(deps.transit, "limiter")
@@ -259,11 +261,12 @@ class Planner:
         plans = self._verify_and_route(ranked)
         if not plans:
             raise PlanError("NO_FEASIBLE", "查到的精確路線都接不上，請放寬時間再試一次", {})
-        # 已經查到營業時間、確定接不上的店，也不能出現在「換一家」「換一部」
+        # 已經查到營業時間、確定接不上的店，或查不到的店，也不能出現在「換一家」「換一部」
         self.feasible = {
             pair: c
             for pair, c in self.feasible.items()
-            if not (
+            if c.restaurant.id not in self.google_failed
+            and not (
                 c.restaurant.id in self.google_details
                 and isinstance(self._recheck(c, self.google_details[c.restaurant.id]), Rejected)
             )
@@ -638,7 +641,9 @@ class Planner:
         return plans[:PLANS_WANTED]
 
     def _known_closed(self, ranked: Ranked) -> bool:
-        """這家 Google 的店這次規劃已經查過營業時間，而且這組的用餐時段接不上。"""
+        """這家 Google 的店這次規劃查不到，或查過營業時間而且這組的用餐時段接不上。"""
+        if ranked.combo.restaurant.id in self.google_failed:
+            return True
         details = self.google_details.get(ranked.combo.restaurant.id)
         return details is not None and isinstance(self._recheck(ranked.combo, details), Rejected)
 
@@ -660,14 +665,22 @@ class Planner:
         row = self.restaurant_rows[combo.restaurant.id]
         if row.source != "google":
             return _Candidate(ranked=ranked, combo=combo, name=row.name, address=None)
+        if combo.restaurant.id in self.google_failed:
+            return None
         details = self.google_details.get(combo.restaurant.id)
         if details is None:
             if not has_room(
                 self.d.redis, "google:details_enterprise", self.s.quota_google_details_enterprise
             ):
                 return None
-            details = self.d.places.details(row.external_id)
+            # 查失敗也照樣扣額度，避免超過預算
             add_usage(self.d.redis, "google:details_enterprise", 1)
+            try:
+                details = self.d.places.details(row.external_id)
+            except PlacesError as exc:
+                log.warning("Google 查不到餐廳 %s，跳過這家：%s", row.external_id, exc)
+                self.google_failed.add(combo.restaurant.id)
+                return None
             self.google_details[combo.restaurant.id] = details
         rechecked = self._recheck(combo, details)
         if isinstance(rechecked, Rejected):
@@ -761,7 +774,12 @@ class Planner:
         if not has_room(self.d.redis, "google:details_pro", self.s.quota_google_details_pro):
             return None  # 5.5：Pro 額度用完時備選只顯示類別
         add_usage(self.d.redis, "google:details_pro", 1)
-        return self.d.places.basic(row.external_id).name
+        try:
+            return self.d.places.basic(row.external_id).name
+        except PlacesError as exc:
+            # 查不到店名時跟額度用完一樣，只顯示類別（5.5）
+            log.warning("Google 查不到餐廳 %s 的名稱：%s", row.external_id, exc)
+            return None
 
     def _build_result(self, result: FilterResult, plans, picks) -> dict[str, Any]:
         metrics = [
