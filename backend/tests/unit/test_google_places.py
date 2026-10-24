@@ -159,3 +159,11 @@ def test_errors():
 def test_missing_key():
     with pytest.raises(PlacesError, match="GOOGLE_PLACES_API_KEY"):
         GooglePlaces("")
+
+
+@respx.mock
+def test_connection_errors_are_retried_then_become_places_error():
+    route = respx.get(f"{DETAILS_URL}/ChIJabc").mock(side_effect=httpx.ConnectError("refused"))
+    with pytest.raises(PlacesError):
+        GooglePlaces("key-test", sleep=lambda s: None).details("ChIJabc")
+    assert route.call_count == 3

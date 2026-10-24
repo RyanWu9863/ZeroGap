@@ -337,6 +337,26 @@ def test_unparseable_hours_are_planned_but_marked_unverified(session, engine, r)
         reseed(engine, DAY)
 
 
+def test_open_24_hours_is_verified_without_last_order(session, engine, r):
+    # 24 小時營業：營業時間有核對過，只是沒有最後點餐（2026-10-24）
+    session.execute(
+        text(
+            "UPDATE restaurants SET osm_opening_hours = '24/7' "
+            "WHERE area_id = (SELECT id FROM areas WHERE code = 'taoyuan')"
+        )
+    )
+    session.commit()
+    try:
+        result, _ = run(session, r, request(session))
+        data = PlanResult.model_validate(result).to_json()
+        assert data["plans"]
+        for plan in data["plans"]:
+            assert plan["restaurant"]["hours_verified"] is True
+            assert plan["restaurant"]["last_order"] is None
+    finally:
+        reseed(engine, DAY)
+
+
 def test_estimated_fares_are_flagged(session, r):
     class EstimatedFares(MockTransit):
         def route(self, origin, dest, at, mode, top=1):
@@ -384,6 +404,35 @@ def test_google_restaurants_replace_others_in_the_same_area(session, r):
         planner = Planner(request(session), "job-test", deps, lambda *a, **k: None)
         planner._load()
         assert "google" not in {row.source for row in planner.restaurant_rows.values()}
+    finally:
+        session.execute(text("DELETE FROM restaurants WHERE external_id = 'ChIJtest'"))
+        session.commit()
+
+
+def test_google_quota_not_enough_for_a_whole_plan_uses_osm(session, r):
+    # 剩下的額度不夠一次規劃查完（3 個方案 ＋ 重試輪數，預設最多 10 家）：一開始就改用 OSM，
+    # 不會查到一半額度用完、剩下的 Google 店全部刷掉變成 NO_FEASIBLE（2026-10-24）
+    session.execute(
+        text(
+            "INSERT INTO restaurants (source, external_id, geom, area_id, category_code, "
+            "price_range, meal_duration, date_suitability, is_active) "
+            "SELECT 'google', 'ChIJtest', 'SRID=4326;POINT(121.3115 24.9920)', id, 'japanese', "
+            "'200_500', 'normal', 2, true FROM areas WHERE code = 'taoyuan'"
+        )
+    )
+    session.commit()
+    try:
+        add_usage(r, "google:details_enterprise", 945)
+        places = HoursPlaces()
+        deps = Deps(
+            session=session, redis=r, transit=MockTransit(), jev=MockJev(), llm=MockLlm(),
+            places=places, settings=Settings(_env_file=None, tdx_per_minute=1000),
+        )  # fmt: skip
+        result = run_plan(request(session), "job-test", deps, lambda *a, **k: None)
+        data = PlanResult.model_validate(result).to_json()
+        assert data["restaurant_source"] == "osm"
+        assert data["plans"] and all(p["restaurant"]["source"] != "google" for p in data["plans"])
+        assert places.calls == {}
     finally:
         session.execute(text("DELETE FROM restaurants WHERE external_id = 'ChIJtest'"))
         session.commit()
@@ -464,14 +513,15 @@ class GonePlaces(HoursPlaces):
 
 
 def test_google_lookup_failure_skips_that_restaurant(session, r):
-    # 一家店查不到，跳過這家換下一家，不是整個規劃失敗（2026-10-24 使用者決定）
+    # 一家店查不到，跳過這家換下一家，不是整個規劃失敗（2026-10-24 使用者決定）。
+    # ChIJgone 適合約會的分數比較高，一定排在前面先查
     session.execute(
         text(
             "INSERT INTO restaurants (source, external_id, geom, area_id, category_code, "
             "price_range, meal_duration, date_suitability, is_active) "
             "SELECT 'google', x.pid, 'SRID=4326;POINT(121.3115 24.9920)', a.id, 'japanese', "
             "'200_500', 'normal', x.s, true FROM areas a, "
-            "(VALUES ('ChIJgone', 2), ('ChIJlate', 2)) AS x(pid, s) WHERE a.code = 'taoyuan'"
+            "(VALUES ('ChIJgone', 2), ('ChIJlate', 1)) AS x(pid, s) WHERE a.code = 'taoyuan'"
         )
     )
     session.commit()

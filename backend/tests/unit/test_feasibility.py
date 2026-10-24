@@ -100,6 +100,19 @@ class TestMovieFirst:
         assert c.buffers.last_order is None
         assert c.min_buffer == 10
 
+    def test_open_24_hours_has_no_last_order(self):
+        # 23:25 散場，23:35 以後才開始吃：24 小時的店不能在 23:30 被當成「已過最後點餐」
+        show = replace(SHOW, starts_at=t(21, 30), ends_at=t(23, 25))
+        ret = Leg(at=t(1, 40, day=23), fare=25, ride_minutes=20)
+        cond = replace(COND, latest_home=t(2, day=23))
+        for text in ("24/7", "Mo-Su 00:00-24:00"):
+            rest = replace(REST, hours=OpeningHours.parse(text))
+            c = check_movie_first(show, rest, WALK, GO, ret, cond)
+            assert not isinstance(c, Rejected), text
+            assert c.meal_start > t(23, 30)
+            assert c.last_order_at is None
+            assert c.buffers.last_order is None
+
     def test_last_train(self):
         ret = replace(RET, at=t(20, 56))  # 20:57 才走到代表點
         assert check_movie_first(SHOW, REST, WALK, GO, ret, COND) == Rejected("last_train")

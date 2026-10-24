@@ -19,6 +19,7 @@ from app.collectors.tdx_geocode import Geocoder
 from app.config import Settings, get_settings
 from app.jev.mock import MODEL as MOCK_JEV_MODEL
 from app.labels import HALL_TYPE_LABELS
+from app.planner import google_details_per_plan
 from app.redis_client import sync_redis
 from app.redis_utils.quota import aused
 from app.redis_utils.ratelimit import hit
@@ -247,8 +248,10 @@ async def available_dates(db: AsyncSession, area_id: int) -> list[date]:
 
 
 async def restaurant_source(r: aioredis.Redis, s: Settings) -> str:
+    # 跟規劃同一個標準：額度不夠一次規劃查完就算 osm（app.planner.google_source）
     used = await aused(r, "google:details_enterprise")
-    return "google" if used < s.quota_google_details_enterprise else "osm"
+    need = google_details_per_plan(s)
+    return "google" if used + need <= s.quota_google_details_enterprise else "osm"
 
 
 async def get_coverage(

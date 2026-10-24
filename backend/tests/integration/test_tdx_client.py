@@ -357,3 +357,13 @@ def test_depart_puts_earliest_arrival_first(r):
     routes = make(r).route(B, A, datetime(2026, 10, 21, 21, 30, tzinfo=TZ), "depart", top=3)
     # 兩條都 23:01 到，晚出門的排前面
     assert [x.leave_at.strftime("%H:%M") for x in routes] == ["22:15", "22:04", "21:37"]
+
+
+@respx.mock
+def test_connection_errors_are_retried_then_become_tdx_error(r):
+    # DNS 失敗、連線被拒：跟逾時一樣重試，最後變成 TdxError，API 才回得出 UPSTREAM_ERROR
+    respx.post(TOKEN_URL).mock(return_value=token_ok())
+    routing = respx.get(ROUTING_URL).mock(side_effect=httpx.ConnectError("refused"))
+    with pytest.raises(TdxError):
+        make(r).route(A, B, datetime(2026, 10, 21, 17, 10, tzinfo=TZ), "depart")
+    assert routing.call_count == 3

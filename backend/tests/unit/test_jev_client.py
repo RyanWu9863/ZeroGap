@@ -103,3 +103,11 @@ def test_missing_answer_is_an_error():
 def test_missing_key():
     with pytest.raises(JevError, match="TYPESAFE_API_KEY"):
         JevClient("", "jev-latest")
+
+
+@respx.mock
+def test_connection_errors_are_retried_then_become_jev_error():
+    route = respx.post(JEV_URL).mock(side_effect=httpx.ConnectError("refused"))
+    with pytest.raises(JevError):
+        JevClient("sk", "jev-latest", sleep=lambda s: None).choose([QUESTION])
+    assert route.call_count == 3

@@ -122,9 +122,9 @@ class GooglePlaces:
         for attempt in range(self.retries + 1):
             try:
                 resp = self.http.request(method, url, headers=headers, **kwargs)
-            except httpx.TimeoutException:
+            except httpx.TransportError as exc:  # 逾時、DNS 失敗、連線被拒都算
                 if attempt == self.retries:
-                    raise PlacesError("Google Places 逾時") from None
+                    raise PlacesError(f"Google Places 逾時或連不上：{exc!r}") from None
                 self.sleep(attempt + 1)
                 continue
             if resp.status_code >= 500 and attempt < self.retries:

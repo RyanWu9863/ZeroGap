@@ -186,6 +186,15 @@ async def test_coverage(client):
     assert data["languages"]
 
 
+async def test_restaurant_source_matches_the_planner(client, redis_url):
+    # 額度剩不到一次規劃要查的量，規劃就改用 OSM，這裡也要說 osm（2026-10-24）
+    from app.redis_utils.quota import add_usage
+
+    add_usage(redis.Redis.from_url(redis_url), "google:details_enterprise", 945)
+    for path in ("/api/coverage?area=taoyuan", "/api/status"):
+        assert (await client.get(path)).json()["restaurant_source"] == "osm"
+
+
 async def test_coverage_unknown_area(client):
     res = await client.get("/api/coverage", params={"area": "taipei101"})
     assert res.status_code == 404

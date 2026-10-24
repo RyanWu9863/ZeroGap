@@ -842,6 +842,12 @@ rq cron（只負責觸發）── 每天 06:00 ──▶ 抓取佇列 ──▶
 - **H3 假造 IP**：`deploy/nginx.conf` 的 `X-Forwarded-For` 改成直接用 `$remote_addr` 覆蓋。實測：帶 `X-Forwarded-For: 6.6.6.6`，修之前限流記在 `6.6.6.6`，修之後記在實際連進來的位址。
 - **注意**：Docker Desktop（Windows）從外面連進來的請求，nginx 看到的都是 Docker 的閘道位址（實測 `172.19.0.1`），所以 Demo 時多支手機連同一台筆電，後端可能還是當成同一個 IP（同時只能排一個、每小時 10 次共用）。這不是這次改出來的，要另外決定怎麼處理。
 
+接著修後端中優先（同一天，各加了先失敗再通過的測試）：
+
+- **M2 24 小時營業**：`24/7`（或每天 `00:00-24:00`）原本被當成每天 24:00 打烊，過了 23:30 就被判定已過最後點餐。新增 `OpeningHours.always_open`，這種店不檢查最後點餐，結果的 `last_order` 是 `null`。`hours_verified` 改成看「有沒有營業時間」，不再看「有沒有最後點餐」，所以 24 小時的店是 `true`，不會顯示「營業時間未確認」。
+- **M1 連不上外部服務**：TDX、Google、Jev 的用戶端原本只處理逾時，改成 `httpx.TransportError`（逾時、DNS 失敗、連線被拒）都照樣重試，最後變成 `TdxError`／`PlacesError`／`JevError`，地點搜尋和規劃才回得出正常的錯誤格式。OSM 抓取（`collectors/osm.py`）還是只重試逾時，連線錯誤直接讓那次抓取失敗，沒改。
+- **M4 Google 額度途中用完**【預設】：改成**剩下的額度不夠一次規劃查完**（3 個方案＋重試輪數，預設 10 家）就整次改用 OSM，結果的 `restaurant_source` 用同一個決定；`/api/coverage`、`/api/status` 也用同一個標準。代價是每月最後不到 10 次額度用不到。原本以為「商圈沒有 Google 餐廳時還寫 `google`」也是 bug，查過規格書和前端 `/behind`，`restaurant_source` 本來就是表示額度狀態，不改。
+
 ### 2026-10-26 AI 推論：決策紀錄、Router 判斷方式、LLM 熔斷與棄權（規格書 v0.15）
 
 - **問題**：

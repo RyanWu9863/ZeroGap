@@ -33,10 +33,11 @@ def _check_hours(
 ) -> tuple[datetime, datetime | None, Reason | None]:
     """`ready` 是到店加候位、最早能開始吃的時間。
 
-    回傳 (開始用餐, 最後點餐時間, 被排除的原因)。不知道營業時間時最後點餐是 None。
+    回傳 (開始用餐, 最後點餐時間, 被排除的原因)。不知道營業時間或 24 小時營業時最後點餐是 None。
     比開門早到時，`max_wait_for_opening` 分鐘內就等開門，開始用餐改成開門時間。
     """
-    if rest.hours is None:
+    # 24 小時營業的店不在每天 24:00 打烊（2026-10-24 檢查發現：過了 23:30 會被當成已過最後點餐）
+    if rest.hours is None or rest.hours.always_open:
         return ready, None, None
     meal_start = ready
     interval = rest.hours.interval_containing(ready)

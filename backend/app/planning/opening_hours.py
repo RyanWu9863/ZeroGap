@@ -42,6 +42,11 @@ class OpeningHours:
                 week[d] = spans
         return cls(by_weekday=tuple(week))
 
+    @property
+    def always_open(self) -> bool:
+        """24 小時營業（`24/7`、每天 00:00-24:00）：沒有打烊，也就沒有最後點餐。"""
+        return all(any(s <= 0 and e >= 1440 for s, e in spans) for spans in self.by_weekday)
+
     def interval_containing(self, at: datetime) -> tuple[datetime, datetime] | None:
         """回傳包含 `at` 的營業時段 (開始, 結束)，開始 ≤ at < 結束；沒有就回傳 None。
 

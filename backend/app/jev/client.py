@@ -83,10 +83,10 @@ class JevClient:
             start = time.perf_counter()
             try:
                 resp = self.http.post(JEV_URL, json=body, headers=headers)
-            except httpx.TimeoutException:
+            except httpx.TransportError as exc:  # 逾時、DNS 失敗、連線被拒都算
                 spent += time.perf_counter() - start
                 if attempt == self.retries:
-                    raise JevError("Jev 逾時") from None
+                    raise JevError(f"Jev 逾時或連不上：{exc!r}") from None
                 self.sleep(2**attempt)
                 continue
             spent += time.perf_counter() - start

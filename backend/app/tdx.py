@@ -350,9 +350,9 @@ class TdxTransit:
                     params=params,
                     headers={"authorization": f"Bearer {self.token()}", "Accept-Encoding": "gzip"},
                 )
-            except httpx.TimeoutException:
+            except httpx.TransportError as exc:  # 逾時、DNS 失敗、連線被拒都算
                 if attempt == self.retries:
-                    raise TdxError("TDX 逾時") from None
+                    raise TdxError(f"TDX 逾時或連不上：{exc!r}") from None
                 attempt += 1
                 self.sleep(attempt)
                 continue

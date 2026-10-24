@@ -61,6 +61,22 @@ def router_policy(s: Settings) -> choose.RouterPolicy:
     return choose.RouterPolicy(s.router_policy, param)
 
 
+def google_details_per_plan(s: Settings) -> int:
+    """一次規劃最多驗證幾組（3 個方案 ＋ 重試輪數），也是最多查幾家 Google 店家。"""
+    return PLANS_WANTED + s.plan_opening_hours_retry_rounds
+
+
+def google_source(r: redis.Redis, s: Settings) -> str:
+    """Google 規劃用的額度不夠一次規劃查完就改用 OSM（5.5）。
+
+    只看「還有沒有額度」的話，查到一半用完，剩下的 Google 店全部被刷掉，
+    會變成 NO_FEASIBLE（2026-10-24 檢查發現）。
+    """
+    need = google_details_per_plan(s)
+    ok = has_room(r, "google:details_enterprise", s.quota_google_details_enterprise, need)
+    return "google" if ok else "osm"
+
+
 class PlanError(Exception):
     def __init__(self, code: str, message: str, reasons: dict[str, int] | None = None):
         super().__init__(message)
@@ -221,14 +237,6 @@ class Planner:
             log.info("decision_trace %s", json.dumps(trace, ensure_ascii=False))
         except Exception:  # noqa: BLE001
             log.warning("規劃工作 %s：決策紀錄寫不出來", self.job_id, exc_info=True)
-
-    @property
-    def restaurant_source(self) -> str:
-        """Google 規劃用的額度用完就改用 OSM（5.5）。"""
-        ok = has_room(
-            self.d.redis, "google:details_enterprise", self.s.quota_google_details_enterprise
-        )
-        return "google" if ok else "osm"
 
     # ── 主流程 ───────────────────────────────────────────────
 
@@ -434,6 +442,8 @@ class Planner:
             ),
             {"a": self.area_id},
         )
+        # 這次規劃開始時決定一次，結果的 restaurant_source 也用這個，不會前後不一致
+        self.restaurant_source = google_source(self.d.redis, self.s)
         if self.restaurant_source == "google" and has_google:
             where.append("source = 'google'")
         else:
@@ -604,7 +614,7 @@ class Planner:
     # ── 步驟 5、6：驗證營業時間、查精確路線 ───────────────────────
 
     def _verify_and_route(self, ranked: list[Ranked]) -> list[tuple[_Candidate, Timeline, dict]]:
-        max_tried = PLANS_WANTED + self.s.plan_opening_hours_retry_rounds
+        max_tried = google_details_per_plan(self.s)
         queue = iter(ranked)
         plans: list[tuple[_Candidate, Timeline, dict]] = []
         tried = 0
@@ -887,7 +897,8 @@ class Planner:
                         ),
                         "source": rest_row.source,
                         # 營業時間看不懂或補不到時照樣排，但讓前端提示先確認（2026-10-20 決定）
-                        "hours_verified": combo.last_order_at is not None,
+                        # 24 小時營業的店核對過了，只是沒有最後點餐，不能用 last_order_at 判斷
+                        "hours_verified": combo.restaurant.hours is not None,
                         "place_id": rest_row.external_id if rest_row.source == "google" else None,
                     },
                     "timeline": tl.steps,
