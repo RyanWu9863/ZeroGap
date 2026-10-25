@@ -13,7 +13,7 @@ npm run build      # 正式打包到 dist/
 npm run build:pages  # GitHub Pages 版（預設網址多一層 /zerogap-frontend/，可用環境變數 PAGES_BASE 改）
 npm run og         # 重新產生連結預覽圖 public/og.png
 npm run icons      # 重新產生 iOS 主畫面圖示 public/apple-touch-icon.png
-npm run predemo    # Demo 前一鍵檢查：型別＋單元測試＋流程測試＋打包
+npm run predemo    # Demo 前一鍵檢查：型別＋單元測試＋流程測試（用打包後的正式版跑，和 CI 一樣）＋打包
 npm run perf       # 手機 4G 載入時間量測（LCP 要在 2.5 秒內）
 ```
 

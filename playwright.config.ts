@@ -20,8 +20,10 @@ export default defineConfig({
     { name: 'iphone', use: { ...devices['iPhone 13'] } },
     { name: 'ipad', use: { ...devices['iPad (gen 7)'] } },
   ],
-  // 本機用開發伺服器；CI 先打包再用正式版跑（開發伺服器每個測試都要現場編譯，Windows 機器常常超過時限）
-  webServer: process.env.CI
+  // npm run e2e 用開發伺服器（改完馬上測）；CI 和 npm run predemo 先打包再用正式版跑：
+  // 開發伺服器要現場編譯延遲載入的頁面，整套平行跑時常常超過時限（CI 的 Windows、本機的 iPhone／iPad 都遇過）。
+  // 用 npm 自帶的 npm_lifecycle_event 判斷是不是 predemo，Mac、Windows 都不用另外設環境變數。
+  webServer: process.env.CI || process.env.npm_lifecycle_event === 'predemo'
     ? { command: 'npx vite build --outDir dist-e2e && npx vite preview --outDir dist-e2e --port 5174 --strictPort', url: 'http://localhost:5174', reuseExistingServer: false, timeout: 240_000 }
     : { command: 'npm run dev -- --port 5174 --strictPort', url: 'http://localhost:5174', reuseExistingServer: false },
 })
