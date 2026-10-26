@@ -52,4 +52,5 @@ def make_llm(s: Settings) -> Llm:
         timeout=s.ollama_timeout_seconds,
         keep_alive=s.ollama_keep_alive,
         think=s.ollama_think,
+        allow_abstain=s.llm_allow_abstain,
     )

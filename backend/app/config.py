@@ -47,6 +47,8 @@ class Settings(BaseSettings):
     ollama_timeout_seconds: float = 30.0
     ollama_keep_alive: str = "30m"
     ollama_think: bool | None = None  # qwen3 之類會思考的模型設成 false
+    # LLM 可以回答「無法判斷」，這時採用 Jev 最高的選項；先關閉，等實測過棄權的頻率再決定
+    llm_allow_abstain: bool = False
 
     # --- 時間規則（7.1） ---
     arrive_before_showtime_minutes: int = 15
