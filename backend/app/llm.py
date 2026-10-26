@@ -22,7 +22,8 @@ log = logging.getLogger(__name__)
 # 其他都是失敗，改用 Jev 機率最高的選項：
 # timeout 逾時、connect 連不上、http 回應錯誤碼、network 其他連線錯誤、
 # invalid_response 回答不是約定的 JSON、not_candidate 回答不在候選裡、
-# circuit_open 前面連續連不上，這次沒有呼叫（見 LlmPicker 的熔斷）
+# circuit_open 前面連續連不上，這次沒有呼叫（見 LlmPicker 的熔斷）、
+# abstain LLM 說資料不夠、無法判斷（要開 allow_abstain 才會出現）
 LlmStatus = Literal[
     "ok",
     "disabled",
@@ -33,9 +34,12 @@ LlmStatus = Literal[
     "invalid_response",
     "not_candidate",
     "circuit_open",
+    "abstain",
 ]
-# 這幾種表示 Ollama 本身有問題；有回答只是答錯不算
+# 這幾種表示 Ollama 本身有問題；有回答只是答錯或棄權不算
 _UNREACHABLE: frozenset[str] = frozenset({"timeout", "connect", "http", "network"})
+# 棄權時的回答，和 date-v2 的 app/jev/fallback.py 相同
+ABSTAIN = "無法判斷"
 
 
 @dataclass(frozen=True)
@@ -56,7 +60,9 @@ def _ranked(probs: dict[str, float]) -> list[str]:
     return sorted(probs, key=lambda k: (-probs[k], k))
 
 
-def build_prompt(question: ChoiceQuestion, candidates: list[str]) -> str:
+def build_prompt(
+    question: ChoiceQuestion, candidates: list[str], allow_abstain: bool = False
+) -> str:
     by_code = {o.code: o for o in question.options}
     lines = [
         "你是行程規劃助手。請依使用者的偏好，從候選中選出最適合的一個。",
@@ -68,6 +74,10 @@ def build_prompt(question: ChoiceQuestion, candidates: list[str]) -> str:
         o = by_code[code]
         attrs = json.dumps(o.attrs, ensure_ascii=False, default=str)
         lines.append(f"- {code}：{o.label}，{attrs}")
+    if allow_abstain:
+        lines.append(
+            f"只根據上面的資料判斷，不要猜資料裡沒有的事；資料不足以判斷時，回答「{ABSTAIN}」。"
+        )
     lines.append('只回答 JSON，例如 {"choice": "' + candidates[0] + '"}。')
     return "\n".join(lines)
 
@@ -84,8 +94,13 @@ class LlmPicker:
         breaker_failures: int = 2,
         breaker_cooldown: float = 300.0,
         clock: Callable[[], float] = time.monotonic,
+        allow_abstain: bool = False,
     ):
-        """熔斷：連續 `breaker_failures` 次連不上（逾時、連線錯誤、HTTP 錯誤），
+        """棄權：`allow_abstain=True` 時，LLM 可以回答「無法判斷」，這時採用 Jev 最高的選項
+        （`status="abstain"`）。和 date-v2 的做法相同：資料不夠就不要硬選。
+        預設關閉，行為和以前一樣。
+
+        熔斷：連續 `breaker_failures` 次連不上（逾時、連線錯誤、HTTP 錯誤），
         接下來 `breaker_cooldown` 秒直接採用 Jev 最高的選項，不再等逾時；
         時間到了先試一次，成功就恢復，失敗就再熔斷。`breaker_failures=0` 是不熔斷。
         planner 每次規劃建立一個新的 LlmPicker，所以熔斷只影響同一次規劃。
@@ -103,6 +118,7 @@ class LlmPicker:
         self.breaker_failures = breaker_failures
         self.breaker_cooldown = breaker_cooldown
         self.clock = clock
+        self.allow_abstain = allow_abstain
         self._failures = 0
         self._open_until: float | None = None
 
@@ -111,13 +127,14 @@ class LlmPicker:
         if self._open_until is not None and self.clock() < self._open_until:
             return LlmPick(ranked[0], False, status="circuit_open", model=self.model)
         candidates = ranked[: self.top_n]
+        allowed = [*candidates, ABSTAIN] if self.allow_abstain else candidates
         body: dict[str, Any] = {
             "model": self.model,
-            "prompt": build_prompt(question, candidates),
+            "prompt": build_prompt(question, candidates, self.allow_abstain),
             "stream": False,
             "format": {
                 "type": "object",
-                "properties": {"choice": {"type": "string", "enum": candidates}},
+                "properties": {"choice": {"type": "string", "enum": allowed}},
                 "required": ["choice"],
             },
             "options": {"temperature": 0},
@@ -136,6 +153,9 @@ class LlmPicker:
         if status != "ok":
             log.warning("Ollama 代選失敗（%s），改用 Jev 最高的選項：%r", status, error)
             return fallback(status)
+        if self.allow_abstain and choice == ABSTAIN:
+            log.info("Ollama 說資料不足、無法判斷，採用 Jev 最高的選項")
+            return fallback("abstain")
         if choice not in candidates:
             log.warning("Ollama 回答的 %r 不是候選之一，改用 Jev 最高的選項", choice)
             return fallback("not_candidate")
