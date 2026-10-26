@@ -1,9 +1,7 @@
 """每一題選擇的決策紀錄：Jev 給了什麼機率、Router 怎麼判斷、LLM 有沒有回答、最後選了誰。
 
-planner 目前還沒有呼叫這裡。接上的方式：
-    unsure = policy.unsure(answer.probabilities)
-    pick = llm.pick(question, answer.probabilities) if unsure else None
-    record = record_decision(question, answer, policy, pick, jev_result)
+planner 在 `_decide` 為每一題呼叫 `record_decision`；規劃結束時（失敗也一樣，`run()` 的
+finally）用 `summarize` 在 worker 的日誌寫一行 `decision_trace {JSON}`（規格書 7.1）。
 
 紀錄只放選項代碼、機率、狀態和時間；**不放使用者的偏好、選項名稱、prompt**，可以直接寫進日誌。
 """
