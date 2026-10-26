@@ -38,6 +38,9 @@ class Settings(BaseSettings):
     jev_model: str = "jev-latest"
     jev_min_top_probability: float = 0.6
     jev_max_options: int = 10
+    # 判斷 Jev 有沒有把握的方式（app.planning.choose.RouterPolicy）。預設和以前相同：最高機率 < 0.6
+    router_policy: Literal["fixed", "options", "margin", "entropy"] = "fixed"
+    router_param: float | None = None  # None：用 jev_min_top_probability
     llm_mode: Literal["ollama", "mock"] = "ollama"
     ollama_base_url: str = "http://localhost:11434"
     ollama_model: str = "qwen2.5:3b"

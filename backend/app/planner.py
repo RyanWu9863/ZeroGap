@@ -4,6 +4,8 @@
 每個步驟開始時呼叫 `progress(stage, **data)`，由 RQ 工作轉成 Pub/Sub 事件。
 """
 
+import json
+import logging
 import math
 from collections.abc import Callable
 from dataclasses import dataclass, replace
@@ -16,9 +18,10 @@ from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 from app.config import Settings
-from app.jev.base import ChoiceAnswer, Jev
+from app.decision_trace import DecisionRecord, record_decision, summarize
+from app.jev.base import ChoiceAnswer, Jev, JevResult
 from app.labels import HALL_TYPE_LABELS
-from app.llm import Llm
+from app.llm import Llm, LlmPick
 from app.places import PlaceDetails, Places
 from app.planning import choose
 from app.planning.alternatives import movie_alternatives, restaurant_alternatives
@@ -44,10 +47,18 @@ from app.redis_utils.ratelimit import wait_for_slot
 from app.schemas import PlanRequest
 from app.transit import Endpoint, Transit
 
+log = logging.getLogger(__name__)
+
 TZ = ZoneInfo("Asia/Taipei")
 Progress = Callable[..., None]
 PLANS_WANTED = 3
 ORIGIN_NAME = "目前位置"
+
+
+def router_policy(s: Settings) -> choose.RouterPolicy:
+    """設定裡的 Router 政策；`router_param` 沒填就用 `jev_min_top_probability`。"""
+    param = s.jev_min_top_probability if s.router_param is None else s.router_param
+    return choose.RouterPolicy(s.router_policy, param)
 
 
 class PlanError(Exception):
@@ -107,6 +118,11 @@ class Planner:
     def __init__(self, req: PlanRequest, job_id: str, deps: Deps, progress: Progress):
         self.req, self.job_id, self.d, self.progress = req, job_id, deps, progress
         self.s = deps.settings
+        # Jev 有沒有把握的判斷；預設 fixed 0.6，和 choose.needs_llm 完全相同
+        self.policy = router_policy(self.s)
+        # 每一題的決策紀錄，規劃結束時寫一行日誌（只有代碼、機率、狀態和時間）
+        self.decisions: list[DecisionRecord] = []
+        self._jev_result: JevResult | None = None  # 最近一次 Jev 請求，給決策紀錄用
         # 步驟 5 查到的 Google 店家資料，只放在這次規劃的記憶體裡（3.3 不能存）：
         # 同一家不重查，也用它刪掉這家店其他接不上的組合（2026-10-21 使用者決定）
         self.google_details: dict[int, PlaceDetails] = {}
@@ -161,6 +177,7 @@ class Planner:
             return {}
         if not has_room(self.d.redis, "jev_cost_micro_usd", self.s.quota_jev_cost_micro_usd):
             # 每月費用用完：全部交給 LLM（3、5.5），機率都一樣
+            self._jev_result = None
             return {
                 q.id: ChoiceAnswer({o.code: 1 / len(q.options) for o in q.options})
                 for q in questions
@@ -168,17 +185,39 @@ class Planner:
         if not self.jev_limited:
             self._wait("rl:jev", self.s.jev_per_minute, "jev")
         result = self.d.jev.choose(questions)
+        self._jev_result = result
         add_usage(self.d.redis, "jev_cost_micro_usd", jev_cost_micro_usd(result.input_tokens))
         return result.answers
 
     def _decide(self, question: ChoiceQuestion, answer: ChoiceAnswer) -> tuple[str, bool]:
         """回傳 (選中的代碼, 是否由 LLM 決定)。"""
         probs = answer.probabilities
-        if not choose.needs_llm(probs, self.s.jev_min_top_probability):
+        if not self.policy.unsure(probs):
+            self._record(question, answer, None)
             return answer.top, False
         self.progress("llm_fallback", question=question.id)
         pick = self.d.llm.pick(question, probs)
+        self._record(question, answer, pick)
         return pick.code, pick.used_llm
+
+    def _record(self, question: ChoiceQuestion, answer: ChoiceAnswer, pick: LlmPick | None):
+        self.decisions.append(
+            record_decision(question, answer, self.policy, pick, self._jev_result)
+        )
+
+    def _log_decisions(self) -> None:
+        """只是記錄：自己出錯也不能影響規劃，或蓋掉規劃本身的錯誤。"""
+        if not self.decisions:
+            return
+        try:
+            trace = {
+                "job_id": self.job_id,
+                **summarize(self.decisions),
+                "decisions": [d.to_dict() for d in self.decisions],
+            }
+            log.info("decision_trace %s", json.dumps(trace, ensure_ascii=False))
+        except Exception:  # noqa: BLE001
+            log.warning("規劃工作 %s：決策紀錄寫不出來", self.job_id, exc_info=True)
 
     @property
     def restaurant_source(self) -> str:
@@ -191,6 +230,13 @@ class Planner:
     # ── 主流程 ───────────────────────────────────────────────
 
     def run(self) -> dict[str, Any]:
+        # 規劃失敗（例如沒有解）時也寫決策紀錄，才查得到前面選了什麼
+        try:
+            return self._run()
+        finally:
+            self._log_decisions()
+
+    def _run(self) -> dict[str, Any]:
         self.progress("loading_data")
         self._load()
         self.progress("checking_feasibility")
@@ -628,7 +674,7 @@ class Planner:
         return bool(c.go and c.ret)
 
     def _unsure(self, answer: ChoiceAnswer) -> bool:
-        return choose.needs_llm(answer.probabilities, self.s.jev_min_top_probability)
+        return self.policy.unsure(answer.probabilities)
 
     def _pick_route(self, qid, question, answers, routes):
         answer = answers[qid]
