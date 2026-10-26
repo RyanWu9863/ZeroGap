@@ -15,6 +15,7 @@ https://docs.typesafe.ai/api/system-one.md 、https://docs.typesafe.ai/api/error
 import logging
 import time
 from collections.abc import Callable
+from dataclasses import replace
 from typing import Any
 
 import httpx
@@ -75,22 +76,27 @@ class JevClient:
     ) -> JevResult:
         body = self._body(questions, state)
         headers = {"Authorization": f"Bearer {self.api_key}"}
+        spent = 0.0  # 只算請求本身，不算限流等待和退避
         for attempt in range(self.retries + 1):
             if self.limiter:
                 self.limiter()
+            start = time.perf_counter()
             try:
                 resp = self.http.post(JEV_URL, json=body, headers=headers)
             except httpx.TimeoutException:
+                spent += time.perf_counter() - start
                 if attempt == self.retries:
                     raise JevError("Jev 逾時") from None
                 self.sleep(2**attempt)
                 continue
+            spent += time.perf_counter() - start
             if resp.status_code in RETRY_STATUSES and attempt < self.retries:
                 self.sleep(2**attempt)  # 1、2 秒
                 continue
             if resp.status_code != 200:
                 raise JevError(f"Jev HTTP {resp.status_code}：{resp.text[:200]}")
-            return self._parse(resp.json(), questions)
+            result = self._parse(resp.json(), questions)
+            return replace(result, latency_ms=round(spent * 1000, 1), attempts=attempt + 1)
         raise JevError("Jev 失敗")
 
     @staticmethod

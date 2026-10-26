@@ -24,6 +24,9 @@ class JevResult:
     answers: dict[str, ChoiceAnswer]  # 題目 id → 答案
     model: str  # 回應裡的模型版本（3.1：每次判斷都要記下來）
     input_tokens: int  # 計費只算輸入 token，用來累加每月費用
+    # 以下只是記錄，給決策紀錄用；模擬版不填
+    latency_ms: float | None = None  # 送出請求到收到回應的時間（含重試），不含限流等待和退避
+    attempts: int | None = None  # 送出幾次請求（含重試）
 
 
 class Jev(Protocol):
