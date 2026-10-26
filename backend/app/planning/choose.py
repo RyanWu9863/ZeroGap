@@ -3,9 +3,10 @@
 Jev 的選項代碼用 `m{電影 id}`、`r{餐廳 id}`；機率在 planner 轉回 id 為 key 的 dict。
 """
 
+import math
 from collections.abc import Iterable, Mapping
 from dataclasses import dataclass, field
-from typing import Any
+from typing import Any, Literal
 
 from app.planning.feasibility import FilterResult
 from app.planning.types import Combo
@@ -161,6 +162,73 @@ def rank_combos(
 def needs_llm(probs: Mapping[Any, float], threshold: float = MIN_TOP_PROBABILITY) -> bool:
     """Jev 沒把握：最高機率低於門檻。"""
     return bool(probs) and max(probs.values()) < threshold
+
+
+@dataclass(frozen=True)
+class DecisionFeatures:
+    """一題 Jev 機率分布的特徵，給 Router 判斷和決策紀錄用。"""
+
+    k: int  # 選項數
+    p_top: float  # 第一名機率
+    p_second: float  # 第二名機率；只有一個選項時是 0
+    margin: float  # 第一名 − 第二名
+    norm_entropy: float  # 熵 ÷ ln k：0 是完全確定，1 是每個選項一樣；只有一個選項時是 0
+
+
+def decision_features(probs: Mapping[Any, float]) -> DecisionFeatures:
+    """`probs` 不能是空的。熵先把機率正規化到總和 1 再算；其他特徵照原始機率。"""
+    if not probs:
+        raise ValueError("沒有選項")
+    ps = sorted(probs.values(), reverse=True)
+    k = len(ps)
+    p_second = ps[1] if k > 1 else 0.0
+    total = sum(ps)
+    if k > 1 and total > 0:
+        h = -sum(p / total * math.log(p / total) for p in ps if p > 0)
+        norm_entropy = h / math.log(k)
+    else:
+        norm_entropy = 0.0
+    return DecisionFeatures(k, ps[0], p_second, ps[0] - p_second, norm_entropy)
+
+
+RouterKind = Literal["fixed", "options", "margin", "entropy"]
+
+
+@dataclass(frozen=True)
+class RouterPolicy:
+    """判斷 Jev 有沒有把握的方式。`param` 的意思依 `kind` 而定：
+
+    - fixed：最高機率 < param 就沒把握，和 `needs_llm` 完全相同（目前的做法，param 預設 0.6）
+    - options：最高機率 < 1/k + param × (1 − 1/k)，門檻隨選項數 k 調整
+    - margin：第一名 − 第二名 < param
+    - entropy：熵 ÷ ln k > param
+
+    除了 fixed，只有一個選項時一律算有把握。
+    哪一種比較好要用標註資料比較；在有證據之前，預設維持 fixed 0.6。
+    """
+
+    kind: RouterKind = "fixed"
+    param: float = MIN_TOP_PROBABILITY
+
+    def __post_init__(self) -> None:
+        if self.kind not in ("fixed", "options", "margin", "entropy"):
+            raise ValueError(f"未知的 Router 政策：{self.kind}")
+        if not 0 <= self.param <= 1:
+            raise ValueError(f"param 要在 0～1 之間：{self.param}")
+
+    def unsure(self, probs: Mapping[Any, float]) -> bool:
+        if not probs:
+            return False
+        if self.kind == "fixed":
+            return needs_llm(probs, self.param)
+        f = decision_features(probs)
+        if f.k == 1:
+            return False
+        if self.kind == "options":
+            return f.p_top < 1 / f.k + self.param * (1 - 1 / f.k)
+        if self.kind == "margin":
+            return f.margin < self.param
+        return f.norm_entropy > self.param
 
 
 def top_n(probs: Mapping[int, float], n: int = LLM_TOP_N) -> list[int]:

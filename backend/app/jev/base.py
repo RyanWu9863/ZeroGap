@@ -16,7 +16,9 @@ class ChoiceAnswer:
 
     @property
     def top(self) -> str:
-        return max(self.probabilities, key=lambda k: (self.probabilities[k], k))
+        # 同分時取代碼最小的，和 LLM 代選失敗時的退回（app.llm._ranked）一致。
+        # 機率總和是 1、門檻 0.6 時遇不到：兩個選項不可能都 ≥ 0.6，同分一定會交給 LLM
+        return min(self.probabilities, key=lambda k: (-self.probabilities[k], k))
 
 
 @dataclass(frozen=True)
