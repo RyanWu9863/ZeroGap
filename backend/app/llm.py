@@ -8,6 +8,7 @@
 import json
 import logging
 import time
+from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Any, Literal, Protocol
 
@@ -20,10 +21,21 @@ log = logging.getLogger(__name__)
 # ok：回答了候選之一；disabled：LLM_MODE=mock，沒有呼叫。
 # 其他都是失敗，改用 Jev 機率最高的選項：
 # timeout 逾時、connect 連不上、http 回應錯誤碼、network 其他連線錯誤、
-# invalid_response 回答不是約定的 JSON、not_candidate 回答不在候選裡
+# invalid_response 回答不是約定的 JSON、not_candidate 回答不在候選裡、
+# circuit_open 前面連續連不上，這次沒有呼叫（見 LlmPicker 的熔斷）
 LlmStatus = Literal[
-    "ok", "disabled", "timeout", "connect", "http", "network", "invalid_response", "not_candidate"
+    "ok",
+    "disabled",
+    "timeout",
+    "connect",
+    "http",
+    "network",
+    "invalid_response",
+    "not_candidate",
+    "circuit_open",
 ]
+# 這幾種表示 Ollama 本身有問題；有回答只是答錯不算
+_UNREACHABLE: frozenset[str] = frozenset({"timeout", "connect", "http", "network"})
 
 
 @dataclass(frozen=True)
@@ -69,7 +81,17 @@ class LlmPicker:
         top_n: int = LLM_TOP_N,
         keep_alive: str = "30m",
         think: bool | None = None,
+        breaker_failures: int = 2,
+        breaker_cooldown: float = 300.0,
+        clock: Callable[[], float] = time.monotonic,
     ):
+        """熔斷：連續 `breaker_failures` 次連不上（逾時、連線錯誤、HTTP 錯誤），
+        接下來 `breaker_cooldown` 秒直接採用 Jev 最高的選項，不再等逾時；
+        時間到了先試一次，成功就恢復，失敗就再熔斷。`breaker_failures=0` 是不熔斷。
+        planner 每次規劃建立一個新的 LlmPicker，所以熔斷只影響同一次規劃。
+        冷卻預設 300 秒，比一次規劃（約 2～3 分鐘）長：連續失敗兩次後，這次規劃剩下的題目
+        就不再問 LLM。只要 60 秒的話，規劃期間每次冷卻結束都會再等一次逾時。
+        """
         self.base_url = base_url.rstrip("/")
         self.model = model
         self.timeout = timeout
@@ -78,9 +100,16 @@ class LlmPicker:
         self.keep_alive = keep_alive
         # qwen3 這類會先「思考」的模型，設成 False 可以快一倍；None 就不送這個參數
         self.think = think
+        self.breaker_failures = breaker_failures
+        self.breaker_cooldown = breaker_cooldown
+        self.clock = clock
+        self._failures = 0
+        self._open_until: float | None = None
 
     def pick(self, question: ChoiceQuestion, probs: dict[str, float]) -> LlmPick:
         ranked = _ranked(probs)
+        if self._open_until is not None and self.clock() < self._open_until:
+            return LlmPick(ranked[0], False, status="circuit_open", model=self.model)
         candidates = ranked[: self.top_n]
         body: dict[str, Any] = {
             "model": self.model,
@@ -99,6 +128,7 @@ class LlmPicker:
         start = time.perf_counter()
         status, choice, error = self._call(body)
         latency_ms = round((time.perf_counter() - start) * 1000, 1)
+        self._record(status)
 
         def fallback(why: LlmStatus) -> LlmPick:
             return LlmPick(ranked[0], False, status=why, latency_ms=latency_ms, model=self.model)
@@ -110,6 +140,19 @@ class LlmPicker:
             log.warning("Ollama 回答的 %r 不是候選之一，改用 Jev 最高的選項", choice)
             return fallback("not_candidate")
         return LlmPick(choice, True, status="ok", latency_ms=latency_ms, model=self.model)
+
+    def _record(self, status: LlmStatus) -> None:
+        if status not in _UNREACHABLE:
+            self._failures, self._open_until = 0, None
+            return
+        self._failures += 1
+        if self.breaker_failures and self._failures >= self.breaker_failures:
+            self._open_until = self.clock() + self.breaker_cooldown
+            log.warning(
+                "Ollama 連續 %d 次連不上，%.0f 秒內直接採用 Jev 最高的選項",
+                self._failures,
+                self.breaker_cooldown,
+            )
 
     def _call(self, body: dict[str, Any]) -> tuple[LlmStatus, Any, Exception | None]:
         """回傳 (狀態, 回答, 錯誤)。攔下的錯誤和原本一樣，只是分開記錄是哪一種。"""
