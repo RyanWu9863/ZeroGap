@@ -2,8 +2,8 @@
 
 | 項目 | 內容 |
 |---|---|
-| 版本 | v0.14（規劃和抓取拆成兩個 worker：`worker` 只聽 `plans`、新增 `worker-crawl` 只聽 `crawl`，抓取時規劃不用再排隊等，見 5.6、8.1。v0.13：第二階段實作：真的 TDX［頭尾步行 20 分鐘、車資沒給時自己估］、TDX 車站、OSM 餐廳、開眼爬蟲、`rq cron`、MCP；新增蘆竹（南崁）商圈、青埔先不開放；八德只用廣豐新天地。v0.12：逐項確認實作時新增的預設值：早到 30 分鐘內等開門、餐廳備選補滿 2 家、沒判斷屬性的店不排、Jev 沒把握就附備選、新增 `restaurant.hours_verified`。v0.11：實作中的補充列在 10.1；`restaurants.source` 新增 `demo`；修正 5.3 路線快取的取整範例；7.3 補上價位區間的代碼；實作時的小調整：`areas.sort_order`、`area_hubs.geom` 可以是 null、migration 一併寫入類別和票價。v0.10：補上前端對照時發現的缺口：下拉選單的回應範例、跨午夜的判斷、`reasons` 的 key、排隊順位的意思、備選欄位、OSM 出處。v0.9：備選只附估計值、第一名固定「最推薦」、回程緩衝加 `return_window`。v0.8 起前端 ZeroGap 照這份規格串接、飲食限制延後；架構與 v0.4 相同） |
-| 日期 | 2026-10-21 |
+| 版本 | v0.15（AI 推論：Ollama 連續連不上就熔斷；LLM 可選擇棄權［預設關閉］；Router 判斷方式可由設定切換［預設不變］；每次規劃寫一行決策紀錄日誌，見 3、3.1、7.1。v0.14：規劃和抓取拆成兩個 worker：`worker` 只聽 `plans`、新增 `worker-crawl` 只聽 `crawl`，抓取時規劃不用再排隊等，見 5.6、8.1。v0.13：第二階段實作：真的 TDX［頭尾步行 20 分鐘、車資沒給時自己估］、TDX 車站、OSM 餐廳、開眼爬蟲、`rq cron`、MCP；新增蘆竹（南崁）商圈、青埔先不開放；八德只用廣豐新天地。v0.12：逐項確認實作時新增的預設值：早到 30 分鐘內等開門、餐廳備選補滿 2 家、沒判斷屬性的店不排、Jev 沒把握就附備選、新增 `restaurant.hours_verified`。v0.11：實作中的補充列在 10.1；`restaurants.source` 新增 `demo`；修正 5.3 路線快取的取整範例；7.3 補上價位區間的代碼；實作時的小調整：`areas.sort_order`、`area_hubs.geom` 可以是 null、migration 一併寫入類別和票價。v0.10：補上前端對照時發現的缺口：下拉選單的回應範例、跨午夜的判斷、`reasons` 的 key、排隊順位的意思、備選欄位、OSM 出處。v0.9：備選只附估計值、第一名固定「最推薦」、回程緩衝加 `return_window`。v0.8 起前端 ZeroGap 照這份規格串接、飲食限制延後；架構與 v0.4 相同） |
+| 日期 | 2026-10-26 |
 | 狀態 | 草稿 |
 | 討論紀錄 | [spec-discussion.md](spec-discussion.md) |
 
@@ -156,7 +156,7 @@ docker-compose.yml
 | **Google Places** | 寫入時找餐廳；規劃時補店家資料並驗證營業時間；座標超過 25 天就更新（條款上限 30 天） | API 金鑰 | 各 SKU 依每月免費額度留 5% 邊際（見 3.3） | 規劃用的額度用完就改用 OSM 備案 |
 | **OSM**（Overpass API）【預設】 | 備案用的餐廳資料 | 無 | 顯示時要署名 OpenStreetMap（見 6.7） | — |
 | **開眼電影網** | 影城、電影、場次 | 無（爬蟲） | 每天 1 次 | — |
-| **Ollama** | Jev 沒把握時代為選擇：網頁、MCP、寫入時都用它 | 無（內部） | — | 逾時時：一律採用 Jev 機率最高的選項 |
+| **Ollama** | Jev 沒把握時代為選擇：網頁、MCP、寫入時都用它 | 無（內部） | — | 逾時、連不上、回答不在候選裡時：一律採用 Jev 機率最高的選項。規劃時連續 2 次連不上就熔斷，同一次規劃剩下的題目不再呼叫（冷卻 300 秒）（2026-10-26 決定） |
 
 ### 3.1 TypeSafe Jev
 
@@ -171,6 +171,7 @@ docker-compose.yml
 - **沒把握的判斷標準**：**最高機率低於 0.6**，照簡報的規則。
   - 回應裡的信心值（confidence）只記錄、不用來判斷。
   - 這條規則同時適用於寫入時的判斷和規劃時的選擇。
+  - 規劃時的判斷方式可以用 `ROUTER_POLICY` 切換（2026-10-26 決定）：`fixed`（預設，最高機率低於 `JEV_MIN_TOP_PROBABILITY`）、`options`（門檻隨選項數 k 調整：1/k ＋ p × (1 − 1/k)）、`margin`（第一名和第二名的差距小於 p）、`entropy`（熵 ÷ ln k 大於 p）；p 是 `ROUTER_PARAM`，沒填就用 `JEV_MIN_TOP_PROBABILITY`。只有一個選項時一律算有把握（`fixed` 除外，照原本的規則）。**預設維持 `fixed`**，其他方式要有實測數據才改預設。程式在 `app/planning/choose.py` 的 `RouterPolicy`。
 - 每次判斷都記下回應裡的模型版本。版本改變時，寫入時的判斷全部重算。
 - 一次請求可以同時問好幾題，每次規劃通常只要呼叫 2 次 Jev；換下一組時會再多 1～2 次（見 7.1）。
 
@@ -1078,8 +1079,9 @@ worker 完成 → PUBLISH result（完整結果）→ API 推送後關閉串流
 - **組合分數** = P(電影) × P(餐廳)。
   - 同一組「電影 × 餐廳」有多個場次時，取最緊緩衝最大的那一場【預設】。
   - 依分數取前 3 組。
-- **沒把握**：任一題的最高機率低於 0.6 時：
+- **沒把握**：任一題的最高機率低於 0.6 時（判斷方式見 3.1，可以用 `ROUTER_POLICY` 切換）：
   1. 請 Ollama 從該題機率前 3 名中選一個。
+     - `LLM_ALLOW_ABSTAIN=true` 時，Ollama 可以回答「無法判斷」，這時採用 Jev 機率最高的選項（**預設關閉**，2026-10-26 決定；等實測過 3B 模型棄權的頻率再決定要不要開）。
   2. 含這個選項的方案排到第一名，標記 `decided_by = llm`。
   3. 其他候選放進 `alternatives`，讓使用者改選。
      - 電影的備選要搭配一家餐廳才能估到家時間和花費：同一家餐廳接得上就用同一家，接不上就用這部電影可行組合中分數最高的餐廳【預設】。
@@ -1100,6 +1102,12 @@ worker 完成 → PUBLISH result（完整結果）→ API 推送後關閉串流
 - 一次 Jev 請求同時問 6 題：每個方案的去程和回程各一題 choice，選項是 TDX 回傳的路線。`state` 放入轉乘次數、搭乘時間、步行時間、車資。
   - 沒把握時，同樣交給 Ollama 從前幾名中選一條，其他路線放進 `alternatives`。
 - 精確路線如果比步驟 2 的估算還慢、接不上了，就剔除這組，改用下一組。
+
+**決策紀錄**（2026-10-26 決定）：步驟 4、6 的每一題都記成一筆，規劃結束時（失敗也一樣）在 worker 的日誌寫一行 `decision_trace {JSON}`。
+- 每一筆：題目 id、選項數、當時用的判斷方式、最高機率、第一名和第二名的差距、熵、有沒有判定為沒把握、Jev 第一名、Jev 的模型版本、請求時間和次數、LLM 的結果（`ok`、`timeout`、`connect`、`http`、`network`、`invalid_response`、`not_candidate`、`circuit_open`、`abstain`、`disabled`）、LLM 的時間和模型、最後選的代碼、`decided_by`。
+- 另附摘要：題數、沒把握的題數、由 LLM 決定的題數、LLM 各種結果的次數、LLM 總共花的時間。
+- **不記錄**使用者的條件、出發地、店名和送給 LLM 的 prompt，只有代碼、機率、狀態和時間。
+- 只寫日誌，API 回應不變。程式在 `app/decision_trace.py`。
 
 **步驟 7：排時間軸、算花費、貼標籤**
 - 計算每一段的時間、到家時間、比最晚到家早幾分鐘、最緊緩衝、每人花費明細。
@@ -1178,7 +1186,7 @@ worker 完成 → PUBLISH result（完整結果）→ API 推送後關閉串流
 
 ### 8.2 環境變數（`.env`，不進版本控制）
 
-`DATABASE_URL`、`REDIS_URL`、`TDX_CLIENT_ID`、`TDX_CLIENT_SECRET`、`GOOGLE_PLACES_API_KEY`、`TYPESAFE_API_KEY`、`JEV_MODE=real|mock`、`JEV_MODEL`、`JEV_MIN_TOP_PROBABILITY=0.6`、`OLLAMA_BASE_URL`、`OLLAMA_MODEL=qwen2.5:3b`、`CORS_ORIGINS`，以及各項限流、額度、時間規則（候位、用餐時間、步行速度等）的數字。
+`DATABASE_URL`、`REDIS_URL`、`TDX_CLIENT_ID`、`TDX_CLIENT_SECRET`、`GOOGLE_PLACES_API_KEY`、`TYPESAFE_API_KEY`、`JEV_MODE=real|mock`、`JEV_MODEL`、`JEV_MIN_TOP_PROBABILITY=0.6`、`ROUTER_POLICY=fixed`、`ROUTER_PARAM`、`OLLAMA_BASE_URL`、`OLLAMA_MODEL=qwen2.5:3b`、`LLM_ALLOW_ABSTAIN=false`、`CORS_ORIGINS`，以及各項限流、額度、時間規則（候位、用餐時間、步行速度等）的數字。
 
 ### 8.3 外部 API 的錯誤處理【預設】
 
@@ -1236,6 +1244,9 @@ worker 完成 → PUBLISH result（完整結果）→ API 推送後關閉串流
 | 項目 | 預設值 | 章節 |
 |---|---|---|
 | Jev 沒把握的門檻 | 最高機率低於 0.6（照簡報） | 3.1 |
+| 沒把握的判斷方式 | `fixed`（就是上一列的門檻）；可切換成 `options`、`margin`、`entropy`（2026-10-26） | 3.1 |
+| LLM 棄權 | 關閉（2026-10-26） | 7.1 |
+| LLM 熔斷 | 規劃時連續 2 次連不上，冷卻 300 秒（2026-10-26） | 3 |
 | 規劃時 Jev 的選項數 | 電影、餐廳各最多 10 個 | 7.1 |
 | 同一組有多個場次時 | 取最緊緩衝最大的一場 | 7.1 |
 | 備選數量 | LLM 代選時另列最多 2 個 | 6.5 |
