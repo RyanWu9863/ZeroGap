@@ -6,6 +6,7 @@
 
 import json
 import logging
+import sys
 from typing import Any
 
 from rq import get_current_job
@@ -31,7 +32,28 @@ def encode(event: str, data: dict[str, Any]) -> str:
     return json.dumps({"event": event, "data": data}, ensure_ascii=False, default=str)
 
 
+def setup_planner_logging() -> None:
+    """讓 worker 印出決策紀錄（app.planner 的 INFO，規格書 7.1）。
+
+    `rq worker` 只設定 rq.worker 這個 logger，app.planner 沿用 Python 預設的 WARNING，
+    決策紀錄那一行會被丟掉（2026-10-26 用 compose 確認）。只開 app.planner，其他 app.* 照舊。
+
+    每個工作開始時呼叫：rq 預設每個工作 fork 一個 work horse，worker 本身不會跑到這裡，
+    所以每個 work horse 都從沒有 handler 開始、只加一次。不 fork 的 worker 同一個程序會跑很多
+    個工作；往上已經有 handler（自己加過的，或外面設定過 logging，例如 pytest）就不再加。
+    """
+    planner_log = logging.getLogger("app.planner")
+    if planner_log.hasHandlers():
+        return
+    handler = logging.StreamHandler(sys.stdout)
+    fmt = "%(asctime)s %(levelname)s %(name)s[%(process)d]: %(message)s"
+    handler.setFormatter(logging.Formatter(fmt, "%H:%M:%S"))
+    planner_log.addHandler(handler)
+    planner_log.setLevel(logging.INFO)
+
+
 def plan_job(request: dict[str, Any]) -> None:
+    setup_planner_logging()
     job = get_current_job()
     job_id = job.id if job else "local"
     r = sync_redis()
