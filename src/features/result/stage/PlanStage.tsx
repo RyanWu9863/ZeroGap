@@ -1,53 +1,49 @@
-import { Maximize2 } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Maximize2 } from 'lucide-react'
 import { motion } from 'motion/react'
-import { useEffect, useRef, useState, type KeyboardEvent } from 'react'
+import { useLayoutEffect, useMemo, useRef, useState, type KeyboardEvent } from 'react'
 import type { ItineraryRequest, Proposal } from '@/api/schemas'
 import { cn } from '@/lib/utils'
-import { useMediaQuery } from '@/shared/lib/useMediaQuery'
-import { MOTION } from '@/shared/theme/motion'
 import { PlanCardBody } from './PlanCardBody'
 import { PlanDetail } from './PlanDetail'
-
-type Slot = 'left' | 'center' | 'right'
-/** 側邊卡片往外推多少（卡片寬的百分比）；平板比較窄，推少一點，免得超出畫面 */
-const slots = (push: number) => ({
-  left: { x: `-${push}%`, y: 18, scale: 0.84, opacity: 1, zIndex: 1 },
-  center: { x: '0%', y: 0, scale: 1, opacity: 1, zIndex: 3 },
-  right: { x: `${push}%`, y: 18, scale: 0.84, opacity: 1, zIndex: 1 },
-})
+import { nearestTurn, wheelLayout } from './wheel'
+import { useWheelSpin } from './useWheelSpin'
+import { SpinButton, WheelCard } from './WheelCard'
 
 type Props = { plans: Proposal[]; selected: number; onSelect: (rank: number) => void; stationName: string; request: ItineraryRequest }
 
 /**
- * 沉浸式新版的三方案舞台（?exp=1，取代 PlanSwitcher；Q20：第一名預設置中、稍大）。
- * 桌機：選中的方案在中央放大，另外兩個縮小退到左右；點側邊或按 ←／→ 換到中央。
- * 手機：可左右滑的單張大卡（Q64）。「看完整行程」從卡片原位展開成詳情（共享元素轉場）。
+ * 沉浸式新版的三方案輪盤（?exp=1，取代 PlanSwitcher；Q20：第一名預設置中）。
+ * 方案排在一個會轉的轉盤上：拖曳（滑鼠）、左右滑（手機）、←／→、觸控板左右滑、點側邊卡或下方箭頭都能轉，
+ * 轉到底會繞回第一個。桌機三張並排、互不重疊；平板和手機只放一張，左右露一條邊（幾何見 wheel.ts）。
+ * 「看完整行程」從卡片原位展開成詳情（共享元素轉場）。
  */
 export function PlanStage({ plans, selected, onSelect, stationName, request }: Props) {
-  const wide = useMediaQuery('(min-width: 768px)')
-  const SLOT = slots(useMediaQuery('(min-width: 1024px)') ? 74 : 58)
+  const ordered = useMemo(() => [...plans].sort((a, b) => a.rank - b.rank), [plans])
+  const n = ordered.length
   const [detail, setDetail] = useState<number | null>(null)
   const radios = useRef(new Map<number, HTMLButtonElement>())
   const opener = useRef<HTMLButtonElement | null>(null)
-  const keyMoved = useRef(false)
-  const others = plans.filter((p) => p.rank !== selected).sort((a, b) => a.rank - b.rank)
-  const slotOf = (rank: number): Slot => (rank === selected ? 'center' : rank === others[0]?.rank ? 'left' : 'right')
 
-  // 用方向鍵換方案時，焦點跟著到新的中央卡（單選群組的標準操作）
-  useEffect(() => {
-    if (!keyMoved.current) return
-    keyMoved.current = false
-    radios.current.get(selected)?.focus()
-  }, [selected])
+  // 舞台寬度決定排法（三張並排或一張＋露邊）
+  const stageRef = useRef<HTMLDivElement>(null)
+  const [width, setWidth] = useState(0)
+  useLayoutEffect(() => {
+    const el = stageRef.current
+    if (!el) return
+    setWidth(el.clientWidth)
+    const ro = new ResizeObserver(([e]) => setWidth(e.contentRect.width))
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [])
+  const layout = wheelLayout(width || 390)
+  const { idx, rot, target, go, spinnable, gestures } = useWheelSpin(ordered, selected, onSelect, layout.step)
 
   const onKey = (e: KeyboardEvent) => {
-    const ordered = wide ? [others[0], plans.find((p) => p.rank === selected), others[1]] : [...plans].sort((a, b) => a.rank - b.rank)
-    const i = ordered.findIndex((p) => p?.rank === selected)
-    const next = e.key === 'ArrowLeft' || e.key === 'ArrowUp' ? ordered[i - 1] : e.key === 'ArrowRight' || e.key === 'ArrowDown' ? ordered[i + 1] : undefined
-    if (!next) return
+    const dir = e.key === 'ArrowLeft' || e.key === 'ArrowUp' ? -1 : e.key === 'ArrowRight' || e.key === 'ArrowDown' ? 1 : 0
+    if (!dir) return
     e.preventDefault()
-    keyMoved.current = true
-    onSelect(next.rank)
+    // 焦點直接跟到新的中央卡（單選群組的標準操作）；不等重畫，連按兩下才不會打在舊的卡上
+    radios.current.get(go(target.current + dir))?.focus()
   }
 
   const card = (p: Proposal) => {
@@ -59,7 +55,7 @@ export function PlanStage({ plans, selected, onSelect, stationName, request }: P
           role="radio"
           aria-checked={active}
           tabIndex={active ? 0 : -1}
-          onClick={() => onSelect(p.rank)}
+          onClick={() => !active && go(nearestTurn(target.current, ordered.indexOf(p), n))}
           onKeyDown={onKey}
           className="block w-full rounded-[inherit] p-5 text-left outline-none focus-visible:ring-3 focus-visible:ring-ring/60"
         >
@@ -67,6 +63,7 @@ export function PlanStage({ plans, selected, onSelect, stationName, request }: P
         </button>
         {active && (
           <button
+            data-plan-open
             onClick={(e) => { opener.current = e.currentTarget; setDetail(p.rank) }}
             className="mx-5 mb-5 inline-flex items-center gap-1.5 rounded-full bg-primary px-4 py-2 text-sm font-medium text-primary-foreground pointer-coarse:min-h-11"
           >
@@ -77,41 +74,51 @@ export function PlanStage({ plans, selected, onSelect, stationName, request }: P
     )
   }
 
-  const shell = (p: Proposal) => cn('zg-surface', p.rank === selected ? 'ring-2 ring-primary [box-shadow:var(--zg-stage-shadow)]' : 'hover:opacity-90')
+  const shell = (p: Proposal) => cn('zg-surface', p.rank === selected ? 'ring-2 ring-primary [box-shadow:var(--zg-stage-shadow)]' : 'cursor-pointer')
 
   return (
-    <>
-      {wide ? (
-        <div role="radiogroup" aria-label="選擇方案" className="relative mx-auto h-[23rem] max-w-5xl overflow-x-clip" data-testid="plan-stage">
-          {plans.map((p) => {
-            const slot = SLOT[slotOf(p.rank)]
-            if (detail === p.rank) return null // 展開成詳情時，卡片本身「飛」到詳情的位置
-            return (
-              <motion.div
-                key={p.rank}
-                layoutId={`plan-${p.rank}`}
-                initial={false}
-                animate={{ x: slot.x, y: slot.y, scale: slot.scale, opacity: slot.opacity }}
-                transition={MOTION.move}
-                style={{ zIndex: slot.zIndex }}
-                className={cn('absolute top-0 left-1/2 ml-[calc(min(28rem,50%)/-2)] w-[min(28rem,50%)]', shell(p))}
-              >
-                {card(p)}
-              </motion.div>
-            )
-          })}
-        </div>
-      ) : (
-        <div role="radiogroup" aria-label="選擇方案" className="-mx-4 flex snap-x snap-mandatory scroll-px-4 gap-3 overflow-x-auto px-4 pb-3" data-testid="plan-stage">
-          {[...plans].sort((a, b) => a.rank - b.rank).map((p) =>
-            detail === p.rank ? (
-              <div key={p.rank} className="w-[85%] shrink-0" />
-            ) : (
-              <motion.div key={p.rank} layoutId={`plan-${p.rank}`} className={cn('w-[85%] shrink-0 snap-start', shell(p))}>
-                {card(p)}
-              </motion.div>
-            ),
-          )}
+    <div className="-mx-4 sm:-mx-6">
+      <motion.div
+        ref={stageRef}
+        role="radiogroup"
+        aria-label="選擇方案"
+        data-testid="plan-stage"
+        data-layout={layout.mode}
+        className={cn('relative grid place-items-center overflow-x-clip overscroll-x-contain py-4 [perspective:1600px] select-none', spinnable && 'cursor-grab active:cursor-grabbing', layout.mode === 'peek' && '[mask-image:linear-gradient(to_right,transparent,black_16px,black_calc(100%-16px),transparent)]')}
+        style={{ touchAction: 'pan-y' }}
+        {...gestures}
+      >
+        {ordered.map((p, i) =>
+          detail === p.rank ? (
+            // 展開成詳情時，卡片本身「飛」到詳情的位置；這裡留一個隱形的同尺寸佔位，舞台高度才不會跳
+            <div key={p.rank} aria-hidden="true" className="invisible [grid-area:1/1]" style={{ width: layout.card }}>
+              <div className="p-5"><PlanCardBody plan={p} stationName={stationName} /></div>
+            </div>
+          ) : (
+            <WheelCard key={p.rank} index={i} n={n} rot={rot} layout={layout} layoutId={`plan-${p.rank}`} className={shell(p)}>
+              {card(p)}
+            </WheelCard>
+          ),
+        )}
+      </motion.div>
+      {spinnable && (
+        <div className="mt-1 flex items-center justify-center gap-3 px-4">
+          <SpinButton label="上一個方案" disabled={n < 3 && idx === 0} onClick={() => go(target.current - 1)}>
+            <ChevronLeft className="size-4" aria-hidden="true" />
+          </SpinButton>
+          <span className="flex items-center gap-1.5" aria-hidden="true">
+            {ordered.map((p, i) => (
+              <span key={p.rank} className={cn('h-1.5 rounded-full transition-all duration-200', i === idx ? 'w-5 bg-primary' : 'w-1.5 bg-muted-foreground/40')} />
+            ))}
+          </span>
+          <SpinButton label="下一個方案" disabled={n < 3 && idx === n - 1} onClick={() => go(target.current + 1)}>
+            <ChevronRight className="size-4" aria-hidden="true" />
+          </SpinButton>
+          <span className="sr-only">也可以左右拖曳、滑動，或用方向鍵換方案</span>
+          <span className="hidden text-xs text-muted-foreground sm:inline" aria-hidden="true">
+            <span className="pointer-coarse:hidden">拖曳或按 ← → 轉動</span>
+            <span className="hidden pointer-coarse:inline">左右滑動轉動</span>
+          </span>
         </div>
       )}
       <PlanDetail
@@ -121,6 +128,6 @@ export function PlanStage({ plans, selected, onSelect, stationName, request }: P
         onClose={() => setDetail(null)}
         returnFocus={opener}
       />
-    </>
+    </div>
   )
 }

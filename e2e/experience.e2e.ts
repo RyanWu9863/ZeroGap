@@ -8,6 +8,22 @@ const resultUrl = (extra = '') =>
   `/result?from=${encodeURIComponent('中壢站')}&to=${encodeURIComponent('桃園區')}&t=17:00-23:00&budget=1000&walk=12&exp=1${extra}`
 const resultsHeading = (page: Page) => page.getByRole('heading', { name: '這 3 個行程，每一段都接得上。' })
 const funnel = (page: Page) => page.getByTestId('funnel-run')
+/** 進結果頁要先播完漏斗（設計上約 4.5 秒）；CI 的 Windows 機器慢又平行跑，預設 12 秒太緊 */
+const AFTER_FUNNEL = { timeout: 30_000 }
+
+/** 換到某個方案：桌機三張都看得到，直接點；手機、平板側邊只露一條邊，改按「下一個方案」轉過去 */
+async function pickPlan(page: Page, name: RegExp) {
+  const stage = page.getByTestId('plan-stage')
+  if ((await stage.getAttribute('data-layout')) === 'three') return stage.getByRole('radio', { name }).click()
+  const checked = stage.getByRole('radio', { checked: true })
+  for (let i = 0; i < 3; i++) {
+    const now = (await checked.textContent()) ?? ''
+    if (name.test(now)) return
+    await page.getByRole('button', { name: '下一個方案' }).click()
+    await expect(checked).not.toHaveText(now) // 等轉完再看下一步，免得多按一次
+  }
+  await expect(checked).toContainText(name)
+}
 
 /** axe 掃 WCAG 2.1 A／AA，嚴重和重大等級一律要修（同 a11y.e2e.ts）；等動畫跑完再量顏色對比 */
 async function expectAxeClean(page: Page) {
@@ -34,7 +50,7 @@ test.describe('篩選漏斗（PR2）', () => {
     await page.goto(resultUrl())
     await expect(page.getByText('從 39 種接得上的行程，挑出 3 個')).toBeVisible()
     await expect(page.getByText('1 個點 ≈ 16 種組合・共 1,880 種')).toBeVisible()
-    await expect(resultsHeading(page)).toBeVisible()
+    await expect(resultsHeading(page)).toBeVisible(AFTER_FUNNEL)
   })
 
   test('展開關卡看規則和剔除數；看過細節就不自動跳走，按「看行程」才進結果頁', async ({ page }) => {
@@ -45,7 +61,7 @@ test.describe('篩選漏斗（PR2）', () => {
     await page.waitForTimeout(5000)
     await expect(funnel(page)).toBeVisible()
     await page.getByRole('button', { name: '看行程' }).click()
-    await expect(resultsHeading(page)).toBeVisible()
+    await expect(resultsHeading(page)).toBeVisible(AFTER_FUNNEL)
   })
 
   test('無解：停在卡住的關卡，後面的關卡標「沒檢查」，接著到放寬建議', async ({ page }) => {
@@ -58,7 +74,7 @@ test.describe('篩選漏斗（PR2）', () => {
     await page.goto(resultUrl().replace('&exp=1', '&exp=0'))
     await expect(page.getByText('趕得上開演')).toBeVisible()
     await expect(funnel(page)).toHaveCount(0)
-    await expect(resultsHeading(page)).toBeVisible()
+    await expect(resultsHeading(page)).toBeVisible(AFTER_FUNNEL)
   })
 })
 
@@ -66,13 +82,13 @@ test.describe('三方案舞台與詳情（PR3）', () => {
   const stage = (page: Page) => page.getByTestId('plan-stage')
   const open = async (page: Page) => {
     await page.goto(resultUrl())
-    await expect(resultsHeading(page)).toBeVisible()
+    await expect(resultsHeading(page)).toBeVisible(AFTER_FUNNEL)
   }
 
   test('預設最推薦的方案選中；點側邊方案就換到中央，網址跟著換', async ({ page }) => {
     await open(page)
     await expect(stage(page).getByRole('radio', { checked: true })).toContainText('最省')
-    await stage(page).getByRole('radio', { name: /最穩/ }).click()
+    await pickPlan(page, /最穩/)
     await expect(stage(page).getByRole('radio', { checked: true })).toContainText('最穩')
     await expect(page).toHaveURL(/plan=2/)
     await expect(page.getByLabel('行程時間軸').locator('li').first()).toContainText('17:05')
@@ -87,6 +103,58 @@ test.describe('三方案舞台與詳情（PR3）', () => {
     await page.keyboard.press('ArrowLeft')
     await page.keyboard.press('ArrowLeft')
     await expect(stage(page).getByRole('radio', { checked: true })).toBeFocused()
+  })
+
+  test('方向鍵連按很快（畫面還沒重畫）也不會漏掉或打在舊的卡上', async ({ page }) => {
+    await open(page)
+    await stage(page).getByRole('radio', { checked: true }).focus()
+    // 同一個瞬間送兩次 →：第二次送出時 React 還沒重畫
+    await page.evaluate(() => {
+      for (let i = 0; i < 2; i++) document.activeElement?.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true }))
+    })
+    await expect(stage(page).getByRole('radio', { checked: true })).toContainText('最早回到站')
+    await expect(stage(page).getByRole('radio', { checked: true })).toBeFocused()
+    await expect(page).toHaveURL(/plan=3/)
+  })
+
+  test('轉盤會繞圈：一直按下一個會回到第一個，第一個再按上一個會到最後一個', async ({ page }) => {
+    await open(page)
+    const checked = stage(page).getByRole('radio', { checked: true })
+    for (const name of ['最穩', '最早回到站', '最省']) {
+      await page.getByRole('button', { name: '下一個方案' }).click()
+      await expect(checked).toContainText(name)
+    }
+    await page.getByRole('button', { name: '上一個方案' }).click()
+    await expect(checked).toContainText('最早回到站')
+    await expect(page).toHaveURL(/plan=3/)
+  })
+
+  test('桌機：三張方案卡並排、互不重疊，也沒有超出畫面', async ({ page, isMobile }) => {
+    test.skip(isMobile, '手機、平板只放一張')
+    await open(page)
+    await page.waitForTimeout(800)
+    const boxes = (await Promise.all((await stage(page).getByRole('radio').all()).map((r) => r.boundingBox()))).map((b) => b!).sort((a, b) => a.x - b.x)
+    expect(boxes).toHaveLength(3)
+    const vw = page.viewportSize()!.width
+    expect(boxes[0].x).toBeGreaterThanOrEqual(0)
+    expect(boxes[0].x + boxes[0].width).toBeLessThanOrEqual(boxes[1].x)
+    expect(boxes[1].x + boxes[1].width).toBeLessThanOrEqual(boxes[2].x)
+    expect(boxes[2].x + boxes[2].width).toBeLessThanOrEqual(vw)
+  })
+
+  test('滑鼠拖曳轉動轉盤；放手那一下不會被當成點擊', async ({ page, isMobile }) => {
+    test.skip(isMobile, '觸控滑動在 iPhone 真機確認')
+    await open(page)
+    const box = (await stage(page).boundingBox())!
+    const y = box.y + box.height / 2
+    const x = box.x + box.width / 2
+    await page.mouse.move(x, y)
+    await page.mouse.down()
+    for (let i = 1; i <= 10; i++) await page.mouse.move(x - i * 30, y)
+    await page.mouse.up()
+    await expect(stage(page).getByRole('radio', { checked: true })).toContainText('最穩')
+    await expect(page).toHaveURL(/plan=2/)
+    await expect(page.getByRole('dialog')).toHaveCount(0)
   })
 
   test('看完整行程：展開成對話框、背景點不到；Esc 關掉，焦點回到按鈕，時間軸還在頁面上', async ({ page }) => {
@@ -129,7 +197,7 @@ test.describe('行程路線地圖（PR4）', () => {
 
   test('照時間軸順序編號；點站點看時間和要做的事；鍵盤 Enter 也可以', async ({ page }) => {
     await page.goto(resultUrl())
-    await expect(resultsHeading(page)).toBeVisible()
+    await expect(resultsHeading(page)).toBeVisible(AFTER_FUNNEL)
     await expect(map(page).getByRole('group', { name: /^路線：1\. 中壢車站 → 2\. 桃園統領威秀 → 3\. 吉豚屋 → 4\. 桃園車站 → 5\. 中壢車站$/ })).toBeVisible()
     await map(page).getByRole('button', { name: /第 3 站 吉豚屋/ }).click()
     await expect(map(page).getByText('20:06–20:19')).toBeVisible()
@@ -151,7 +219,7 @@ test.describe('行程路線地圖（PR4）', () => {
   test('換方案時地圖跟著換，選中的站清掉；詳情裡也有同一張地圖', async ({ page }) => {
     await page.goto(resultUrl())
     await map(page).getByRole('button', { name: /第 3 站/ }).click()
-    await page.getByTestId('plan-stage').getByRole('radio', { name: /最早回到站/ }).click()
+    await pickPlan(page, /最早回到站/)
     await expect(map(page).getByRole('button', { name: /第 3 站 福勝亭/ })).toBeVisible()
     await expect(map(page).getByText('點站點看那一站的時間和要做的事')).toBeVisible()
     await page.getByRole('button', { name: '看完整行程' }).click()
@@ -163,7 +231,7 @@ for (const proto of ['timetable', 'cinematic', 'linear']) {
   test(`無障礙：${proto}・三方案舞台和詳情`, async ({ page }, info) => {
     test.skip(info.project.name !== 'chromium', '只在桌機 Chromium 掃')
     await page.goto(resultUrl(`&proto=${proto}`))
-    await expect(resultsHeading(page)).toBeVisible()
+    await expect(resultsHeading(page)).toBeVisible(AFTER_FUNNEL)
     await expectAxeClean(page)
     await page.getByRole('button', { name: '看完整行程' }).click()
     await expect(page.getByRole('dialog')).toBeVisible()
@@ -173,8 +241,10 @@ for (const proto of ['timetable', 'cinematic', 'linear']) {
   test(`無障礙：${proto}・篩選漏斗（展開關卡）`, async ({ page }, info) => {
     test.skip(info.project.name !== 'chromium', '只在桌機 Chromium 掃')
     await page.goto(resultUrl(`&proto=${proto}`))
-    await page.getByRole('button', { name: /趕得上開演/ }).click()
-    await expect(page.getByRole('button', { name: '看行程' })).toBeVisible()
+    // 一出現就直接送點擊、不等按鈕「靜止」：慢的機器（CI 的 Windows）上，等關卡的進場動畫停下來時，
+    // 漏斗可能已經播完、自動跳到結果頁。展開過關卡就會停在這裡等「看行程」
+    await page.getByRole('button', { name: /趕得上開演/ }).dispatchEvent('click')
+    await expect(page.getByRole('button', { name: '看行程' })).toBeVisible(AFTER_FUNNEL)
     await expectAxeClean(page)
   })
 }
@@ -233,8 +303,8 @@ for (const proto of ['timetable', 'cinematic', 'linear']) {
 test('減少動態：漏斗、方案舞台、詳情都照常能用（動畫改成直接到位）', async ({ page }) => {
   await page.emulateMedia({ reducedMotion: 'reduce' })
   await page.goto(resultUrl())
-  await expect(resultsHeading(page)).toBeVisible()
-  await page.getByTestId('plan-stage').getByRole('radio', { name: /最穩/ }).click()
+  await expect(resultsHeading(page)).toBeVisible(AFTER_FUNNEL)
+  await pickPlan(page, /最穩/)
   await expect(page).toHaveURL(/plan=2/)
   await page.getByRole('button', { name: '看完整行程' }).click()
   await expect(page.getByRole('dialog', { name: '完整行程' })).toBeVisible()
