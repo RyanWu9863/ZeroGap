@@ -844,6 +844,11 @@ rq cron（只負責觸發）── 每天 06:00 ──▶ 抓取佇列 ──▶
   - `ChoiceAnswer.top` 同分時改取代碼最小的，和 LLM 失敗時的退回一致；機率總和是 1、門檻 0.6 時遇不到同分。
   - 單元測試新增 60 個，既有的不改；整合測試新增 `tests/integration/test_planner_trace.py`。
 
+### 2026-10-27 補回 10/22 漏掉的 commit、組員網頁更新到 v0.15
+
+- 合併 `feat/ai-inference-reliability`（v0.15）後重新產生組員網頁時發現：線上網頁的架構圖和 2.1 的說明比 repo 新。原因是 10/22 在 `D:\ZeroGap` 做的兩個 commit（架構圖更新、上傳 GitHub 的紀錄）沒推上 GitHub，後來整理 repo 時是接著 `fix/split-workers` 做，這兩個就漏了。
+- 使用者決定：**補回來再發布**。兩個 commit 用 cherry-pick 補進 main；架構圖合併兩邊（10/22 的標籤＋v0.14 的 `worker-crawl`），圖例改成對應 v0.15，PNG 用 headless Chrome 重新轉出；2.1 的說明補上 v0.14、v0.15。
+
 ## 6. 剩下的步驟
 
 - **第 5 步：部署、測試、錯誤處理**
