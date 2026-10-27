@@ -103,6 +103,18 @@ test.describe('三方案舞台與詳情（PR3）', () => {
     await expect(stage(page).getByRole('radio', { checked: true })).toBeFocused()
   })
 
+  test('方向鍵連按很快（畫面還沒重畫）也不會漏掉或打在舊的卡上', async ({ page }) => {
+    await open(page)
+    await stage(page).getByRole('radio', { checked: true }).focus()
+    // 同一個瞬間送兩次 →：第二次送出時 React 還沒重畫
+    await page.evaluate(() => {
+      for (let i = 0; i < 2; i++) document.activeElement?.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true }))
+    })
+    await expect(stage(page).getByRole('radio', { checked: true })).toContainText('最早回到站')
+    await expect(stage(page).getByRole('radio', { checked: true })).toBeFocused()
+    await expect(page).toHaveURL(/plan=3/)
+  })
+
   test('轉盤會繞圈：一直按下一個會回到第一個，第一個再按上一個會到最後一個', async ({ page }) => {
     await open(page)
     const checked = stage(page).getByRole('radio', { checked: true })

@@ -25,13 +25,15 @@ export function useWheelSpin(ordered: Proposal[], selected: number, onSelect: (r
     [reduce, rot],
   )
 
-  /** 轉到第 k 格（兩個方案以下不繞圈）；回傳選中的方案有沒有換 */
+  /** 轉到第 k 格（兩個方案以下不繞圈）；回傳轉到中央的方案 rank */
   const go = (k: number) => {
     const to = n < 3 ? Math.max(0, Math.min(n - 1, k)) : k
+    // 跟 target 比、不跟 selected 比：連按很快時 selected 可能還是重畫前的舊值
+    const from = ordered[indexAt(target.current, n)].rank
     spinTo(to)
     const rank = ordered[indexAt(to, n)].rank
-    if (rank !== selected) onSelect(rank)
-    return rank !== selected
+    if (rank !== from) onSelect(rank)
+    return rank
   }
 
   // 從外面換方案（網址、上一頁）時，轉盤走最短的方向轉過去

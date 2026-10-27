@@ -1,6 +1,6 @@
 import { ChevronLeft, ChevronRight, Maximize2 } from 'lucide-react'
 import { motion } from 'motion/react'
-import { useEffect, useLayoutEffect, useMemo, useRef, useState, type KeyboardEvent } from 'react'
+import { useLayoutEffect, useMemo, useRef, useState, type KeyboardEvent } from 'react'
 import type { ItineraryRequest, Proposal } from '@/api/schemas'
 import { cn } from '@/lib/utils'
 import { PlanCardBody } from './PlanCardBody'
@@ -23,7 +23,6 @@ export function PlanStage({ plans, selected, onSelect, stationName, request }: P
   const [detail, setDetail] = useState<number | null>(null)
   const radios = useRef(new Map<number, HTMLButtonElement>())
   const opener = useRef<HTMLButtonElement | null>(null)
-  const keyMoved = useRef(false)
 
   // 舞台寬度決定排法（三張並排或一張＋露邊）
   const stageRef = useRef<HTMLDivElement>(null)
@@ -39,18 +38,12 @@ export function PlanStage({ plans, selected, onSelect, stationName, request }: P
   const layout = wheelLayout(width || 390)
   const { idx, rot, target, go, spinnable, gestures } = useWheelSpin(ordered, selected, onSelect, layout.step)
 
-  // 用方向鍵換方案時，焦點跟著到新的中央卡（單選群組的標準操作）
-  useEffect(() => {
-    if (!keyMoved.current) return
-    keyMoved.current = false
-    radios.current.get(selected)?.focus()
-  }, [selected])
-
   const onKey = (e: KeyboardEvent) => {
     const dir = e.key === 'ArrowLeft' || e.key === 'ArrowUp' ? -1 : e.key === 'ArrowRight' || e.key === 'ArrowDown' ? 1 : 0
     if (!dir) return
     e.preventDefault()
-    if (go(target.current + dir)) keyMoved.current = true
+    // 焦點直接跟到新的中央卡（單選群組的標準操作）；不等重畫，連按兩下才不會打在舊的卡上
+    radios.current.get(go(target.current + dir))?.focus()
   }
 
   const card = (p: Proposal) => {
