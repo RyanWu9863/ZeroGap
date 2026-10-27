@@ -8,6 +8,8 @@ const resultUrl = (extra = '') =>
   `/result?from=${encodeURIComponent('中壢站')}&to=${encodeURIComponent('桃園區')}&t=17:00-23:00&budget=1000&walk=12&exp=1${extra}`
 const resultsHeading = (page: Page) => page.getByRole('heading', { name: '這 3 個行程，每一段都接得上。' })
 const funnel = (page: Page) => page.getByTestId('funnel-run')
+/** 進結果頁要先播完漏斗（設計上約 4.5 秒）；CI 的 Windows 機器慢又平行跑，預設 12 秒太緊 */
+const AFTER_FUNNEL = { timeout: 30_000 }
 
 /** 換到某個方案：桌機三張都看得到，直接點；手機、平板側邊只露一條邊，改按「下一個方案」轉過去 */
 async function pickPlan(page: Page, name: RegExp) {
@@ -48,7 +50,7 @@ test.describe('篩選漏斗（PR2）', () => {
     await page.goto(resultUrl())
     await expect(page.getByText('從 39 種接得上的行程，挑出 3 個')).toBeVisible()
     await expect(page.getByText('1 個點 ≈ 16 種組合・共 1,880 種')).toBeVisible()
-    await expect(resultsHeading(page)).toBeVisible()
+    await expect(resultsHeading(page)).toBeVisible(AFTER_FUNNEL)
   })
 
   test('展開關卡看規則和剔除數；看過細節就不自動跳走，按「看行程」才進結果頁', async ({ page }) => {
@@ -59,7 +61,7 @@ test.describe('篩選漏斗（PR2）', () => {
     await page.waitForTimeout(5000)
     await expect(funnel(page)).toBeVisible()
     await page.getByRole('button', { name: '看行程' }).click()
-    await expect(resultsHeading(page)).toBeVisible()
+    await expect(resultsHeading(page)).toBeVisible(AFTER_FUNNEL)
   })
 
   test('無解：停在卡住的關卡，後面的關卡標「沒檢查」，接著到放寬建議', async ({ page }) => {
@@ -72,7 +74,7 @@ test.describe('篩選漏斗（PR2）', () => {
     await page.goto(resultUrl().replace('&exp=1', '&exp=0'))
     await expect(page.getByText('趕得上開演')).toBeVisible()
     await expect(funnel(page)).toHaveCount(0)
-    await expect(resultsHeading(page)).toBeVisible()
+    await expect(resultsHeading(page)).toBeVisible(AFTER_FUNNEL)
   })
 })
 
@@ -80,7 +82,7 @@ test.describe('三方案舞台與詳情（PR3）', () => {
   const stage = (page: Page) => page.getByTestId('plan-stage')
   const open = async (page: Page) => {
     await page.goto(resultUrl())
-    await expect(resultsHeading(page)).toBeVisible()
+    await expect(resultsHeading(page)).toBeVisible(AFTER_FUNNEL)
   }
 
   test('預設最推薦的方案選中；點側邊方案就換到中央，網址跟著換', async ({ page }) => {
@@ -195,7 +197,7 @@ test.describe('行程路線地圖（PR4）', () => {
 
   test('照時間軸順序編號；點站點看時間和要做的事；鍵盤 Enter 也可以', async ({ page }) => {
     await page.goto(resultUrl())
-    await expect(resultsHeading(page)).toBeVisible()
+    await expect(resultsHeading(page)).toBeVisible(AFTER_FUNNEL)
     await expect(map(page).getByRole('group', { name: /^路線：1\. 中壢車站 → 2\. 桃園統領威秀 → 3\. 吉豚屋 → 4\. 桃園車站 → 5\. 中壢車站$/ })).toBeVisible()
     await map(page).getByRole('button', { name: /第 3 站 吉豚屋/ }).click()
     await expect(map(page).getByText('20:06–20:19')).toBeVisible()
@@ -229,7 +231,7 @@ for (const proto of ['timetable', 'cinematic', 'linear']) {
   test(`無障礙：${proto}・三方案舞台和詳情`, async ({ page }, info) => {
     test.skip(info.project.name !== 'chromium', '只在桌機 Chromium 掃')
     await page.goto(resultUrl(`&proto=${proto}`))
-    await expect(resultsHeading(page)).toBeVisible()
+    await expect(resultsHeading(page)).toBeVisible(AFTER_FUNNEL)
     await expectAxeClean(page)
     await page.getByRole('button', { name: '看完整行程' }).click()
     await expect(page.getByRole('dialog')).toBeVisible()
@@ -302,7 +304,7 @@ for (const proto of ['timetable', 'cinematic', 'linear']) {
 test('減少動態：漏斗、方案舞台、詳情都照常能用（動畫改成直接到位）', async ({ page }) => {
   await page.emulateMedia({ reducedMotion: 'reduce' })
   await page.goto(resultUrl())
-  await expect(resultsHeading(page)).toBeVisible()
+  await expect(resultsHeading(page)).toBeVisible(AFTER_FUNNEL)
   await pickPlan(page, /最穩/)
   await expect(page).toHaveURL(/plan=2/)
   await page.getByRole('button', { name: '看完整行程' }).click()
