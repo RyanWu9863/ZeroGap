@@ -27,7 +27,7 @@
   <!-- 用戶端 -->
   <rect class="n" x="360" y="40" width="300" height="76" rx="12"/>
   <text class="nt" x="510" y="72">網頁 ZeroGap</text>
-  <text class="ns" x="510" y="98">下拉條件・前三名方案・SSE 進度</text>
+  <text class="ns" x="510" y="98">出發點三選一・前三名方案・SSE 進度</text>
 
   <rect class="n" x="720" y="40" width="300" height="76" rx="12"/>
   <text class="nt" x="870" y="72">外部 MCP 用戶端</text>
@@ -56,11 +56,11 @@
 
     <rect class="p" x="720" y="186" width="300" height="76" rx="12"/>
     <text class="pt" x="870" y="218">MCP 伺服器 /mcp</text>
-    <text class="ps" x="870" y="244">mcp.py：5 個工具（官方 SDK・無狀態）</text>
+    <text class="ps" x="870" y="244">mcp.py：6 個工具（官方 SDK・無狀態）</text>
 
     <rect class="p" x="360" y="300" width="660" height="76" rx="12"/>
     <text class="pt" x="690" y="332">服務層 services.py</text>
-    <text class="ps" x="690" y="358">API 與 MCP 共用：驗證輸入・限流・送出規劃・讀取選項</text>
+    <text class="ps" x="690" y="358">API 與 MCP 共用：驗證輸入・限流・送出規劃・讀取選項・地點搜尋</text>
 
     <line class="ln" x1="510" y1="262" x2="510" y2="298" marker-end="url(#arrow)"/>
     <line class="ln" x1="870" y1="262" x2="870" y2="298" marker-end="url(#arrow)"/>
@@ -132,20 +132,25 @@
 
     <rect class="g" x="1100" y="768" width="210" height="60" rx="12"/>
     <text class="gt" x="1205" y="793">Google Places</text>
-    <text class="gs" x="1205" y="816">店家資料（不能存）</text>
+    <text class="gs" x="1205" y="816">找店・營業時間（不能存）</text>
 
-    <rect class="g" x="1100" y="844" width="210" height="60" rx="12"/>
+    <rect class="g" x="1100" y="844" width="210" height="76" rx="12"/>
     <text class="gt" x="1205" y="869">TDX</text>
-    <text class="gs" x="1205" y="892">旅運規劃（12/31 下架）</text>
+    <text class="gs" x="1205" y="891">旅運規劃（12/31 下架）</text>
+    <text class="gs" x="1205" y="911">地理編碼（找地點）</text>
 
     <rect class="g" x="1100" y="940" width="210" height="70" rx="12"/>
     <text class="gt" x="1205" y="969">開眼電影網・OSM</text>
-    <text class="gs" x="1205" y="994">場次・餐廳（目前為主）</text>
+    <text class="gs" x="1205" y="994">場次・餐廳（OSM 為備援）</text>
 
     <line class="ln" x1="1040" y1="646" x2="1098" y2="646" marker-end="url(#arrow)"/>
     <line class="ln" x1="1040" y1="722" x2="1098" y2="722" marker-end="url(#arrow)"/>
     <line class="ln" x1="1040" y1="874" x2="1098" y2="874" marker-end="url(#arrow)"/>
     <line class="ln" x1="1040" y1="975" x2="1098" y2="975" marker-end="url(#arrow)"/>
+
+    <!-- 地點搜尋：services → TDX 地理編碼（2026-10-21 加上），從最右邊繞下來 -->
+    <polyline class="ln" points="1020,350 1326,350 1326,904 1312,904" marker-end="url(#arrow)"/>
+    <text class="lbl" x="1132" y="342" text-anchor="middle">地點搜尋</text>
 
     <!-- PostgreSQL -->
     <rect class="n" x="50" y="1070" width="1260" height="96" rx="12"/>
@@ -163,14 +168,14 @@
 
   <!-- 圖例 -->
   <rect class="p" x="50" y="1278" width="20" height="20" rx="4"/>
-  <text class="lbl" x="78" y="1293" font-size="14">後端程式 app/</text>
-  <rect class="g" x="210" y="1278" width="20" height="20" rx="4"/>
-  <text class="lbl" x="238" y="1293" font-size="14">外部服務</text>
-  <rect class="n" x="340" y="1278" width="20" height="20" rx="4"/>
-  <text class="lbl" x="368" y="1293" font-size="14">前端、用戶端、資料庫、代理</text>
-  <rect class="box" x="580" y="1278" width="20" height="20" rx="4"/>
-  <text class="lbl" x="608" y="1293" font-size="14">Docker 容器</text>
-  <line class="dash" x1="720" y1="1288" x2="760" y2="1288"/>
-  <text class="lbl" x="768" y="1293" font-size="14">備援</text>
-  <text class="lbl" x="880" y="1293" font-size="14">★ 三大亮點　｜　對應規格書 v0.14</text>
+  <text class="lbl" x="78" y="1293" font-size="14">後端程式 backend/app/</text>
+  <rect class="g" x="250" y="1278" width="20" height="20" rx="4"/>
+  <text class="lbl" x="278" y="1293" font-size="14">外部服務</text>
+  <rect class="n" x="380" y="1278" width="20" height="20" rx="4"/>
+  <text class="lbl" x="408" y="1293" font-size="14">前端、用戶端、資料庫、代理</text>
+  <rect class="box" x="620" y="1278" width="20" height="20" rx="4"/>
+  <text class="lbl" x="648" y="1293" font-size="14">Docker 容器</text>
+  <line class="dash" x1="760" y1="1288" x2="800" y2="1288"/>
+  <text class="lbl" x="808" y="1293" font-size="14">備援</text>
+  <text class="lbl" x="920" y="1293" font-size="14">★ 三大亮點　｜　對應規格書 v0.14</text>
 </svg>

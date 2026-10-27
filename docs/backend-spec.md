@@ -100,7 +100,7 @@
 - 虛線框是 Docker 容器：FastAPI（`api`）和 RQ worker 都可以開多個實例。RQ worker 分成兩種容器：`worker` 只跑規劃、`worker-crawl` 只跑抓取（v0.14）。
 - 標 ★ 的是三大亮點：FastAPI、Redis、PostgreSQL。
 - 虛線箭頭是備援：Jev 沒把握時交給 `llm.py`，由它呼叫 Ollama。
-- 架構從 v0.4 起沒有變動，所以檔名沿用 v0.4；圖上的文字已更新到 v0.13（v0.8：拿掉飲食限制、前端改名 ZeroGap、TDX 可行時間 2～5 次；v0.13：匯入改成各來源的 `*_import.py`、店家屬性先用 Ollama 判斷、OSM 是目前主要的餐廳來源、TDX 旅運規劃 12/31 下架）。原始檔：[architecture-v0.4.svg](架構圖/architecture-v0.4.svg)。要修改時直接編輯這個 SVG 檔，再轉一次 PNG：[architecture-v0.4.png](架構圖/architecture-v0.4.png)。
+- 架構從 v0.4 起沒有變動，所以檔名沿用 v0.4；圖上的文字已更新到 v0.13（v0.8：拿掉飲食限制、前端改名 ZeroGap、TDX 可行時間 2～5 次；v0.13：匯入改成各來源的 `*_import.py`、店家屬性先用 Ollama 判斷、OSM 是目前主要的餐廳來源、TDX 旅運規劃 12/31 下架；2026-10-22：出發點三選一、MCP 6 個工具、服務層的地點搜尋直接查 TDX 地理編碼、商圈有 Google 的店時 OSM 是備援、後端程式在 `backend/app/`）。原始檔：[architecture-v0.4.svg](架構圖/architecture-v0.4.svg)。要修改時直接編輯這個 SVG 檔，再轉一次 PNG：[architecture-v0.4.png](架構圖/architecture-v0.4.png)。
 
 ### 2.2 元件說明
 
