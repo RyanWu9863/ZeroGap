@@ -31,17 +31,17 @@ export function PlanCardBody({ plan, stationName, size = 'md' }: { plan: Proposa
         {plan.summary.return_time}
       </span>
       <PlanRibbon plan={plan} legend={lg} />
-      <span className="grid gap-1.5 text-sm">
+      <span className="grid grid-cols-[minmax(0,1fr)] gap-1.5 text-sm">
         {f.movie && (
           <span className="flex items-center gap-2">
             <Clapperboard className="size-3.5 shrink-0 text-muted-foreground" aria-hidden="true" />
-            <span className="truncate">《{f.movie}》{f.theater && <span className="text-muted-foreground">・{f.theater}</span>}</span>
+            <span className="min-w-0">《{f.movie}》{f.theater && <span className="text-muted-foreground">・{f.theater}</span>}</span>
           </span>
         )}
         {f.restaurant && (
           <span className="flex items-center gap-2">
             <UtensilsCrossed className="size-3.5 shrink-0 text-muted-foreground" aria-hidden="true" />
-            <span className="truncate">{f.restaurant}</span>
+            <span className="min-w-0">{f.restaurant}</span>
           </span>
         )}
         <span className="flex items-center gap-2">
