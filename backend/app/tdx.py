@@ -278,10 +278,16 @@ class TdxTransit:
         self.rates = rates or FareRates()
         self.retries = retries
         self.http = http or httpx.Client(timeout=timeout)
+        self._owns_http = http is None
         self.sleep = sleep
         self.limiter = limiter
         self.points_limit = points_limit
         self.on_rate_limited = on_rate_limited
+
+    def close(self) -> None:
+        """關掉自己建立的連線；外面傳進來的 `http` 由外面關。"""
+        if self._owns_http:
+            self.http.close()
 
     # ── token（5.3 A1）─────────────────────────────────────────
 

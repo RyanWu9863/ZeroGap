@@ -922,6 +922,20 @@ rq cron（只負責觸發）── 每天 06:00 ──▶ 抓取佇列 ──▶
 - **要請組員做**（規格書 6.7）：`relax.ts` 加上 `transit_window` 的標籤，這時顯示 `message`、不給放寬電影或餐廳的按鈕。
 - 測試新增 6 個（TDX 4 個、planner 2 個），全部 428 個通過。
 
+### 2026-10-27 補回 10/24 的修 bug、修後端低優先（準備測 LLM 代選）
+
+- **發現**：程式搬到 `E:\ZeroGap`（等於 GitHub 的 main）。`D:\ZeroGap` 還有 10/24 修 bug 的 2 個 commit 沒推上 GitHub（第三次發生），而 D: 又落後 GitHub 18 個 commit（沒有 v0.15 的 LLM 熔斷、決策紀錄）。
+- **使用者決定**：
+  - 在 D: 把 2 個 commit **rebase 到最新的 main**，測試過了就推上 GitHub。原本的位置留在 `backup/2026-10-24-fixes` 分支。
+  - 10/24 和 10/27 都修了 H5（TDX 出發取最早抵達），程式留 10/27 的版本；兩邊各加了同名的測試，10/24 那個改名。
+  - 後端低優先 L1～L4 都要處理；L2～L4 直接修，L1 要改規格書 4.5，另外討論。
+  - 「LLM 的測試」指規劃時的 LLM 代選，外部服務 TDX、Google 用真的（Jev 沒金鑰，用模擬版）。
+- **修正**（各加了先失敗再通過的測試）：
+  - **L2**：`plan_stream.py` 收到 `result`、`error` 時，在送出**之前**就標記結束。MCP 的 `plan_date` 拿到結果就 `return`，generator 停在 `yield`，收尾時原本會對還在收尾的 worker 送停止指令。
+  - **L3**：`latest_home_cutoff_hour`、`latest_home_max_hour_next_day` 傳進 `resolve_times`；`route_cache_ttl_seconds`、`route_cache_slot_minutes` 傳進 `CachedTransit`；MCP 的步行上限改成在 import 時照 `walk_limit_options` 產生（工具的 schema 還是列得出選項）。
+  - **L4**：`TdxTransit.close()` 關掉自己建的 `httpx.Client`，地點搜尋用完就關。
+- 全部 445 個測試通過。
+
 ## 6. 剩下的步驟
 
 - **第 5 步：部署、測試、錯誤處理**

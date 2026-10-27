@@ -138,7 +138,7 @@ class PlanRequest(_Model):
 
     @model_validator(mode="after")
     def _times(self) -> "PlanRequest":
-        resolve_times(self.date, self.earliest_departure, self.latest_home)
+        self.resolved_times()
         return self
 
     @model_validator(mode="after")
@@ -155,7 +155,14 @@ class PlanRequest(_Model):
         return self
 
     def resolved_times(self) -> tuple[datetime, datetime]:
-        return resolve_times(self.date, self.earliest_departure, self.latest_home)
+        s = get_settings()
+        return resolve_times(
+            self.date,
+            self.earliest_departure,
+            self.latest_home,
+            s.latest_home_cutoff_hour,
+            s.latest_home_max_hour_next_day,
+        )
 
 
 # ── 規劃結果（6.5） ─────────────────────────────────────────────

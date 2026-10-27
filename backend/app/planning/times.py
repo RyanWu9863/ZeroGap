@@ -8,15 +8,17 @@ from datetime import date, datetime, time, timedelta
 from zoneinfo import ZoneInfo
 
 TZ = ZoneInfo("Asia/Taipei")
-NEXT_DAY_BEFORE = time(6, 0)
-NEXT_DAY_LATEST = time(2, 0)
 
 
-def resolve_times(day: date, earliest: time, latest: time) -> tuple[datetime, datetime]:
+def resolve_times(
+    day: date, earliest: time, latest: time, cutoff_hour: int = 6, max_hour_next_day: int = 2
+) -> tuple[datetime, datetime]:
+    """`cutoff_hour`、`max_hour_next_day` 是設定的 `latest_home_cutoff_hour`、
+    `latest_home_max_hour_next_day`（預設 06:00、02:00）。"""
     earliest_dt = datetime.combine(day, earliest, TZ)
-    if latest < NEXT_DAY_BEFORE:
-        if latest > NEXT_DAY_LATEST:
-            raise ValueError("最晚到家可以跨到隔天，但不能晚於 02:00")
+    if latest < time(cutoff_hour):
+        if latest > time(max_hour_next_day):
+            raise ValueError(f"最晚到家可以跨到隔天，但不能晚於 {max_hour_next_day:02d}:00")
         latest_dt = datetime.combine(day + timedelta(days=1), latest, TZ)
     else:
         latest_dt = datetime.combine(day, latest, TZ)

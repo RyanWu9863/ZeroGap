@@ -93,17 +93,19 @@ class CachedTransit:
         before_call: Callable[[], None] | None = None,
         ttl_seconds: int = TTL_SECONDS,
         version: str = VERSION,
+        slot_minutes: int = SLOT_MINUTES,
     ):
         self.inner, self.client = inner, client
         self.before_call = before_call
         self.ttl_seconds = ttl_seconds
+        self.slot_minutes = slot_minutes
         # 模擬版和真的 TDX 分開存，切換模式時才不會拿到另一邊的路線
         self.version = version
 
     def route(
         self, origin: Endpoint, dest: Endpoint, at: datetime, mode: TimeMode, top: int = 1
     ) -> list[Route]:
-        slot = round_slot(at, mode)
+        slot = round_slot(at, mode, self.slot_minutes)
         key = route_cache_key(origin.key, dest.key, slot, mode, top, self.version)
         cached = self._get(key)
         if cached is not None:

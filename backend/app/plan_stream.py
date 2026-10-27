@@ -114,13 +114,15 @@ async def plan_events(
             now = loop.time()
             if msg is not None:
                 event = json.loads(msg["data"])
+                # 送出前就要標記：MCP 拿到結果就離開，generator 停在 yield，
+                # 收尾時才不會把剛跑完的工作停掉（2026-10-24 bug 清單 L2）
+                finished = event["event"] in ("result", "error")
                 yield event["event"], event["data"]
+                if finished:
+                    return
                 last_sent, missing = now, 0
                 if event["event"] == "progress":
                     started = True
-                if event["event"] in ("result", "error"):
-                    finished = True
-                    return
                 continue
 
             if now - last_poll >= POLL_SECONDS:

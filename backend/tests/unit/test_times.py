@@ -50,3 +50,11 @@ def test_plan_request_round_trips_hhmm():
     assert dumped["earliest_departure"] == "17:00"
     assert dumped["latest_home"] == "01:30"
     assert PlanRequest.model_validate(dumped).latest_home == time(1, 30)
+
+
+def test_cutoff_and_next_day_limit_follow_arguments():
+    # 設定 LATEST_HOME_CUTOFF_HOUR、LATEST_HOME_MAX_HOUR_NEXT_DAY 要有作用（bug 清單 L3）
+    _, latest = resolve_times(D, time(17), time(3), cutoff_hour=7, max_hour_next_day=3)
+    assert latest == datetime(2026, 10, 23, 3, tzinfo=TZ)
+    with pytest.raises(ValueError, match="03:00"):
+        resolve_times(D, time(17), time(3, 1), cutoff_hour=7, max_hour_next_day=3)

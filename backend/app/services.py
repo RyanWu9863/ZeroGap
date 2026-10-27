@@ -129,11 +129,15 @@ def _tdx_search(s: Settings, q: str) -> list[dict[str, Any]]:
         s.tdx_client_id, s.tdx_client_secret, r, timeout=s.http_timeout_seconds,
         limiter=limiter, points_limit=s.quota_tdx_points_units,
     )  # fmt: skip
-    geo = Geocoder(tdx, r, s)
-    return [
-        {"name": h.name, "address": h.address, "lat": h.lat, "lng": h.lng}
-        for h in locations.search(geo.markname, geo.address, q)
-    ]
+    # 每次搜尋都建新的用戶端，用完要關，API 程序才不會一直累積連線（bug 清單 L4）
+    try:
+        geo = Geocoder(tdx, r, s)
+        return [
+            {"name": h.name, "address": h.address, "lat": h.lat, "lng": h.lng}
+            for h in locations.search(geo.markname, geo.address, q)
+        ]
+    finally:
+        tdx.close()
 
 
 async def _mock_search(db: AsyncSession, q: str) -> list[dict[str, Any]]:

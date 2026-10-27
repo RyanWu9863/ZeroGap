@@ -35,6 +35,9 @@ INSTRUCTIONS = (
 
 mcp = MCPServer("ZeroGap", instructions=INSTRUCTIONS)
 
+# 步行上限的選項跟著設定（WALK_LIMIT_OPTIONS），工具的 schema 才列得出可以填的值（bug 清單 L3）
+WalkMinutes = Literal[tuple(get_settings().walk_limit_options)]  # type: ignore[valid-type]
+
 STAGE_TEXT = {
     "loading_data": "讀取場次和餐廳",
     "checking_feasibility": "查交通的可行時間",
@@ -116,7 +119,7 @@ async def plan_date(
     latest_home: str,
     order: Literal["movie_first", "meal_first"],
     budget_per_person: int,
-    max_walk_minutes: Literal[5, 8, 12, 15, 20],
+    max_walk_minutes: WalkMinutes,
     movie_id: int | None = None,
     movie_genre: str | None = None,
     hall_type: str | None = None,

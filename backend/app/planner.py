@@ -165,6 +165,8 @@ class Planner:
             # 真的 TDX 的固定參數 2026-10-21 改過（頭尾步行 20 分鐘），快取換成 v2；
             # 2026-10-27 回程往前重查、去程改取最早抵達，換成 v3，舊的空結果和排序不再沿用（5.3）
             version="v3" if self.s.tdx_mode == "real" else "v1mock",
+            ttl_seconds=self.s.route_cache_ttl_seconds,
+            slot_minutes=self.s.route_cache_slot_minutes,
         )
         self.earliest, self.latest_home = req.resolved_times()
         self.cond = Conditions(
