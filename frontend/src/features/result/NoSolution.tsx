@@ -23,6 +23,8 @@ function RelaxButton({ x, onRelax }: { x: Relax; onRelax: (p: Partial<PlanReques
  * 這反而證明「保證接得上」是真的。
  * - NO_FEASIBLE：後端附各條件排除的組數（reasons），排除最多的排最前面
  * - NO_SHOWTIMES：這天這個商圈沒有符合條件的場次
+ * - NO_FEASIBLE 只有 transit_window（規格書 v0.16）：出發點的交通本身就排不進去，
+ *   放寬電影或餐廳都沒用，改顯示後端的 message（寫了最早幾點到、最晚幾點要離開），建議改從車站出發
  */
 export function NoSolution({ request, error, onRelax }: { request: PlanRequest; error: RunError; onRelax: (patch: Partial<PlanRequest>) => void }) {
   if (error.code === 'NO_SHOWTIMES') {
@@ -35,6 +37,20 @@ export function NoSolution({ request, error, onRelax }: { request: PlanRequest; 
           {x && <RelaxButton x={x} onRelax={onRelax} />}
           <Link to="/plan/2" className="zg-surface flex items-center justify-between p-4 font-medium hover:border-foreground/40">
             換一天 <ArrowRight className="size-4" />
+          </Link>
+        </div>
+      </div>
+    )
+  }
+
+  if (error.reasons?.transit_window) {
+    return (
+      <div className="mx-auto max-w-lg px-4 py-12 text-center">
+        <h1 className="text-2xl font-bold cine:font-semibold lin:font-semibold">從這個出發點，交通時間不夠</h1>
+        <p className="mt-3 text-muted-foreground">{error.message}</p>
+        <div className="mt-8 space-y-3 text-left">
+          <Link to="/plan/1" className="zg-surface flex items-center justify-between p-4 font-medium hover:border-foreground/40">
+            改從車站出發 <ArrowRight className="size-4" />
           </Link>
         </div>
       </div>

@@ -10,6 +10,8 @@ import { formatMoney } from '@/shared/lib/format'
  * 不顯示「放寬後可找到 N 組」：後端沒有這個數字。
  * reasons 的 key 照規格書 6.4 的表：showtime、walk、opening_hours、last_order、last_train、budget；
  * 認不得的（後端之後加的）只列原因、不給按鈕。
+ * transit_window（規格書 v0.16）：出發點的交通本身就排不進去，reasons 只有這一個 key，
+ * 放寬電影或餐廳都沒用，所以不給按鈕；畫面改顯示後端的 message（見 NoSolution）。
  */
 const LATEST = 26 * 60 // 隔天 02:00
 const EARLIEST = 10 * 60
@@ -32,6 +34,8 @@ export function reasonLabel(key: string, r: PlanRequest): string {
       return `最晚 ${homeLabel(r.latest_home)} 回到出發站`
     case 'budget':
       return `每人不超過 ${formatMoney(r.budget_per_person)}`
+    case 'transit_window':
+      return '出發點的交通時間'
     default:
       return key
   }

@@ -26,6 +26,11 @@ describe('relaxPlan（2026-10-20 決定：列原因＋一鍵放寬一級）', ()
     expect(relaxPlan({ budget: 1, walk: 1 }, { ...benchmarkRequest, budget_per_person: 2000, max_walk_minutes: 20 }).buttons).toEqual([])
     expect(relaxPlan({ last_train: 1 }, { ...benchmarkRequest, latest_home: '02:00' }).buttons).toEqual([])
   })
+  it('出發點的交通接不上（transit_window）有標籤、不給按鈕', () => {
+    const r = relaxPlan({ transit_window: 15372 }, benchmarkRequest)
+    expect(r.rows).toEqual([{ key: 'transit_window', label: '出發點的交通時間', count: 15372 }])
+    expect(r.buttons).toEqual([])
+  })
   it('認不得的原因只列出來、不給按鈕', () => {
     const r = relaxPlan({ something_new: 9 }, benchmarkRequest)
     expect(r.rows[0].label).toBe('something_new')
