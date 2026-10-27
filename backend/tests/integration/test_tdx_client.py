@@ -105,7 +105,7 @@ def test_depart_stops_at_first_query_with_valid_routes(r):
 
 
 @respx.mock
-def test_depart_puts_earliest_arrival_first(r):
+def test_depart_puts_fast_train_before_earlier_bus(r):
     respx.post(TOKEN_URL).mock(return_value=token_ok())
     # 公車 16:48 出門、17:34 才到；火車 17:05 出門、17:18 就到
     mixed = fixture("routing_bus_depart")
