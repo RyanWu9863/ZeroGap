@@ -947,6 +947,14 @@ rq cron（只負責觸發）── 每天 06:00 ──▶ 抓取佇列 ──▶
   - 每天 03:00 跑一次，所以「快超過 30 天」是超過 29 天：隔天再試就超過條款上限。
   - `PlacesError` 新增 `status`（HTTP 狀態碼）；`refresh_google_geom` 的統計多一個 `retry_later`。
 
+### 2026-10-27 前端展示版放上 GitHub Pages
+
+- 使用者要在 GitHub 開網頁，選擇**前端的模擬版**（`VITE_USE_MOCK=true`，前端決策 Q78 原本就規劃了）。GitHub Pages 只能放靜態檔，後端不能放上去。
+- 官方文件：免費帳號只有公開 repo 能開 Pages，而且網頁一定是公開的。使用者選**另開一個公開的 repo**，程式碼的 repo 維持私人。
+- 網址：https://ryanwu9863.github.io/zerogap-site/ ，repo `RyanWu9863/zerogap-site` 只放打包好的檔案（Pages 從 `main` 的根目錄發布）。
+- 發布前檢查：假資料的店家、地址、place ID 都是示意的，不是 Google 的內容；打包結果沒有金鑰、沒有本機網址。前端測試 115 個、`tsc -b` 通過；本機和線上都走過一次精靈到結果頁，也試過直接開深層網址。
+- **之後要更新**：從 GitHub 的 main clone 一份，在 `frontend/` 執行 `npm ci`、`VITE_USE_MOCK=true VITE_SITE_URL=https://ryanwu9863.github.io/zerogap-site/ npx vite build --base=/zerogap-site/`，把 `dist/index.html` 複製成 `404.html`，再把 `dist/` 的內容換進 `zerogap-site` 推上去（保留 `.nojekyll`、`README.md`）。`frontend/.github/workflows/pages.yml` 在子資料夾裡，GitHub Actions 不會執行。
+
 ## 6. 剩下的步驟
 
 - **第 5 步：部署、測試、錯誤處理**
