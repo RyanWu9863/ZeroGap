@@ -935,6 +935,17 @@ rq cron（只負責觸發）── 每天 06:00 ──▶ 抓取佇列 ──▶
   - **L3**：`latest_home_cutoff_hour`、`latest_home_max_hour_next_day` 傳進 `resolve_times`；`route_cache_ttl_seconds`、`route_cache_slot_minutes` 傳進 `CachedTransit`；MCP 的步行上限改成在 import 時照 `walk_limit_options` 產生（工具的 schema 還是列得出選項）。
   - **L4**：`TdxTransit.close()` 關掉自己建的 `httpx.Client`，地點搜尋用完就關。
 - 全部 445 個測試通過。
+- **L1（規格書 v0.17）**：Google 座標更新失敗時怎麼處理。
+
+| 選項 | 做法 | 使用者決定 |
+|---|---|---|
+| A | 分情況：404 才馬上停用；暫時的錯誤隔天再試，快超過 30 天才停用 | **採用** |
+| B | 暫時的錯誤都不動，一直重試（可能超過條款的 30 天） | |
+| C | 維持現狀：查失敗就停用 | |
+
+  - 官方文件：過時的 place ID 回 `NOT_FOUND`，格式不對的回 `INVALID_REQUEST`。New API 照 Google 的慣例，`NOT_FOUND` 是 HTTP 404。**400 不當成「不存在」**：400 也可能是我們的請求寫錯（例如欄位遮罩），當成不存在會一次停用所有 Google 餐廳，所以照暫時的錯誤處理。
+  - 每天 03:00 跑一次，所以「快超過 30 天」是超過 29 天：隔天再試就超過條款上限。
+  - `PlacesError` 新增 `status`（HTTP 狀態碼）；`refresh_google_geom` 的統計多一個 `retry_later`。
 
 ## 6. 剩下的步驟
 

@@ -22,7 +22,7 @@ from sqlalchemy.orm import Session
 from app.collectors.osm import RADIUS_M, assign_areas
 from app.collectors.osm_import import FIELDS, Judge, _record, load_hubs
 from app.models import Restaurant
-from app.places import NearbyPlace
+from app.places import NearbyPlace, PlacesError
 from app.redis_utils.quota import add_usage, has_room
 
 log = logging.getLogger(__name__)
@@ -30,6 +30,9 @@ TZ = ZoneInfo("Asia/Taipei")
 SEARCH_RADIUS_M = 700
 CENTER_STEP_M = 900
 GEOM_MAX_AGE = timedelta(days=25)
+GEOM_TERMS_LIMIT = timedelta(days=30)  # 條款上限：座標最多保存 30 天（3.3）
+# 每天 03:00 跑一次：超過 29 天的，明天再試就超過條款上限，這次更新不了就要停用
+GEOM_LAST_CHANCE = GEOM_TERMS_LIMIT - timedelta(days=1)
 
 # Google 的店家類型 → 料理類別【預設】
 GOOGLE_CUISINES = {
@@ -159,16 +162,24 @@ def refresh_google_places(
 def refresh_google_geom(
     session: Session, r: redis.Redis, google: LocationClient, quota_limit: int
 ) -> dict[str, Any]:
-    """座標超過 25 天就用 Place Details（Essentials）更新；拿不到就清掉座標、設成停用（4.5）。"""
-    cutoff = datetime.now(TZ) - GEOM_MAX_AGE
+    """座標超過 25 天就用 Place Details（Essentials）更新（4.5）。
+
+    Google 回 404（place ID 過時）或沒有座標：清掉座標、設成停用。
+    暫時的錯誤（逾時、連不上、5xx、429 等）：這次跳過，明天再試；明天再試就會超過 30 天
+    （條款上限）的，才清掉座標、停用（2026-10-27 使用者決定，bug 清單 L1）。
+    """
+    now = datetime.now(TZ)
     rows = session.execute(
         text(
-            "SELECT id, external_id FROM restaurants WHERE source = 'google' AND is_active "
+            "SELECT id, external_id, geom_fetched_at FROM restaurants "
+            "WHERE source = 'google' AND is_active "
             "AND (geom_fetched_at IS NULL OR geom_fetched_at < :c) ORDER BY geom_fetched_at"
         ),
-        {"c": cutoff},
+        {"c": now - GEOM_MAX_AGE},
     ).all()
-    stats: dict[str, Any] = {"refreshed": 0, "deactivated": 0, "quota_exhausted": False}
+    stats: dict[str, Any] = {
+        "refreshed": 0, "deactivated": 0, "retry_later": 0, "quota_exhausted": False,
+    }  # fmt: skip
     for row in rows:
         if not has_room(r, "google:details_essentials", quota_limit):
             stats["quota_exhausted"] = True
@@ -178,6 +189,12 @@ def refresh_google_geom(
         except Exception as exc:  # noqa: BLE001
             log.warning("更新 %s 的座標失敗：%r", row.external_id, exc)
             loc = None
+            gone = isinstance(exc, PlacesError) and exc.status == 404
+            expired = row.geom_fetched_at is None or row.geom_fetched_at <= now - GEOM_LAST_CHANCE
+            if not gone and not expired:
+                add_usage(r, "google:details_essentials", 1)
+                stats["retry_later"] += 1
+                continue
         add_usage(r, "google:details_essentials", 1)
         if loc:
             session.execute(

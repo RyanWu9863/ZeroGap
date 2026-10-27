@@ -2,7 +2,7 @@
 
 | 項目 | 內容 |
 |---|---|
-| 版本 | v0.16（出發點的交通接不上時，`NO_FEASIBLE` 的 `reasons` 只放 `transit_window`、`message` 寫出時間；TDX 的 `arrival` 查不到時往前重查、`depart` 改取最早抵達；路線快取換成 `v3`，見 3.2、5.3、6.4、7.1。v0.15：AI 推論：Ollama 連續連不上就熔斷；LLM 可選擇棄權［預設關閉］；Router 判斷方式可由設定切換［預設不變］；每次規劃寫一行決策紀錄日誌，見 3、3.1、7.1。v0.14：規劃和抓取拆成兩個 worker：`worker` 只聽 `plans`、新增 `worker-crawl` 只聽 `crawl`，抓取時規劃不用再排隊等，見 5.6、8.1。v0.13：第二階段實作：真的 TDX［頭尾步行 20 分鐘、車資沒給時自己估］、TDX 車站、OSM 餐廳、開眼爬蟲、`rq cron`、MCP；新增蘆竹（南崁）商圈、青埔先不開放；八德只用廣豐新天地。v0.12：逐項確認實作時新增的預設值：早到 30 分鐘內等開門、餐廳備選補滿 2 家、沒判斷屬性的店不排、Jev 沒把握就附備選、新增 `restaurant.hours_verified`。v0.11：實作中的補充列在 10.1；`restaurants.source` 新增 `demo`；修正 5.3 路線快取的取整範例；7.3 補上價位區間的代碼；實作時的小調整：`areas.sort_order`、`area_hubs.geom` 可以是 null、migration 一併寫入類別和票價。v0.10：補上前端對照時發現的缺口：下拉選單的回應範例、跨午夜的判斷、`reasons` 的 key、排隊順位的意思、備選欄位、OSM 出處。v0.9：備選只附估計值、第一名固定「最推薦」、回程緩衝加 `return_window`。v0.8 起前端 ZeroGap 照這份規格串接、飲食限制延後；架構與 v0.4 相同） |
+| 版本 | v0.17（Google 座標更新失敗時，404 才馬上停用，暫時的錯誤隔天再試，見 4.5。v0.16：出發點的交通接不上時，`NO_FEASIBLE` 的 `reasons` 只放 `transit_window`、`message` 寫出時間；TDX 的 `arrival` 查不到時往前重查、`depart` 改取最早抵達；路線快取換成 `v3`，見 3.2、5.3、6.4、7.1。v0.15：AI 推論：Ollama 連續連不上就熔斷；LLM 可選擇棄權［預設關閉］；Router 判斷方式可由設定切換［預設不變］；每次規劃寫一行決策紀錄日誌，見 3、3.1、7.1。v0.14：規劃和抓取拆成兩個 worker：`worker` 只聽 `plans`、新增 `worker-crawl` 只聽 `crawl`，抓取時規劃不用再排隊等，見 5.6、8.1。v0.13：第二階段實作：真的 TDX［頭尾步行 20 分鐘、車資沒給時自己估］、TDX 車站、OSM 餐廳、開眼爬蟲、`rq cron`、MCP；新增蘆竹（南崁）商圈、青埔先不開放；八德只用廣豐新天地。v0.12：逐項確認實作時新增的預設值：早到 30 分鐘內等開門、餐廳備選補滿 2 家、沒判斷屬性的店不排、Jev 沒把握就附備選、新增 `restaurant.hours_verified`。v0.11：實作中的補充列在 10.1；`restaurants.source` 新增 `demo`；修正 5.3 路線快取的取整範例；7.3 補上價位區間的代碼；實作時的小調整：`areas.sort_order`、`area_hubs.geom` 可以是 null、migration 一併寫入類別和票價。v0.10：補上前端對照時發現的缺口：下拉選單的回應範例、跨午夜的判斷、`reasons` 的 key、排隊順位的意思、備選欄位、OSM 出處。v0.9：備選只附估計值、第一名固定「最推薦」、回程緩衝加 `return_window`。v0.8 起前端 ZeroGap 照這份規格串接、飲食限制延後；架構與 v0.4 相同） |
 | 日期 | 2026-10-27 |
 | 狀態 | 草稿 |
 | 討論紀錄 | [spec-discussion.md](spec-discussion.md) |
@@ -100,7 +100,7 @@
 - 虛線框是 Docker 容器：FastAPI（`api`）和 RQ worker 都可以開多個實例。RQ worker 分成兩種容器：`worker` 只跑規劃、`worker-crawl` 只跑抓取（v0.14）。
 - 標 ★ 的是三大亮點：FastAPI、Redis、PostgreSQL。
 - 虛線箭頭是備援：Jev 沒把握時交給 `llm.py`，由它呼叫 Ollama。
-- 架構從 v0.4 起沒有變動，所以檔名沿用 v0.4；圖上的文字已更新到 v0.16（v0.8：拿掉飲食限制、前端改名 ZeroGap、TDX 可行時間 2～5 次；v0.13：匯入改成各來源的 `*_import.py`、店家屬性先用 Ollama 判斷、OSM 是目前主要的餐廳來源、TDX 旅運規劃 12/31 下架；2026-10-22：出發點三選一、MCP 6 個工具、服務層的地點搜尋直接查 TDX 地理編碼、商圈有 Google 的店時 OSM 是備援、後端程式在 `backend/app/`；v0.14：RQ worker 分成 `worker`、`worker-crawl`；v0.15、v0.16 架構不變）。原始檔：[architecture-v0.4.svg](架構圖/architecture-v0.4.svg)。要修改時直接編輯這個 SVG 檔，再轉一次 PNG：[architecture-v0.4.png](架構圖/architecture-v0.4.png)。
+- 架構從 v0.4 起沒有變動，所以檔名沿用 v0.4；圖上的文字已更新到 v0.17（v0.8：拿掉飲食限制、前端改名 ZeroGap、TDX 可行時間 2～5 次；v0.13：匯入改成各來源的 `*_import.py`、店家屬性先用 Ollama 判斷、OSM 是目前主要的餐廳來源、TDX 旅運規劃 12/31 下架；2026-10-22：出發點三選一、MCP 6 個工具、服務層的地點搜尋直接查 TDX 地理編碼、商圈有 Google 的店時 OSM 是備援、後端程式在 `backend/app/`；v0.14：RQ worker 分成 `worker`、`worker-crawl`；v0.15～v0.17 架構不變）。原始檔：[architecture-v0.4.svg](架構圖/architecture-v0.4.svg)。要修改時直接編輯這個 SVG 檔，再轉一次 PNG：[architecture-v0.4.png](架構圖/architecture-v0.4.png)。
 
 ### 2.2 元件說明
 
@@ -538,7 +538,7 @@ WHERE subject_type = 'restaurant' AND decided_by = 'llm';
 |---|---|
 | 過期場次 | 每天抓取時刪除 `starts_at < now()` 的場次 |
 | 軌道車站 | 每週更新；TDX 資料中消失的車站設為 `is_active = false` |
-| Google 座標 | 超過 25 天就重新取得【預設，比 30 天提早】；取得失敗就設 `is_active = false`，並清掉座標 |
+| Google 座標 | 超過 25 天就重新取得【預設，比 30 天提早】。Google 回 404（place ID 過時）或沒有座標：設 `is_active = false`，並清掉座標。暫時的錯誤（逾時、連不上、5xx、429、其他 4xx）：這次跳過，隔天再試；座標超過 29 天（隔天再試就超過條款的 30 天）還是更新不了，才停用並清掉座標（v0.17） |
 | Jev 判斷 | 超過 30 天，或 `jev_version` 不是目前的 Jev 版本，就重算 |
 | 規劃結果 | 不存 |
 

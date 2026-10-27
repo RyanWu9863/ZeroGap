@@ -42,7 +42,10 @@ MEAL_TYPES = ["restaurant", "fast_food_restaurant", "cafe"]
 
 
 class PlacesError(Exception):
-    pass
+    def __init__(self, message: str, status: int | None = None):
+        """`status`：Google 回的 HTTP 狀態碼；逾時、連不上時是 None。"""
+        super().__init__(message)
+        self.status = status
 
 
 @dataclass(frozen=True)
@@ -131,7 +134,9 @@ class GooglePlaces:
                 self.sleep(attempt + 1)
                 continue
             if resp.status_code != 200:
-                raise PlacesError(f"Google Places HTTP {resp.status_code}：{resp.text[:200]}")
+                raise PlacesError(
+                    f"Google Places HTTP {resp.status_code}：{resp.text[:200]}", resp.status_code
+                )
             return resp.json()
         raise PlacesError("Google Places 失敗")
 

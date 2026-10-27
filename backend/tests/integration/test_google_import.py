@@ -13,7 +13,7 @@ from app.collectors.google_import import (
     refresh_google_places,
     rule_attributes_google,
 )
-from app.places import NearbyPlace
+from app.places import NearbyPlace, PlacesError
 from app.redis_utils.quota import add_usage, used
 from tests.integration.conftest import reseed
 
@@ -133,8 +133,44 @@ def test_coordinates_older_than_25_days_are_refreshed(session, r):
     )
     session.commit()
     stats = refresh_google_geom(session, r, FakeGoogle(), quota_limit=9500)
-    assert stats == {"refreshed": 1, "deactivated": 1, "quota_exhausted": False}
+    assert stats == {"refreshed": 1, "deactivated": 1, "retry_later": 0, "quota_exhausted": False}
     gone = session.execute(
         text("SELECT is_active, geom FROM restaurants WHERE external_id = 'ChIJgone'")
     ).one()
     assert gone.is_active is False and gone.geom is None  # 拿不到新座標就清掉（條款上限 30 天）
+
+
+class FlakyGoogle(FakeGoogle):
+    """ChIJ404 是 Google 回 404（place ID 過時）；其他都是暫時的錯誤（逾時、5xx、429）。"""
+
+    def location(self, place_id):
+        if place_id == "ChIJ404":
+            raise PlacesError("Google Places HTTP 404：NOT_FOUND", status=404)
+        raise PlacesError("Google Places HTTP 503：UNAVAILABLE", status=503)
+
+
+def test_temporary_errors_keep_restaurant_until_30_days(session, r):
+    # 暫時的錯誤明天再試；明天再試會超過 30 天（條款上限）的才停用；404 馬上停用（bug 清單 L1）
+    now = datetime.now(TZ)
+    session.execute(
+        text(
+            "INSERT INTO restaurants (source, external_id, geom, geom_fetched_at, is_active) "
+            "VALUES "
+            "('google', 'ChIJflaky', 'SRID=4326;POINT(121.2 24.9)', :young, true), "
+            "('google', 'ChIJexpired', 'SRID=4326;POINT(121.2 24.9)', :old, true), "
+            "('google', 'ChIJ404', 'SRID=4326;POINT(121.2 24.9)', :young, true)"
+        ),
+        {"young": now - timedelta(days=28, hours=23), "old": now - timedelta(days=29, minutes=1)},
+    )
+    session.commit()
+    stats = refresh_google_geom(session, r, FlakyGoogle(), quota_limit=9500)
+    assert stats == {"refreshed": 0, "deactivated": 2, "retry_later": 1, "quota_exhausted": False}
+    rows = dict(
+        session.execute(
+            text(
+                "SELECT external_id, is_active AND geom IS NOT NULL FROM restaurants "
+                "WHERE external_id IN ('ChIJflaky', 'ChIJexpired', 'ChIJ404')"
+            )
+        ).all()
+    )
+    assert rows == {"ChIJflaky": True, "ChIJexpired": False, "ChIJ404": False}
