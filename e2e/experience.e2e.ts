@@ -226,8 +226,11 @@ for (const proto of ['timetable', 'cinematic', 'linear']) {
 
   test(`無障礙：${proto}・篩選漏斗（展開關卡）`, async ({ page }, info) => {
     test.skip(info.project.name !== 'chromium', '只在桌機 Chromium 掃')
+    // 先停住時鐘：慢的機器（CI 的 Windows）上漏斗可能在點下去之前就播完、自動跳到結果頁
+    await page.clock.install()
     await page.goto(resultUrl(`&proto=${proto}`))
     await page.getByRole('button', { name: /趕得上開演/ }).click()
+    await page.clock.runFor(8000) // 回應到了、重播完；展開過關卡就停在這裡等「看行程」
     await expect(page.getByRole('button', { name: '看行程' })).toBeVisible()
     await expectAxeClean(page)
   })
