@@ -818,6 +818,12 @@ rq cron（只負責觸發）── 每天 06:00 ──▶ 抓取佇列 ──▶
 
 - 補上 10/21 的改動（之前漏了同步）：網頁的出發點三選一；MCP 6 個工具；服務層多「地點搜尋」，畫一條線直接到 TDX（地理編碼）；Google Places 改成「找店・營業時間」；開眼・OSM 改成「OSM 為備援」；圖例改成 `backend/app/`。SVG 改完用 headless Chrome 重新轉 PNG。
 
+### 2026-10-22 上傳 GitHub
+
+- 檢查：歷史裡沒有金鑰、`.env` 從沒進 git；約 2.4 MB；`main` 68 個 commit。前端是另一個 git，不會一起上傳。
+- 使用者決定：**私人 repo**（1A）；開眼的 3 個網頁測試資料不處理（2C）；作者 email 不改寫歷史，之後的 commit 才用 noreply（3B）；只上傳 `main`，`fix/split-workers` 分支留在本機（4B）。
+- `.claude/launch.json` 的前端路徑改回 `D:/ZeroGap/frontend`（原本多一層 ZeroGap）。
+
 ### 2026-10-26 AI 推論：決策紀錄、Router 判斷方式、LLM 熔斷與棄權（規格書 v0.15）
 
 - **問題**：
