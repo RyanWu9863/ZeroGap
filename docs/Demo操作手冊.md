@@ -8,7 +8,8 @@
    - Google：`GOOGLE_PLACES_API_KEY` 填好、`GOOGLE_MODE=real`（2026-10-21 用測試金鑰實測過）。商圈有 Google 的店時規劃只用 Google 的店；Google 額度用完會自動改用 OSM。
    - TypeSafe Jev 的金鑰還沒到：`JEV_MODE=mock`，狀態列會顯示「mock」。要跟廠商說明這一點，或在 Demo 前拿到金鑰。
 2. **跑一次檢查**（見第 3 節），全部「OK」或只有「注意」就可以。
-3. **場次只有今天到後天**：開眼只公布 2～3 天，系統每天 06:00、18:00 自動更新。Demo 的日期要選檢查結果「可以 Demo 的日期」裡的一天：每個商圈都要有影城在 17:00 後有場次才算。開眼常常只先公布部分影城的隔天場次（2026-10-21 彩排：中午時 10/22 只有八德有場次），隔天的通常要等 18:00 那次更新。
+3. **場次只有今天到後天**：開眼只公布 2～3 天。排程的設定是 06:00、18:00，但 `rq cron` 照 UTC 計時（2026-10-27 審查發現，還沒修），**實際是每天 14:00 和凌晨 02:00 更新開眼、14:30 更新 OSM**。Demo 的日期要選檢查結果「可以 Demo 的日期」裡的一天：每個商圈都要有影城在 17:00 後有場次才算。開眼常常只先公布部分影城的隔天場次（2026-10-21 彩排：中午時 10/22 只有八德有場次），隔天的通常要等凌晨 02:00 那次更新。
+   - **Demo 不要排在 14:00～15:00**：這時在抓開眼和 OSM，會跟規劃搶 Ollama 和 TDX 額度，排得比較慢。
 4. **電腦不要睡眠**：排程要 Docker 一直開著才會跑。
 
 ## 2. 開機順序（Demo 當天）
@@ -25,7 +26,7 @@
    uv run --directory backend python -m app.jobs.check
    ```
    - 開機或重建後，`worker-crawl` 會自己補抓今天還沒抓過的開眼和 OSM（資料庫還沒好會等最多 2 分鐘）。抓開眼要 5～14 分鐘，抓完再跑一次檢查；進度看 `docker compose logs -f worker-crawl`。
-5. 開前端：用 `.claude/launch.json` 的 `frontend-real-backend`（已經設好 `VITE_USE_MOCK=false`，目前指向 `D:\ZeroGap\frontend`）。要用這份的 `frontend/`，先在裡面 `npm install`，再設 `VITE_USE_MOCK=false` 執行 `npm run dev`；沒設的話預設用假資料。前端開發模式會把 `/api` 轉到 `localhost:8000`。
+5. 開前端：用 `.claude/launch.json` 的 `frontend-real-backend`（已經設好 `VITE_USE_MOCK=false`，2026-10-27 起指向這份的 `frontend/`，`node_modules` 也裝好了）。不用 launch.json 的話，在 `frontend/` 裡設 `VITE_USE_MOCK=false` 再執行 `npm run dev`；沒設的話預設用假資料。前端開發模式會把 `/api` 轉到 `localhost:8000`。`frontend/` 的套件不見時（例如新 clone），先在裡面 `npm ci`。
    - 前端的 Docker 版本還沒跟後端一起測過：前端的 nginx 預設把 `/api` 轉給 `http://backend:8000`，我們的 compose 沒有叫 `backend` 的服務，要另外設 `BACKEND_URL`。
 6. **同一時間只讓一個人實測**：TDX 每分鐘只能查 5 次，前後端同時排行程會互相搶額度，排得比較慢。
 7. **出發點選車站，不要用「目前位置」**（2026-10-27 決定）：功能保留，但 Demo 時不用。定位到哪裡要看現場的網路，可能落在公車很早收班的地方，整個規劃就會失敗。2026-10-27 從這台電腦定位到龍潭的渴望三期社區附近，最早 17:00 到桃園、最晚 17:30 就要離開，所有組合都接不上。廠商問起來可以說「有支援定位」。搜尋地點也盡量選商圈附近的地方。

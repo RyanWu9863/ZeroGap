@@ -4,7 +4,7 @@
     {
       "name": "frontend-real-backend",
       "runtimeExecutable": "cmd",
-      "runtimeArgs": ["/c", "set PATH=C:\\Users\\user\\AppData\\Roaming\\fnm\\aliases\\default;%PATH%&& set VITE_USE_MOCK=false&& npm --prefix D:\\ZeroGap\\frontend run dev -- --port 5173 --strictPort"],
+      "runtimeArgs": ["/c", "set PATH=C:\\Users\\user\\AppData\\Roaming\\fnm\\aliases\\default;%PATH%&& set VITE_USE_MOCK=false&& npm --prefix C:\\Users\\User\\Desktop\\ZeroGap\\frontend run dev -- --port 5173 --strictPort"],
       "port": 5173
     }
   ]
