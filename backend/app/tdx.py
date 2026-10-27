@@ -55,6 +55,11 @@ MIN_TOP = 5
 # 所以先用「要求時間＋15 分鐘」查；還是篩光就再延 15 分鐘，最多 2 次（2026-10-21 使用者決定）
 DEPART_SHIFT = timedelta(minutes=15)
 DEPART_RETRIES = 2
+# 用 arrival 查時，最晚到家比末班車晚太多，TDX 會回 40001 或篩完一條不剩（2026-10-27 實測：
+# 桃園站 → 渴望三期附近，指定 23:30、23:00 抵達回 40001，22:30 就查得到 19:05 到的末班車）。
+# 所以往前 30 分鐘再查，最多 3 次【預設】（2026-10-27 使用者決定往前重查）
+ARRIVAL_SHIFT = timedelta(minutes=30)
+ARRIVAL_RETRIES = 3
 # TDX 查不到路線、兩點又在 1 公里內就改排步行：出發站就是商圈代表點時，TDX 起訖點相同會回空的
 # （2026-10-21 實測、使用者決定先查 TDX，查不到才改步行）
 WALK_FALLBACK_M = 1000
@@ -393,11 +398,24 @@ class TdxTransit:
     def _route(
         self, origin: Endpoint, dest: Endpoint, at: datetime, mode: TimeMode, top: int
     ) -> list[Route]:
+        near = haversine_m(origin.lat, origin.lng, dest.lat, dest.lng) <= WALK_FALLBACK_M
         if mode == "arrival":
-            routes = valid_routes(self._query(origin, dest, at, mode, top), at, mode)
+            routes = []
+            for k in range(ARRIVAL_RETRIES + 1):
+                # 查詢時間往前提早，但還是照使用者要求的時間檢查
+                try:
+                    found = self._query(origin, dest, at - ARRIVAL_SHIFT * k, mode, top)
+                except TdxBadParams as exc:
+                    log.warning("TDX 回 40001，往前再查：%s → %s，%s", origin.key, dest.key, exc)
+                    found = []
+                routes = valid_routes(found, at, mode)
+                # 1 公里內查不到就直接改走路（route），不必多花 TDX 的額度
+                if routes or (near and not found):
+                    break
             # 抵達期限：最晚出發的那班排第一（跟模擬版一樣），步驟 2 才算得出「最晚要離開」。
-            # 原本照最晚抵達排，會拿到比較早出發、路上比較久的那條（2026-10-21 前端實測發現）
-            routes.sort(key=lambda r: (r.leave_at, r.reach_at), reverse=True)
+            # 原本照最晚抵達排，會拿到比較早出發、路上比較久的那條（2026-10-21 前端實測發現）；
+            # 同一班出發時，先到的排前面
+            routes.sort(key=lambda r: (-r.leave_at.timestamp(), r.reach_at))
         else:
             routes = []
             for k in range(1, DEPART_RETRIES + 2):
@@ -408,6 +426,9 @@ class TdxTransit:
                 routes = valid_routes(found, at, mode)
                 if routes:
                     break
+            # 出發時間：最早抵達的排第一，步驟 2 才算得出「最早到得了」。原本照出門時間排，
+            # 會拿到比較早出門、路上比較久的那條（2026-10-27 審查發現）；同時抵達的，晚出門的排前面
+            routes.sort(key=lambda r: (r.reach_at, -r.leave_at.timestamp()))
         return routes
 
     def _query(

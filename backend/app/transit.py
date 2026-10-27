@@ -29,7 +29,7 @@ class Transit(Protocol):
     def route(
         self, origin: Endpoint, dest: Endpoint, at: datetime, mode: TimeMode, top: int = 1
     ) -> list[Route]:
-        """`depart`：依出發時間由早到晚；`arrival`：依抵達時間由晚到早。最多 `top` 條。"""
+        """`depart`：依抵達時間由早到晚；`arrival`：依出發時間由晚到早。最多 `top` 條。"""
         ...
 
 

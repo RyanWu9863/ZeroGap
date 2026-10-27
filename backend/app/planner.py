@@ -144,8 +144,9 @@ class Planner:
             deps.transit,
             deps.redis,
             before_call=None if inner_limited else self._wait_tdx,
-            # 真的 TDX 的固定參數 2026-10-21 改過（頭尾步行 20 分鐘），快取換成 v2（5.3）
-            version="v2" if self.s.tdx_mode == "real" else "v1mock",
+            # 真的 TDX 的固定參數 2026-10-21 改過（頭尾步行 20 分鐘），快取換成 v2；
+            # 2026-10-27 回程往前重查、去程改取最早抵達，換成 v3，舊的空結果和排序不再沿用（5.3）
+            version="v3" if self.s.tdx_mode == "real" else "v1mock",
         )
         self.earliest, self.latest_home = req.resolved_times()
         self.cond = Conditions(
@@ -244,6 +245,10 @@ class Planner:
         result = filter_all(self.showtimes, self.restaurants, self.walk, reach, leave, self.cond)
         self.progress("filtering", combinations=result.combinations, feasible=result.feasible_count)
         if not result.feasible:
+            tight = self._transit_too_tight(reach, leave)
+            if tight:
+                # 出發點的交通本身就排不進去，換哪部片、哪家店都一樣，reasons 只放這一項
+                raise PlanError("NO_FEASIBLE", tight, {"transit_window": result.combinations})
             raise PlanError(
                 "NO_FEASIBLE", "沒有接得上的組合，可以放寬時間、預算或步行距離", result.reasons
             )
@@ -515,6 +520,37 @@ class Planner:
                 leave[(kind, pid)] = Leg(at=r.leave_at, fare=r.fare, ride_minutes=r.ride_minutes)
                 self.step2_ret[(kind, pid)] = r
         return reach, leave
+
+    def _transit_too_tight(self, reach: dict, leave: dict) -> str | None:
+        """出發點的交通接不上時，回傳給使用者的說明；接得上就是 None（7.1 步驟 3）。
+
+        在商圈的時間 = 最晚要離開 − 最早到得了。比「開演前到場＋最短的片＋候位＋最快的一餐」
+        還短時，哪部片、哪家店都排不進去，問題在交通，不是電影或餐廳（2026-10-27 使用者決定）。
+        """
+        c = self.cond
+        if not reach:
+            return (
+                f"從出發點 {c.earliest_departure.astimezone(TZ):%H:%M} 出門，查不到到得了商圈的車。"
+                "建議改從車站出發，或調整出門時間。"
+            )
+        if not leave:
+            return (
+                f"查不到 {c.latest_home.astimezone(TZ):%H:%M} 前回到出發點的車。"
+                "建議改從車站出發，或調整回家時間。"
+            )
+        first = min(leg.at for leg in reach.values()).astimezone(TZ)
+        last = max(leg.at for leg in leave.values()).astimezone(TZ)
+        runtime = min(s.ends_at - s.starts_at for s in self.showtimes)
+        meal = min(r.meal_minutes for r in self.restaurants)
+        need = c.arrive_before_showtime + c.wait_minutes + meal + int(runtime.total_seconds() // 60)
+        stay = int((last - first).total_seconds() // 60)
+        if stay >= need:
+            return None
+        window = f"只有 {stay} 分鐘" if stay > 0 else "時間接不上"
+        return (
+            f"從出發點最早 {first:%H:%M} 才到得了商圈，最晚 {last:%H:%M} 就要離開，{window}；"
+            f"看一部電影加吃一餐至少要 {need} 分鐘。建議改從車站出發，或提早出門、延後回家。"
+        )
 
     # ── 步驟 4：Jev 做選擇 ─────────────────────────────────────
 

@@ -355,7 +355,7 @@ def test_estimated_fares_are_flagged(session, r):
     plans = PlanResult.model_validate(result).to_json()["plans"]
     assert plans[0]["estimated"] == ["ticket", "meal", "fare_go", "fare_return"]
     # 模擬版和真的 TDX 的路線快取分開存
-    assert r.keys("tdx:route:v1mock:*") and not r.keys("tdx:route:v2:*")
+    assert r.keys("tdx:route:v1mock:*") and not r.keys("tdx:route:v3:*")
 
 
 def test_google_restaurants_replace_others_in_the_same_area(session, r):
@@ -472,3 +472,27 @@ def test_plan_from_chosen_location_uses_its_name(session, r):
     plan = PlanResult.model_validate(result).to_json()["plans"][0]
     assert plan["timeline"][0]["place"]["name"] == "中原大學"
     assert plan["timeline"][-1]["station"] == "中原大學"
+
+
+def test_short_stay_reports_transit_window(session, r):
+    # 18:00 出門、19:30 前到家：在商圈的時間連一部片加一餐都不夠，問題在交通（2026-10-27）
+    with pytest.raises(PlanError) as exc:
+        run(session, r, request(session, earliest_departure="18:00", latest_home="19:30"))
+    assert exc.value.code == "NO_FEASIBLE"
+    assert list(exc.value.reasons) == ["transit_window"]
+    assert "最晚" in exc.value.message and "至少要" in exc.value.message
+
+
+def test_no_way_home_reports_transit_window(session, r):
+    class NoWayHome(MockTransit):
+        def route(self, origin, dest, at, mode, top=1):
+            return [] if mode == "arrival" else super().route(origin, dest, at, mode, top)
+
+    deps = Deps(
+        session=session, redis=r, transit=NoWayHome(), jev=MockJev(), llm=MockLlm(),
+        places=MockPlaces(), settings=Settings(_env_file=None, tdx_per_minute=1000),
+    )  # fmt: skip
+    with pytest.raises(PlanError) as exc:
+        run_plan(request(session), "job-test", deps, lambda *a, **k: None)
+    assert list(exc.value.reasons) == ["transit_window"]
+    assert "查不到 23:00 前回到出發點的車" in exc.value.message

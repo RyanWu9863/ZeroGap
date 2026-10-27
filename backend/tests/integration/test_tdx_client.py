@@ -290,3 +290,55 @@ def test_points_exhausted_stops_before_calling(r):
     with pytest.raises(TdxQuotaExhausted):
         tdx.get_advanced("/V3/Map/GeoCode/Coordinate/Markname/x")
     assert route.call_count == 0
+
+
+def bad_params():
+    return httpx.Response(
+        404, json={"result": "fail", "error": {"code": 40001, "msg": "API spec params is wrong."}}
+    )
+
+
+@respx.mock
+def test_arrival_retries_earlier_after_bad_params(r):
+    # 最晚到家比末班車晚太多時 TDX 回 40001，往前 30 分鐘再查（2026-10-27 實測）
+    respx.post(TOKEN_URL).mock(return_value=token_ok())
+    ok = httpx.Response(200, json=fixture("routing_mixed_arrival"))
+    route = respx.get(ROUTING_URL).mock(side_effect=[bad_params(), bad_params(), ok])
+    routes = make(r).route(B, A, datetime(2026, 10, 21, 23, 30, tzinfo=TZ), "arrival", top=3)
+    assert [c.request.url.params["arrival"] for c in route.calls] == [
+        "2026-10-21T23:30:00", "2026-10-21T23:00:00", "2026-10-21T22:30:00",
+    ]  # fmt: skip
+    # 還是照要求的 23:30 檢查，23:01 到的兩條也算
+    assert [x.leave_at.strftime("%H:%M") for x in routes] == ["22:15", "22:04", "21:37"]
+
+
+@respx.mock
+def test_arrival_gives_up_after_three_earlier_queries(r):
+    respx.post(TOKEN_URL).mock(return_value=token_ok())
+    route = respx.get(ROUTING_URL).mock(return_value=bad_params())
+    assert make(r).route(B, A, datetime(2026, 10, 21, 23, 30, tzinfo=TZ), "arrival") == []
+    assert route.call_count == 4
+
+
+@respx.mock
+def test_arrival_near_points_walk_without_retrying(r):
+    respx.post(TOKEN_URL).mock(return_value=token_ok())
+    route = respx.get(ROUTING_URL).mock(return_value=bad_params())
+    near = Endpoint("cin17", "cinema", "統領威秀", 24.9561, 121.2243, rail=False)  # 約 300 公尺
+    routes = make(r).route(near, A, datetime(2026, 10, 21, 23, 30, tzinfo=TZ), "arrival")
+    assert routes[0].walk_only
+    assert route.call_count == 1
+
+
+@respx.mock
+def test_depart_puts_earliest_arrival_first(r):
+    # 21:37 出門的那條改成 23:30 才到：比較早出門、比較晚到，不該排第一（2026-10-27）
+    data = fixture("routing_mixed_arrival")
+    for rt in data["data"]["routes"]:
+        if "T21:37" in rt["start_time"]:
+            rt["end_time"] = "2026-10-21T23:30:00"
+    respx.post(TOKEN_URL).mock(return_value=token_ok())
+    respx.get(ROUTING_URL).mock(return_value=httpx.Response(200, json=data))
+    routes = make(r).route(B, A, datetime(2026, 10, 21, 21, 30, tzinfo=TZ), "depart", top=3)
+    # 兩條都 23:01 到，晚出門的排前面
+    assert [x.leave_at.strftime("%H:%M") for x in routes] == ["22:15", "22:04", "21:37"]
