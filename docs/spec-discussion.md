@@ -849,6 +849,16 @@ rq cron（只負責觸發）── 每天 06:00 ──▶ 抓取佇列 ──▶
 - 合併 `feat/ai-inference-reliability`（v0.15）後重新產生組員網頁時發現：線上網頁的架構圖和 2.1 的說明比 repo 新。原因是 10/22 在 `D:\ZeroGap` 做的兩個 commit（架構圖更新、上傳 GitHub 的紀錄）沒推上 GitHub，後來整理 repo 時是接著 `fix/split-workers` 做，這兩個就漏了。
 - 使用者決定：**補回來再發布**。兩個 commit 用 cherry-pick 補進 main；架構圖合併兩邊（10/22 的標籤＋v0.14 的 `worker-crawl`），圖例改成對應 v0.15，PNG 用 headless Chrome 重新轉出；2.1 的說明補上 v0.14、v0.15。
 
+### 2026-10-27 Demo 前檢查：改用桌面這份、開機補抓會重試
+
+- **檢查結果**：5 項失敗，開眼場次停在 10/21，四個商圈之後的場次都是 0。另外發現兩件事：
+  - 跑著的容器是從 `D:\ZeroGap` 啟動的（10/21 的版本：一個 worker 聽 `plans crawl`，沒有 v0.15）。最新的 main 在 `C:\Users\User\Desktop\ZeroGap`，但這份沒有 `.env`（金鑰不進 git）。
+  - 開機補抓被跳過：11:32 電腦開機，Docker 照 `restart: unless-stopped` 重啟容器，不會等 `depends_on` 的 healthcheck。worker 比 PostgreSQL 先起來，查 `crawl_runs` 時資料庫回「the database system is starting up」，補抓記了警告就略過。下一次排程要等 18:00。
+- **使用者決定**：改用桌面這份。從 `D:\ZeroGap` 複製 `.env`，在桌面這份 `docker compose up -d --build`。專案名稱固定是 `zerogap`，PostgreSQL 的 volume 是同一個，資料都還在。
+- **修正**：`app/jobs/startup.py` 在資料庫或 Redis 還沒好時每 5 秒重試，最多 2 分鐘（`attempts=24`、`wait=5`）。重試時已經排過的工作不會重複排。重試完還是不行才記警告略過，不擋 worker。單元測試新增 3 個；規格書 5.6 補上一句。
+- 重建後，`worker-crawl` 啟動時把 `atmovies`、`osm` 排進佇列，自己開始抓。
+- **前端還是從 `D:\ZeroGap\frontend` 啟動**（`.claude/launch.json` 沒改）。兩份的內容只差 `WizardPage.tsx` 兩個 hook 的位置：桌面這份把它們移到提早 return 之前。桌面這份的 `frontend/` 還沒裝 `node_modules`。
+
 ## 6. 剩下的步驟
 
 - **第 5 步：部署、測試、錯誤處理**

@@ -646,7 +646,7 @@ WHERE subject_type = 'restaurant' AND decided_by = 'llm';
 - **cron 時間是依排程程式所在環境的時區計算的**，Docker 容器預設是 UTC。所以 `cron` 容器一定要設 `TZ=Asia/Taipei`，否則 06:00 會變成台灣時間 14:00。
 - 官方文件把 RQ 的 cron 功能標為測試版，也沒有說明開多個 `rq cron` 時會不會重複觸發，所以要靠下一點的鎖來防止重複執行。
 - 每個工作開始時先搶 `lock:job:{名稱}`。
-- `worker-crawl` 啟動時查 `crawl_runs`：今天還沒有成功的 `atmovies` 紀錄，就把 `refresh_daily` 排進佇列。
+- `worker-crawl` 啟動時查 `crawl_runs`：今天還沒有成功的 `atmovies` 紀錄，就把 `refresh_daily` 排進佇列。資料庫或 Redis 還沒好時每 5 秒重試，最多 2 分鐘：電腦重開機時 Docker 照 `restart` 重啟容器，不會等 `depends_on` 的 healthcheck（2026-10-27 補上）。
 
 ### 5.7 進度推播
 

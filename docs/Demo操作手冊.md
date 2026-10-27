@@ -1,10 +1,10 @@
 # ZeroGap 零空檔：Demo 操作手冊（後端）
 
-> 2026-10-21 版。給 Demo 當天操作的人看。指令都在專案根目錄 `D:\ZeroGap` 執行；後端的指令用 `uv run --directory backend …`（後端程式在 `backend/`，2026-10-21 起）。
+> 2026-10-27 版。給 Demo 當天操作的人看。指令都在專案根目錄 `C:\Users\User\Desktop\ZeroGap` 執行（2026-10-27 起改用這份；舊的 `D:\ZeroGap` 停在 10/21，不要再從那裡 `docker compose up`）。後端的指令用 `uv run --directory backend …`。
 
 ## 1. Demo 前一天
 
-1. **金鑰**：`.env` 裡有 `TDX_CLIENT_ID`、`TDX_CLIENT_SECRET`，`TDX_MODE=real`。
+1. **金鑰**：專案根目錄的 `.env` 裡有 `TDX_CLIENT_ID`、`TDX_CLIENT_SECRET`，`TDX_MODE=real`。`.env` 不進 git，新 clone 的資料夾要從原本的資料夾複製過來，不然 TDX、Google 都會是模擬版。
    - Google：`GOOGLE_PLACES_API_KEY` 填好、`GOOGLE_MODE=real`（2026-10-21 用測試金鑰實測過）。商圈有 Google 的店時規劃只用 Google 的店；Google 額度用完會自動改用 OSM。
    - TypeSafe Jev 的金鑰還沒到：`JEV_MODE=mock`，狀態列會顯示「mock」。要跟廠商說明這一點，或在 Demo 前拿到金鑰。
 2. **跑一次檢查**（見第 3 節），全部「OK」或只有「注意」就可以。
@@ -24,7 +24,8 @@
    ```bash
    uv run --directory backend python -m app.jobs.check
    ```
-5. 開前端（照前端組員的說明）：`frontend/` 的分支 `feature/backend-v0.9`，`.env` 設 `VITE_USE_MOCK=false`。前端開發模式會把 `/api` 轉到 `localhost:8000`（2026-10-21 前端已用這個方式實際排過行程）。
+   - 開機或重建後，`worker-crawl` 會自己補抓今天還沒抓過的開眼和 OSM（資料庫還沒好會等最多 2 分鐘）。抓開眼要 5～14 分鐘，抓完再跑一次檢查；進度看 `docker compose logs -f worker-crawl`。
+5. 開前端：用 `.claude/launch.json` 的 `frontend-real-backend`（已經設好 `VITE_USE_MOCK=false`，目前指向 `D:\ZeroGap\frontend`）。要用這份的 `frontend/`，先在裡面 `npm install`，再設 `VITE_USE_MOCK=false` 執行 `npm run dev`；沒設的話預設用假資料。前端開發模式會把 `/api` 轉到 `localhost:8000`。
    - 前端的 Docker 版本還沒跟後端一起測過：前端的 nginx 預設把 `/api` 轉給 `http://backend:8000`，我們的 compose 沒有叫 `backend` 的服務，要另外設 `BACKEND_URL`。
 6. **同一時間只讓一個人實測**：TDX 每分鐘只能查 5 次，前後端同時排行程會互相搶額度，排得比較慢。
 
@@ -49,7 +50,8 @@
 | Jev 沒把握 | 結果頁的「換一部／換一家」 | Jev 最高機率低於 60% 時交給本機 LLM（qwen2.5:3b）代選，另外列出備選 |
 | 真的交通 | 時間軸的搭車段 | 班次是 TDX 查的真實班次；台鐵的車資是估的（有標示） |
 | API 文件 | 瀏覽器開 http://localhost:8000/api/docs | FastAPI 自動產生 |
-| MCP | 用支援 MCP 的 AI 客戶端連 `http://localhost:8000/mcp` | 5 個工具：list_areas、list_stations、list_categories、data_coverage、plan_date；plan_date 會送出進度通知 |
+| MCP | 用支援 MCP 的 AI 客戶端連 `http://localhost:8000/mcp` | 6 個工具：list_areas、search_locations、list_stations、list_categories、data_coverage、plan_date；plan_date 會送出進度通知 |
+| 決策紀錄 | `docker compose logs worker` | 每次規劃印一行 `decision_trace`：每一題由 Jev 還是 LLM 決定、機率、花多久（v0.15） |
 | 三大技術 | 講解 | FastAPI（SSE、MCP）、PostgreSQL（PostGIS 算步行範圍、CHECK 約束守住 Google 條款）、Redis（RQ 佇列、限流、快取、Pub/Sub） |
 
 **要說明的限制**
@@ -71,7 +73,7 @@
 | 前端改了條件，結果還是上一次的「找不到行程」 | 前端把無解的結果存 10 分鐘 | 換一個條件再排，或等 10 分鐘 |
 | 等很久都在「等待交通查詢額度」 | TDX 每分鐘 5 次，多人同時排就要排隊 | 正常現象；Demo 時一次排一個 |
 | 回「你已經有一個規劃在進行」 | 同一台電腦上一個規劃還沒結束 | 等它結束；或關掉前端分頁（斷線會自動取消） |
-| 場次是舊的 | 排程沒跑到（電腦睡眠、Docker 沒開） | `uv run --directory backend python -m app.jobs.refresh atmovies`（約 5 分鐘） |
+| 場次是舊的 | 排程沒跑到（電腦睡眠、Docker 沒開） | 先看 `docker compose logs worker-crawl`，開機時通常已經在補抓；沒有的話跑 `uv run --directory backend python -m app.jobs.refresh atmovies`（約 5～14 分鐘）。`worker-crawl` 正在抓的時候手動跑會因為鎖而跳過 |
 | TDX 回錯誤（交通查詢暫時無法使用） | TDX 本身出問題或點數用完 | 檢查「TDX 本月點數」；暫時改 `.env` 的 `TDX_MODE=mock` 再 `docker compose up -d` 用模擬路線 |
 
 ## 6. 手動更新資料
