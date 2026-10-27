@@ -2,6 +2,8 @@
 
 規劃「電影＋餐廳＋交通」的約會行程：選好商圈、出發點、時間和預算，系統排出每一段都接得上的前三名方案。
 
+前端展示版（假資料，只有前端）：https://ryanwu9863.github.io/ZeroGap/
+
 ## 資料夾
 
 | 資料夾 | 內容 |
@@ -37,7 +39,7 @@ TDX、Google、Jev 都用模擬版、只有 LLM 用真的（本機 Ollama），�
 
 ### 步驟
 
-需要先裝好 Git、[Docker Desktop](https://www.docker.com/products/docker-desktop/)、[uv](https://docs.astral.sh/uv/)、[Ollama](https://ollama.com/)。repo 是私人的，要先請 RyanWu9863 把你加成 collaborator。
+需要先裝好 Git、[Docker Desktop](https://www.docker.com/products/docker-desktop/)、[uv](https://docs.astral.sh/uv/)、[Ollama](https://ollama.com/)。repo 是公開的，直接 clone 就好；要推程式回來，請 RyanWu9863 把你加成 collaborator。
 
 1. 下載 LLM 模型（約 2 GB），確認 Ollama 有在跑：
    ```bash

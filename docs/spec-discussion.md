@@ -953,7 +953,15 @@ rq cron（只負責觸發）── 每天 06:00 ──▶ 抓取佇列 ──▶
 - 官方文件：免費帳號只有公開 repo 能開 Pages，而且網頁一定是公開的。使用者選**另開一個公開的 repo**，程式碼的 repo 維持私人。
 - 網址：https://ryanwu9863.github.io/zerogap-site/ ，repo `RyanWu9863/zerogap-site` 只放打包好的檔案（Pages 從 `main` 的根目錄發布）。
 - 發布前檢查：假資料的店家、地址、place ID 都是示意的，不是 Google 的內容；打包結果沒有金鑰、沒有本機網址。前端測試 115 個、`tsc -b` 通過；本機和線上都走過一次精靈到結果頁，也試過直接開深層網址。
-- **之後要更新**：從 GitHub 的 main clone 一份，在 `frontend/` 執行 `npm ci`、`VITE_USE_MOCK=true VITE_SITE_URL=https://ryanwu9863.github.io/zerogap-site/ npx vite build --base=/zerogap-site/`，把 `dist/index.html` 複製成 `404.html`，再把 `dist/` 的內容換進 `zerogap-site` 推上去（保留 `.nojekyll`、`README.md`）。`frontend/.github/workflows/pages.yml` 在子資料夾裡，GitHub Actions 不會執行。
+- **之後要更新**：從 GitHub 的 main clone 一份，在 `frontend/` 執行 `npm ci`、`VITE_USE_MOCK=true VITE_SITE_URL=https://ryanwu9863.github.io/zerogap-site/ npx vite build --base=/zerogap-site/`，把 `dist/index.html` 複製成 `404.html`，再把 `dist/` 的內容換進 `zerogap-site` 推上去（保留 `.nojekyll`、`README.md`）。`frontend/.github/workflows/pages.yml` 在子資料夾裡，GitHub Actions 不會執行。（同一天改放 ZeroGap，這段作廢，見下一節）
+
+### 2026-10-27 網頁改放 ZeroGap，repo 改公開
+
+- 使用者要把網頁放在 ZeroGap 上，選**把 ZeroGap 改成公開**（另一個選項是升級 GitHub Pro、repo 維持私人）；`zerogap-site` 使用者自己刪。
+- 公開前檢查整段 git 歷史（109 個 commit）：`.env` 的 TDX、Google 金鑰都找不到，`.env` 從沒 commit 過，也沒有 Google API 金鑰、GitHub token、私鑰的格式；測試資料和前端範例結果沒有 Google 的內容（範例是 OSM 餐廳）。會跟著公開的：三位作者的 commit email、10/21 誤 commit 的 `.presentation-build/`（舊投影片）。使用者確認後才改公開。
+- 網址：https://ryanwu9863.github.io/ZeroGap/ （路徑大小寫要對）。Pages 的來源設成 GitHub Actions。
+- 根目錄新增 `.github/workflows/pages.yml`：`frontend/` 有改動、推到 main 就自動跑前端測試、用假資料打包（`npm run build:pages`，base 是 `/ZeroGap/`）、發布。不用再手動更新；也可以在 Actions 頁面手動執行。
+- 已驗證：第一次自動發布成功，線上直接開 `/plan/4` 正常，走完精靈排出 3 個行程，資源都載入成功（深層網址第一次載入會回 404，是 `404.html` 接手，正常）。
 
 ## 6. 剩下的步驟
 

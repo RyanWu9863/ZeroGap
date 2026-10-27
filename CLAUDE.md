@@ -5,7 +5,7 @@
 ## 資料夾
 
 - `backend/`：後端程式（`app/`、`tests/`、`migrations/`、Dockerfile、`pyproject.toml`）。後端的指令在 `backend/` 裡執行，或在根目錄用 `uv run --directory backend …`。
-- `frontend/`：前端（組員的 React）。2026-10-22 起和後端放在同一個 git（前端原本的歷史保留在 merge commit 裡），推到 https://github.com/RyanWu9863/ZeroGap（私人）。
+- `frontend/`：前端（組員的 React）。2026-10-22 起和後端放在同一個 git（前端原本的歷史保留在 merge commit 裡），推到 https://github.com/RyanWu9863/ZeroGap（2026-10-27 起公開）。前端展示版（假資料）在 https://ryanwu9863.github.io/ZeroGap/ ，`frontend/` 推到 main 就由根目錄的 `.github/workflows/pages.yml` 自動發布。
 - `docs/`：規格書、討論紀錄、手冊、架構圖（舊版在 `架構圖/舊版/`）、`報告/`（簡報）。
 - `tools/`：前後端合約檢查、組員網頁的產生工具。
 - 根目錄：`docker-compose.yml`、`deploy/nginx.conf`、`.env`（金鑰，不進 git）。
