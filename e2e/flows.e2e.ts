@@ -6,6 +6,16 @@ const resultUrl = (extra: string) =>
 
 const resultsHeading = (page: Page) => page.getByRole('heading', { name: '這 3 個行程，每一段都接得上。' })
 
+/**
+ * 打開簡報模式，等快捷鍵真的接上才回來。
+ * `<html data-present>` 和快捷鍵是同一個 effect 一起裝上的；沒等它就按鍵，
+ * 機器忙的時候按鍵會在監聽器裝好之前送出而被吃掉（全套平行跑時 iPhone／iPad 偶爾發生）。
+ */
+async function openPresentMode(page: Page) {
+  await page.goto('/?present=1')
+  await expect(page.locator('html')).toHaveAttribute('data-present', '')
+}
+
 test('有解：介紹頁 → 四步精靈 → 篩選動畫 → 三個方案，估計值是黃底（A8）', async ({ page }) => {
   await page.goto('/?proto=timetable')
   await page.getByRole('main').getByRole('link', { name: '開始規劃' }).first().click()
@@ -133,8 +143,7 @@ test('試用模式：計時＋小問卷，紀錄出現在系統幕後（Q79、Q8
 })
 
 test('簡報模式：按 2 直接排「週末午後，先吃再看」，按 B 到系統幕後（Q95）', async ({ page }) => {
-  await page.goto('/?present=1')
-  await expect(page.locator('html')).toHaveAttribute('data-present', '')
+  await openPresentMode(page)
   await page.keyboard.press('2')
   await expect(resultsHeading(page)).toBeVisible()
   await expect(page.getByRole('button', { name: '先吃再看' })).toBeVisible()
@@ -143,7 +152,7 @@ test('簡報模式：按 2 直接排「週末午後，先吃再看」，按 B �
 })
 
 test('簡報模式：情境 2、3 的行程跟條件對得上（時段、先吃再看、預算）', async ({ page }) => {
-  await page.goto('/?present=1')
+  await openPresentMode(page)
   await page.keyboard.press('2') // 週末午後：12:00–18:00、先吃再看、每人 $800
   await expect(resultsHeading(page)).toBeVisible()
   const timeline = page.getByLabel('行程時間軸')
