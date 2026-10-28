@@ -26,6 +26,12 @@ async function pickPlan(page: Page, name: RegExp) {
   await expect(checked).toContainText(name)
 }
 
+/**
+ * 無障礙掃描測試的時間上限（預設 45 秒不夠）：一條要先播完漏斗、等動畫停、掃 2～3 次 axe，
+ * CI 的 Windows 機器忙的時候會超過 45 秒（10/27、10/28 都遇過，重跑就過）
+ */
+const AXE_TIMEOUT = 120_000
+
 /** axe 掃 WCAG 2.1 A／AA，嚴重和重大等級一律要修（同 a11y.e2e.ts）；等動畫跑完再量顏色對比 */
 async function expectAxeClean(page: Page) {
   await page.waitForTimeout(300)
@@ -57,7 +63,7 @@ test.describe('篩選漏斗（PR2）', () => {
   })
 
   test('展開關卡看規則和剔除數；看過細節就不自動跳走，按「看行程」才進結果頁', async ({ page }) => {
-    await page.goto(resultUrl())
+    await page.goto(resultUrl(), { waitUntil: 'commit' }) // 不等整頁 load（同下方無障礙掃描：字型下載慢時 load 來之前漏斗可能已經播完）
     // 一出現就送點擊、不等進場動畫停下來，免得慢的機器上漏斗先播完跳走（同下方無障礙掃描）
     await page.getByRole('button', { name: /走路不超過 12 分/ }).dispatchEvent('click')
     await expect(page.getByText('影城和餐廳之間，走路不能超過 12 分鐘。')).toBeVisible()
@@ -236,6 +242,7 @@ test.describe('行程路線地圖（PR4）', () => {
 for (const proto of ['timetable', 'cinematic', 'linear']) {
   test(`無障礙：${proto}・三方案舞台和詳情`, async ({ page }, info) => {
     test.skip(info.project.name !== 'chromium', '只在桌機 Chromium 掃')
+    test.setTimeout(AXE_TIMEOUT)
     await page.goto(resultUrl(`&proto=${proto}`))
     await expect(resultsHeading(page)).toBeVisible(AFTER_FUNNEL)
     await expectAxeClean(page)
@@ -246,7 +253,10 @@ for (const proto of ['timetable', 'cinematic', 'linear']) {
 
   test(`無障礙：${proto}・篩選漏斗（展開關卡）`, async ({ page }, info) => {
     test.skip(info.project.name !== 'chromium', '只在桌機 Chromium 掃')
-    await page.goto(resultUrl(`&proto=${proto}`))
+    test.setTimeout(AXE_TIMEOUT)
+    // 不等整頁 load：字型等資源下載慢時（CI 的 Windows），load 事件來的時候漏斗可能已經播完、
+    // 自動跳到結果頁，關卡按鈕就再也找不到了（用拖慢字型 8 秒重現過）
+    await page.goto(resultUrl(`&proto=${proto}`), { waitUntil: 'commit' })
     // 一出現就直接送點擊、不等按鈕「靜止」：慢的機器（CI 的 Windows）上，等關卡的進場動畫停下來時，
     // 漏斗可能已經播完、自動跳到結果頁。展開過關卡就會停在這裡等「看行程」
     await page.getByRole('button', { name: /趕得上開演/ }).dispatchEvent('click')
@@ -298,6 +308,7 @@ test.describe('系統幕後三種視覺化（PR5）', () => {
 for (const proto of ['timetable', 'cinematic', 'linear']) {
   test(`無障礙：${proto}・系統幕後三種視覺化`, async ({ page }, info) => {
     test.skip(info.project.name !== 'chromium', '只在桌機 Chromium 掃')
+    test.setTimeout(AXE_TIMEOUT)
     await page.goto(`/behind?exp=1&proto=${proto}`)
     for (const tab of ['A 篩選漏斗', 'B 決策時間軸', 'C 決策比較']) {
       await page.getByRole('tab', { name: tab }).click()
