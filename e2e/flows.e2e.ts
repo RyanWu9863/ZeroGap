@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test'
+import { expectSeen, watchFor } from './seen'
 
 /** 結果頁網址（基準案例條件），可以另外加參數；沒寫 date＝今天（P0-1） */
 const resultUrl = (extra: string) =>
@@ -17,13 +18,14 @@ async function openPresentMode(page: Page) {
 }
 
 test('有解：介紹頁 → 四步精靈 → 篩選動畫 → 三個方案，估計值是黃底（A8）', async ({ page }) => {
+  await watchFor(page, ['趕得上開演'])
   await page.goto('/?proto=timetable')
   await page.getByRole('main').getByRole('link', { name: '開始規劃' }).first().click()
   for (let i = 0; i < 3; i++) await page.getByRole('button', { name: '下一步' }).click()
   await page.getByRole('button', { name: '排出接得上的行程' }).click()
 
-  await expect(page.getByText('趕得上開演')).toBeVisible() // 五道關卡動畫
-  await expect(resultsHeading(page)).toBeVisible()
+  await expect(resultsHeading(page)).toBeVisible({ timeout: 30_000 })
+  await expectSeen(page, '趕得上開演') // 五道關卡動畫播過（只看得到幾秒，用「出現過」驗，見 seen.ts）
   await expect(page.getByRole('radiogroup', { name: '選擇方案' }).getByRole('radio')).toHaveCount(3)
   await expect(page.locator('[data-estimated="true"]').first()).toHaveCSS('background-color', 'rgb(255, 241, 184)')
 

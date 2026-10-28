@@ -1,5 +1,6 @@
 import AxeBuilder from '@axe-core/playwright'
 import { expect, test, type Page } from '@playwright/test'
+import { expectNeverSeen, expectSeen, watchFor } from './seen'
 
 /*
  * 沉浸式新版（?exp=1）的流程測試。預設畫面（沒開開關）由 flows.e2e.ts 照舊測。
@@ -47,15 +48,18 @@ test.describe('篩選漏斗（PR2）', () => {
   })
 
   test('重播用真實數字收斂到 3 個方案，然後自動進結果頁', async ({ page }) => {
+    // 收斂畫面只停約 1 秒就自動進結果頁，用「出現過」來驗（見 seen.ts）
+    await watchFor(page, ['從 39 種接得上的行程，挑出 3 個', '1 個點 ≈ 16 種組合・共 1,880 種'])
     await page.goto(resultUrl())
-    await expect(page.getByText('從 39 種接得上的行程，挑出 3 個')).toBeVisible()
-    await expect(page.getByText('1 個點 ≈ 16 種組合・共 1,880 種')).toBeVisible()
     await expect(resultsHeading(page)).toBeVisible(AFTER_FUNNEL)
+    await expectSeen(page, '1 個點 ≈ 16 種組合・共 1,880 種')
+    await expectSeen(page, '從 39 種接得上的行程，挑出 3 個')
   })
 
   test('展開關卡看規則和剔除數；看過細節就不自動跳走，按「看行程」才進結果頁', async ({ page }) => {
     await page.goto(resultUrl())
-    await page.getByRole('button', { name: /走路不超過 12 分/ }).click()
+    // 一出現就送點擊、不等進場動畫停下來，免得慢的機器上漏斗先播完跳走（同下方無障礙掃描）
+    await page.getByRole('button', { name: /走路不超過 12 分/ }).dispatchEvent('click')
     await expect(page.getByText('影城和餐廳之間，走路不能超過 12 分鐘。')).toBeVisible()
     await expect(page.getByText('淘汰 260 種・還剩 190 種')).toBeVisible()
     await page.waitForTimeout(5000)
@@ -65,16 +69,18 @@ test.describe('篩選漏斗（PR2）', () => {
   })
 
   test('無解：停在卡住的關卡，後面的關卡標「沒檢查」，接著到放寬建議', async ({ page }) => {
+    await watchFor(page, ['卡在「每人不超過 $500」這一關'])
     await page.goto(resultUrl('&mock=no_solution').replace('budget=1000', 'budget=500'))
-    await expect(page.getByText('卡在「每人不超過 $500」這一關')).toBeVisible()
-    await expect(page.getByRole('heading', { name: '這組條件，找不到每段都接得上的行程' })).toBeVisible()
+    await expect(page.getByRole('heading', { name: '這組條件，找不到每段都接得上的行程' })).toBeVisible(AFTER_FUNNEL)
+    await expectSeen(page, '卡在「每人不超過 $500」這一關')
   })
 
   test('沒開開關時還是舊的動畫', async ({ page }) => {
+    await watchFor(page, ['趕得上開演'], ['[data-testid="funnel-run"]'])
     await page.goto(resultUrl().replace('&exp=1', '&exp=0'))
-    await expect(page.getByText('趕得上開演')).toBeVisible()
-    await expect(funnel(page)).toHaveCount(0)
     await expect(resultsHeading(page)).toBeVisible(AFTER_FUNNEL)
+    await expectSeen(page, '趕得上開演') // 舊的五道關卡動畫播過
+    await expectNeverSeen(page, '[data-testid="funnel-run"]') // 新版漏斗從頭到尾沒出現
   })
 })
 
