@@ -26,6 +26,12 @@ async function pickPlan(page: Page, name: RegExp) {
   await expect(checked).toContainText(name)
 }
 
+/**
+ * 無障礙掃描測試的時間上限（預設 45 秒不夠）：一條要先播完漏斗、等動畫停、掃 2～3 次 axe，
+ * CI 的 Windows 機器忙的時候會超過 45 秒（10/27、10/28 都遇過，重跑就過）
+ */
+const AXE_TIMEOUT = 120_000
+
 /** axe 掃 WCAG 2.1 A／AA，嚴重和重大等級一律要修（同 a11y.e2e.ts）；等動畫跑完再量顏色對比 */
 async function expectAxeClean(page: Page) {
   await page.waitForTimeout(300)
@@ -236,6 +242,7 @@ test.describe('行程路線地圖（PR4）', () => {
 for (const proto of ['timetable', 'cinematic', 'linear']) {
   test(`無障礙：${proto}・三方案舞台和詳情`, async ({ page }, info) => {
     test.skip(info.project.name !== 'chromium', '只在桌機 Chromium 掃')
+    test.setTimeout(AXE_TIMEOUT)
     await page.goto(resultUrl(`&proto=${proto}`))
     await expect(resultsHeading(page)).toBeVisible(AFTER_FUNNEL)
     await expectAxeClean(page)
@@ -246,6 +253,7 @@ for (const proto of ['timetable', 'cinematic', 'linear']) {
 
   test(`無障礙：${proto}・篩選漏斗（展開關卡）`, async ({ page }, info) => {
     test.skip(info.project.name !== 'chromium', '只在桌機 Chromium 掃')
+    test.setTimeout(AXE_TIMEOUT)
     await page.goto(resultUrl(`&proto=${proto}`))
     // 一出現就直接送點擊、不等按鈕「靜止」：慢的機器（CI 的 Windows）上，等關卡的進場動畫停下來時，
     // 漏斗可能已經播完、自動跳到結果頁。展開過關卡就會停在這裡等「看行程」
@@ -298,6 +306,7 @@ test.describe('系統幕後三種視覺化（PR5）', () => {
 for (const proto of ['timetable', 'cinematic', 'linear']) {
   test(`無障礙：${proto}・系統幕後三種視覺化`, async ({ page }, info) => {
     test.skip(info.project.name !== 'chromium', '只在桌機 Chromium 掃')
+    test.setTimeout(AXE_TIMEOUT)
     await page.goto(`/behind?exp=1&proto=${proto}`)
     for (const tab of ['A 篩選漏斗', 'B 決策時間軸', 'C 決策比較']) {
       await page.getByRole('tab', { name: tab }).click()

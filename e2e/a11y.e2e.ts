@@ -25,6 +25,7 @@ for (const proto of ['timetable', 'cinematic', 'linear']) {
   for (const pg of PAGES) {
     test(`無障礙：${proto}・${pg.name}`, async ({ page }, info) => {
       test.skip(info.project.name !== 'chromium', '只在桌機 Chromium 掃一次')
+      test.setTimeout(120_000) // 結果頁要先播完篩選動畫；CI 的 Windows 機器忙時預設 45 秒會不夠（同 experience.e2e.ts 的 AXE_TIMEOUT）
       const sep = pg.path.includes('?') ? '&' : '?'
       await page.goto(`${pg.path}${sep}proto=${proto}`)
       await pg.ready(page)
