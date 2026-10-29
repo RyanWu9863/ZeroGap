@@ -55,12 +55,14 @@ def test_cached_transit_uses_slot_minutes_and_ttl():
 
 def test_mcp_walk_options_follow_settings():
     # 選項在 import 時從設定讀；用子程序帶不同的設定，不影響其他測試
+    # 參數是 Annotated[Literal[...], Field(...)]；設定裡沒有 12 時，預設值取中間的選項
     code = (
         "from typing import get_args; from app import mcp; "
-        "print(list(get_args(mcp.plan_date.__annotations__['max_walk_minutes'])))"
+        "ann = get_args(mcp.plan_date.__annotations__['max_walk_minutes'])[0]; "
+        "print(list(get_args(ann)), mcp.WALK_DEFAULT)"
     )
     env = {**os.environ, "WALK_LIMIT_OPTIONS": "[5, 10, 30]"}
     out = subprocess.run(
         [sys.executable, "-c", code], env=env, capture_output=True, text=True, check=True
     )
-    assert out.stdout.strip() == "[5, 10, 30]"
+    assert out.stdout.strip() == "[5, 10, 30] 10"

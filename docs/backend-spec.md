@@ -2,8 +2,8 @@
 
 | 項目 | 內容 |
 |---|---|
-| 版本 | v0.17（Google 座標更新失敗時，404 才馬上停用，暫時的錯誤隔天再試，見 4.5。v0.16：出發點的交通接不上時，`NO_FEASIBLE` 的 `reasons` 只放 `transit_window`、`message` 寫出時間；TDX 的 `arrival` 查不到時往前重查、`depart` 改取最早抵達；路線快取換成 `v3`，見 3.2、5.3、6.4、7.1。v0.15：AI 推論：Ollama 連續連不上就熔斷；LLM 可選擇棄權［預設關閉］；Router 判斷方式可由設定切換［預設不變］；每次規劃寫一行決策紀錄日誌，見 3、3.1、7.1。v0.14：規劃和抓取拆成兩個 worker：`worker` 只聽 `plans`、新增 `worker-crawl` 只聽 `crawl`，抓取時規劃不用再排隊等，見 5.6、8.1。v0.13：第二階段實作：真的 TDX［頭尾步行 20 分鐘、車資沒給時自己估］、TDX 車站、OSM 餐廳、開眼爬蟲、`rq cron`、MCP；新增蘆竹（南崁）商圈、青埔先不開放；八德只用廣豐新天地。v0.12：逐項確認實作時新增的預設值：早到 30 分鐘內等開門、餐廳備選補滿 2 家、沒判斷屬性的店不排、Jev 沒把握就附備選、新增 `restaurant.hours_verified`。v0.11：實作中的補充列在 10.1；`restaurants.source` 新增 `demo`；修正 5.3 路線快取的取整範例；7.3 補上價位區間的代碼；實作時的小調整：`areas.sort_order`、`area_hubs.geom` 可以是 null、migration 一併寫入類別和票價。v0.10：補上前端對照時發現的缺口：下拉選單的回應範例、跨午夜的判斷、`reasons` 的 key、排隊順位的意思、備選欄位、OSM 出處。v0.9：備選只附估計值、第一名固定「最推薦」、回程緩衝加 `return_window`。v0.8 起前端 ZeroGap 照這份規格串接、飲食限制延後；架構與 v0.4 相同） |
-| 日期 | 2026-10-27 |
+| 版本 | v0.18（MCP 工具介面改良［組員的 mcp-eval v3］：每個參數加說明、`plan_date` 新增 `origin_station_name`、走路上限在 MCP 可省略［預設 12］、新增 MCP 專用的錯誤代碼 `AMBIGUOUS`；`/api/coverage` 新增 `cuisines`，見 6.1、6.3、6.6。v0.17：Google 座標更新失敗時，404 才馬上停用，暫時的錯誤隔天再試，見 4.5。v0.16：出發點的交通接不上時，`NO_FEASIBLE` 的 `reasons` 只放 `transit_window`、`message` 寫出時間；TDX 的 `arrival` 查不到時往前重查、`depart` 改取最早抵達；路線快取換成 `v3`，見 3.2、5.3、6.4、7.1。v0.15：AI 推論：Ollama 連續連不上就熔斷；LLM 可選擇棄權［預設關閉］；Router 判斷方式可由設定切換［預設不變］；每次規劃寫一行決策紀錄日誌，見 3、3.1、7.1。v0.14：規劃和抓取拆成兩個 worker：`worker` 只聽 `plans`、新增 `worker-crawl` 只聽 `crawl`，抓取時規劃不用再排隊等，見 5.6、8.1。v0.13：第二階段實作：真的 TDX［頭尾步行 20 分鐘、車資沒給時自己估］、TDX 車站、OSM 餐廳、開眼爬蟲、`rq cron`、MCP；新增蘆竹（南崁）商圈、青埔先不開放；八德只用廣豐新天地。v0.12：逐項確認實作時新增的預設值：早到 30 分鐘內等開門、餐廳備選補滿 2 家、沒判斷屬性的店不排、Jev 沒把握就附備選、新增 `restaurant.hours_verified`。v0.11：實作中的補充列在 10.1；`restaurants.source` 新增 `demo`；修正 5.3 路線快取的取整範例；7.3 補上價位區間的代碼；實作時的小調整：`areas.sort_order`、`area_hubs.geom` 可以是 null、migration 一併寫入類別和票價。v0.10：補上前端對照時發現的缺口：下拉選單的回應範例、跨午夜的判斷、`reasons` 的 key、排隊順位的意思、備選欄位、OSM 出處。v0.9：備選只附估計值、第一名固定「最推薦」、回程緩衝加 `return_window`。v0.8 起前端 ZeroGap 照這份規格串接、飲食限制延後；架構與 v0.4 相同） |
+| 日期 | 2026-10-29 |
 | 狀態 | 草稿 |
 | 討論紀錄 | [spec-discussion.md](spec-discussion.md) |
 
@@ -100,7 +100,7 @@
 - 虛線框是 Docker 容器：FastAPI（`api`）和 RQ worker 都可以開多個實例。RQ worker 分成兩種容器：`worker` 只跑規劃、`worker-crawl` 只跑抓取（v0.14）。
 - 標 ★ 的是三大亮點：FastAPI、Redis、PostgreSQL。
 - 虛線箭頭是備援：Jev 沒把握時交給 `llm.py`，由它呼叫 Ollama。
-- 架構從 v0.4 起沒有變動，所以檔名沿用 v0.4；圖上的文字已更新到 v0.17（v0.8：拿掉飲食限制、前端改名 ZeroGap、TDX 可行時間 2～5 次；v0.13：匯入改成各來源的 `*_import.py`、店家屬性先用 Ollama 判斷、OSM 是目前主要的餐廳來源、TDX 旅運規劃 12/31 下架；2026-10-22：出發點三選一、MCP 6 個工具、服務層的地點搜尋直接查 TDX 地理編碼、商圈有 Google 的店時 OSM 是備援、後端程式在 `backend/app/`；v0.14：RQ worker 分成 `worker`、`worker-crawl`；v0.15～v0.17 架構不變）。原始檔：[architecture-v0.4.svg](架構圖/architecture-v0.4.svg)。要修改時直接編輯這個 SVG 檔，再轉一次 PNG：[architecture-v0.4.png](架構圖/architecture-v0.4.png)。
+- 架構從 v0.4 起沒有變動，所以檔名沿用 v0.4；圖上的文字已更新到 v0.17（v0.8：拿掉飲食限制、前端改名 ZeroGap、TDX 可行時間 2～5 次；v0.13：匯入改成各來源的 `*_import.py`、店家屬性先用 Ollama 判斷、OSM 是目前主要的餐廳來源、TDX 旅運規劃 12/31 下架；2026-10-22：出發點三選一、MCP 6 個工具、服務層的地點搜尋直接查 TDX 地理編碼、商圈有 Google 的店時 OSM 是備援、後端程式在 `backend/app/`；v0.14：RQ worker 分成 `worker`、`worker-crawl`；v0.15～v0.18 架構不變）。原始檔：[architecture-v0.4.svg](架構圖/architecture-v0.4.svg)。要修改時直接編輯這個 SVG 檔，再轉一次 PNG：[architecture-v0.4.png](架構圖/architecture-v0.4.png)。
 
 ### 2.2 元件說明
 
@@ -686,6 +686,8 @@ worker 完成 → PUBLISH result（完整結果）→ API 推送後關閉串流
 | 503 | `QUEUE_FULL` | 規劃佇列已有 5 個在等，附 `Retry-After: 60` |
 | 503 | `SERVICE_UNAVAILABLE` | Redis 或資料庫無法使用 |
 
+MCP 的工具錯誤沿用上表的 code，寫成 `CODE：訊息`；另外有一個只出現在 MCP 的 `AMBIGUOUS`：`origin_station_name` 對到好幾個站，訊息列出候選的 id、站名、業者，請 AI 問使用者是哪一個（v0.18，見 6.6）。
+
 ### 6.2 端點一覽
 
 畫面上的 16 個條件中，「約會縣市」和「從哪個縣市出發」只用來篩選下拉選單，不會送進規劃請求；「飲食限制」這一版不做（附錄 A）。
@@ -750,10 +752,12 @@ worker 完成 → PUBLISH result（完整結果）→ API 推送後關閉串流
   "genres": [{"code": "animation", "label": "動畫"}, {"code": "action", "label": "動作"}],
   "hall_types": [{"code": "standard", "label": "一般數位"}, {"code": "imax", "label": "IMAX"}],
   "languages": ["中文", "日語"],
+  "cuisines": [{"code": "japanese", "label": "日式"}, {"code": "korean", "label": "韓式"}],
   "restaurant_source": "google"
 }
 ```
 - `available_dates`：這個商圈有場次的日期，已經過去的日期不列。前端用來把沒資料的日子灰掉。範例中 10/23 沒有場次。
+- `cuisines`：這個商圈排得進行程的餐廳有哪些料理（條件跟規劃一樣：營業中、有座標、Jev 判斷過價位和用餐時間、跟規劃用同一個來源）。跟日期無關，不指定日期也會列。指定一個不在這裡的料理，規劃一定是 `NO_FEASIBLE`（v0.18，mcp-eval 端到端發現：中壢的 OSM 餐廳都沒有料理分類）。
 - `restaurant_source` 在 Google 規劃用的額度用完後會變成 `osm`。
 
 **`GET /api/status`**
@@ -961,7 +965,7 @@ worker 完成 → PUBLISH result（完整結果）→ API 推送後關閉串流
 
 ### 6.6 MCP
 
-- **實作方式**：用官方 MCP Python SDK 手寫 5 個工具，直接呼叫 `services.py`，不經過 REST 端點。（2026-10-21 實作：`mcp` 2.3 的 `MCPServer`，FastMCP 已改名；掛在 FastAPI 的 `/mcp`，lifespan 裡啟動 `session_manager`；`/mcp` 不轉址直接服務，因為官方客戶端不跟著轉址；Host 由 nginx 控制，所以關掉 SDK 的 DNS rebinding 檢查，否則經過 proxy 的請求會回 421。實測經過 nginx 連線，協定是 2026-07-28。）
+- **實作方式**：用官方 MCP Python SDK 手寫 6 個工具，直接呼叫 `services.py`，不經過 REST 端點。（2026-10-21 實作：`mcp` 2.3 的 `MCPServer`，FastMCP 已改名；掛在 FastAPI 的 `/mcp`，lifespan 裡啟動 `session_manager`；`/mcp` 不轉址直接服務，因為官方客戶端不跟著轉址；Host 由 nginx 控制，所以關掉 SDK 的 DNS rebinding 檢查，否則經過 proxy 的請求會回 421。實測經過 nginx 連線，協定是 2026-07-28。）
 - **規範版本**：依 MCP **2026-07-28** 版，這一版有幾項重要改變：
   - 移除 session 和 `Mcp-Session-Id`，協定改成無狀態。
   - **sampling 列為棄用**，官方建議改成由伺服器直接呼叫 LLM API。
@@ -974,17 +978,23 @@ worker 完成 → PUBLISH result（完整結果）→ API 推送後關閉串流
 |---|---|---|---|
 | `list_areas` | `county`（可省略） | 縣市清單，以及開放約會的商圈 | `services.list_areas` |
 | `list_stations` | `county` | 該縣市的出發站 | `services.list_stations` |
+| `search_locations` | `q`、`area`（可省略） | 同 `GET /api/locations` | `services.search_locations` |
 | `list_categories` | `kind` | 片型或料理類別 | `services.list_categories` |
 | `data_coverage` | `area`、`date`（可省略） | 同 `GET /api/coverage` | `services.get_coverage` |
-| `plan_date` | 同 6.4 的請求欄位 | 同 6.5 的結果 | `services.submit_plan` |
+| `plan_date` | 同 6.4 的請求欄位，另外：`origin_station_name`（可省略）、`max_walk_minutes` 可省略 | 同 6.5 的結果 | `services.validate_plan` ＋ `plan_stream` |
 
-工具的說明文字要寫清楚呼叫順序：先用 `list_areas`、`list_stations`、`list_categories`、`data_coverage` 查到合法的值，再呼叫 `plan_date`。
+**工具說明是寫給 AI 看的**（v0.18，組員用 31 句模擬需求評測［mcp-eval］後改的）：
+- 每個參數都有說明：格式、範例、該從哪個工具拿值（例如 `area` 要用 `list_areas` 的 code、`date` 要是 `available_dates` 之一）。
+- 伺服器的 instructions 寫明服務範圍（目前只有桃園市）和 5 條規則：一次一個工具、照順序查（`list_areas` → `data_coverage` → `plan_date`）、只有使用者完全沒提到出發點／日期／時間／預算時才問、商圈沒開放或那天沒有想要的片型／影廳／料理就告訴使用者而不呼叫 `plan_date`、相對日期自己換算。
+- `origin_station_name`：使用者講的是車站時直接填站名（例如「中壢站」「桃園火車站」「高鐵桃園站」），伺服器在商圈所在縣市的出發站裡找：比對時去掉「火車站／車站／站」；同名的站用名稱裡的「高鐵／捷運／火車／台鐵」挑業者。找不到回 `NOT_FOUND`，還是有好幾個回 `AMBIGUOUS`（6.1）。有給 `origin_station_id` 時不查站名。
+- `max_walk_minutes`：只有 MCP 可以省略，預設 12（設定的選項裡沒有 12 時取中間的選項）；REST 仍然必填（2026-10-29 使用者決定）。說明寫明只限制影城和餐廳之間的步行。
+- `PlanRequest` 的驗證錯誤附上欄位名稱：`VALIDATION_ERROR：<欄位>：<訊息>`。工具簽名本身的必填欄位（例如 `order`）漏填時，SDK 在呼叫工具前就擋下，訊息是 pydantic 原本的格式（裡面也有欄位名稱）。
 
 **`plan_date` 的執行流程**
 1. 套用跟 `POST /api/plans` 相同的限流規則和排隊上限，以 MCP 客戶端的 IP 計算。佇列已滿時回傳工具錯誤 `QUEUE_FULL`。
 2. 先訂閱 `plan:{job_id}:events`，再把工作排進佇列。
 3. 收到 `queued`、`progress` 事件時，轉成 MCP 的**進度通知**，客戶端就看得到「排隊第 2 位」「1,880 種組合 → 39 種接得上」。
-4. 收到 `result` 就把結果當成工具的回傳值；收到 `error` 就回傳工具錯誤。
+4. 收到 `result` 就把結果當成工具的回傳值；收到 `error` 就回傳工具錯誤。離開時一定要把事件的 generator 收尾（`contextlib.aclosing`），才會馬上釋放這個 IP 的「規劃中」標記；不然以錯誤結束後，同一個 IP 會一直收到 `PLAN_IN_PROGRESS`（v0.18，mcp-eval 端到端發現）。
 5. 客戶端取消呼叫或斷線時，取消工作，跟 SSE 的規則一樣。新版規範拿掉了斷線續傳，所以客戶端要重新呼叫。
 
 ### 6.7 前端串接

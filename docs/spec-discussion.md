@@ -963,6 +963,23 @@ rq cron（只負責觸發）── 每天 06:00 ──▶ 抓取佇列 ──▶
 - 根目錄新增 `.github/workflows/pages.yml`：`frontend/` 有改動、推到 main 就自動跑前端測試、用假資料打包（`npm run build:pages`，base 是 `/ZeroGap/`）、發布。不用再手動更新；也可以在 Actions 頁面手動執行。
 - 已驗證：第一次自動發布成功，線上直接開 `/plan/4` 正常，走完精靈排出 3 個行程，資源都載入成功（深層網址第一次載入會回 404，是 `404.html` 接手，正常）。
 
+### 2026-10-29 合併組員的 MCP 工具介面改良（規格書 v0.18）
+
+- 組員（前端＋MCP）用 31 句模擬需求評測 AI 透過 MCP 使用 ZeroGap（mcp-eval），依結果改了 `backend/app/mcp.py`：每個參數加說明、instructions 寫明服務範圍和 5 條規則、走路上限給預設值、新增 `origin_station_name`、驗證錯誤附欄位名稱、排程前的檢查抽成 `prepare_plan`、`plan_date` 用 `aclosing` 收尾。組員的數字：Claude（sonnet）整體成功 81% → 90%、平均輪數 5.3 → 3.2；qwen2.5:3b 商圈代碼填對 7% → 89%，但正常題整體成功一直是 0。樣本小（Claude 每版 31 題 × 1 次，差 1 題約 3 個百分點），只能說方向對。
+- 對照 main 後另外修的：走路上限的說明原本寫「每一段」，實際只限制影城和餐廳之間（`feasibility.py`），改掉；站名查 id 從 `mcp.py` 的 SQL 搬到 `services.station_id_by_name`。
+- 使用者決定（全部照建議）：
+  | 題目 | 決定 |
+  |---|---|
+  | 新的錯誤代碼 `AMBIGUOUS` | 加進規格，當 MCP 專用的代碼（6.1） |
+  | 走路上限預設 12 | 只有 MCP 有預設，REST 仍然必填 |
+  | 站名查 id 放哪裡 | 搬到 `services.py` |
+  | planner 查交通逾時（組員端到端的問題 3） | 先在 main 跑一次看會不會重現 |
+  | 中壢的 OSM 餐廳沒有料理分類 | `data_coverage`（和 `/api/coverage`）新增 `cuisines`：排得進行程的店有哪些料理；餐廳分類等 Demo 錄影前再跑 |
+- **鎖沒釋放的 bug 確認是真的**：拿掉 `aclosing` 後，新的測試（以錯誤結束後 `active:plan:*` 要馬上清掉）會失敗。`cancel_plan` 不用改：main 已經處理工作不存在和停止時的 `InvalidJobOperation`，有 L2 之後以錯誤結束也不會呼叫它。
+- **交通逾時在 main 上沒有重現**：用 Docker 裡 main 的版本（真的 TDX、Google 來源）排一次中壢（中壢站出發、10/31 17:00～23:30、先看電影、每人 1500），66 秒排出 3 個方案，worker 沒有任何逾時紀錄。組員那次可能跟他的快照或當時 TDX 的狀況有關，先不處理。
+- 發現組員評測沒測到的一點：工具簽名本身的必填欄位（例如 `order`）漏填時，SDK 在呼叫工具前就擋下，訊息是 pydantic 原本的格式（`1 validation error for plan_dateArguments / order / Field required`），不會變成「`order` 是必填，請補上」。評測直接呼叫 `prepare_plan`，所以看不出來。已寫進規格書 6.6。
+- 測試：新增 MCP 的 schema 預設值、站名換 id（含「高鐵桃園站」挑高鐵）、AMBIGUOUS／NOT_FOUND、驗證錯誤附欄位、以錯誤結束後鎖有放；`/api/coverage` 的 `cuisines`。全部 451 個通過。分支 `feat/mcp-tool-descriptions`。
+
 ## 6. 剩下的步驟
 
 - **第 5 步：部署、測試、錯誤處理**

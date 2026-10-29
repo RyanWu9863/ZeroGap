@@ -175,6 +175,8 @@ async def test_coverage(client):
     assert TOMORROW.isoformat() in data["available_dates"]
     assert (TODAY + timedelta(days=3)).isoformat() not in data["available_dates"]  # 第 4 天空著
     assert data["movies"] == [] and data["restaurant_source"] == "google"
+    # 料理跟日期無關，不指定日期也列：只列排得進行程的店有的料理
+    assert {"code": "japanese", "label": "日式"} in data["cuisines"]
 
     res = await client.get(
         "/api/coverage", params={"area": "taoyuan", "date": TOMORROW.isoformat()}

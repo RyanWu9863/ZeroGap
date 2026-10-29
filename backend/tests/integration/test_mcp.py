@@ -157,3 +157,66 @@ async def test_plan_date_validation_error(env):
         result = await client.call_tool("plan_date", plan_args(1, latest_home="03:00"))
     assert result.is_error
     assert "VALIDATION_ERROR" in result.content[0].text
+
+
+async def test_plan_date_schema_defaults(env):
+    # 走路上限只有 MCP 有預設，AI 沒填也能排；站名可以直接填（2026-10-29 mcp-eval v3）
+    async with connect() as client:
+        tools = {t.name: t for t in (await client.list_tools()).tools}
+    schema = tools["plan_date"].input_schema
+    assert "max_walk_minutes" not in schema["required"]
+    assert schema["properties"]["max_walk_minutes"]["default"] == 12
+    assert "origin_station_name" in schema["properties"]
+
+
+async def test_station_name_becomes_id(env, engine):
+    from app.mcp import prepare_plan
+
+    with engine.connect() as c:
+        ids = dict(c.execute(text("SELECT station_uid, id FROM stations")).all())
+    base = plan_args(None)
+    del base["max_walk_minutes"]
+    try:
+        for name, uid in [
+            ("中壢站", "demo-TRA-zhongli"),
+            ("中壢", "demo-TRA-zhongli"),
+            ("桃園火車站", "demo-TRA-taoyuan"),
+            ("高鐵桃園站", "demo-THSR-taoyuan"),  # 也有叫「高鐵桃園站」的捷運站，看「高鐵」挑
+        ]:
+            req = await prepare_plan({**base, "origin_station_name": name, "max_walk_minutes": 12})
+            assert req.origin_station_id == ids[uid], name
+    finally:
+        await app.db.async_engine().dispose()
+
+
+async def test_station_name_ambiguous_or_unknown(env):
+    async with connect() as client:
+        ambiguous = await client.call_tool(
+            "plan_date", plan_args(None, origin_station_name="桃園站")
+        )
+        unknown = await client.call_tool(
+            "plan_date", plan_args(None, origin_station_name="台北車站")
+        )
+    assert ambiguous.is_error and "AMBIGUOUS：「桃園站」有 2 個站" in ambiguous.content[0].text
+    assert "THSR" in ambiguous.content[0].text and "TRA" in ambiguous.content[0].text
+    assert unknown.is_error and "NOT_FOUND：找不到叫「台北車站」的車站" in unknown.content[0].text
+
+
+async def test_validation_error_names_the_field(env):
+    # PlanRequest 的錯誤附上欄位名稱。工具簽名本身的必填欄位（例如 order）漏填時，
+    # SDK 在呼叫工具之前就擋下，訊息是 pydantic 原本的格式，不會走到 validation_error_text
+    async with connect() as client:
+        result = await client.call_tool("plan_date", plan_args(1, budget_per_person=0))
+    assert result.is_error
+    assert "VALIDATION_ERROR：budget_per_person：" in result.content[0].text
+
+
+async def test_error_result_releases_the_lock(env, worker, redis_url):
+    # 工具在 async for 裡 raise 時，generator 要馬上收尾，不然這個 IP 會一直 PLAN_IN_PROGRESS
+    # （2026-10-29 mcp-eval 端到端發現，用 aclosing 修好）
+    args = plan_args(None, origin_station_name="中壢站", budget_per_person=100)
+    del args["max_walk_minutes"]
+    async with connect() as client:
+        result = await client.call_tool("plan_date", args, read_timeout_seconds=120)
+        assert result.is_error and "NO_FEASIBLE：" in result.content[0].text
+        assert redis.Redis.from_url(redis_url).keys("active:plan:*") == []

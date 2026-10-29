@@ -107,6 +107,47 @@ async def list_stations(db: AsyncSession, county: str) -> list[dict[str, Any]]:
     return [dict(r._mapping) for r in rows]
 
 
+# 使用者講站名時常帶「火車」「高鐵」：用來在同名的站（例如台鐵和高鐵都有「桃園」）之間挑
+_OPERATOR_HINTS = (("高鐵", "THSR"), ("捷運", "TYMC"), ("火車", "TRA"), ("台鐵", "TRA"))
+
+
+def _bare_station_name(name: str) -> str:
+    name = name.strip()
+    for suffix in ("火車站", "車站", "站"):
+        if name.endswith(suffix):
+            return name[: -len(suffix)]
+    return name
+
+
+async def station_id_by_name(db: AsyncSession, area: str, name: str) -> int | None:
+    """MCP 的 `origin_station_name`：在商圈所在縣市的出發站裡找站名（6.6）。
+    商圈不存在時回 None，留給後面的檢查回報商圈的錯誤。"""
+    county_id = await db.scalar(text("SELECT county_id FROM areas WHERE code = :a"), {"a": area})
+    if county_id is None:
+        return None
+    rows = await db.execute(
+        text(
+            "SELECT id, name, operator FROM stations WHERE county_id = :c AND is_active ORDER BY id"
+        ),
+        {"c": county_id},
+    )
+    bare = without_hints = _bare_station_name(name)
+    for word, _ in _OPERATOR_HINTS:
+        without_hints = without_hints.replace(word, "")
+    found = [r for r in rows if _bare_station_name(r.name) in (bare, without_hints)]
+    operators = {op for word, op in _OPERATOR_HINTS if word in name}
+    if len(found) > 1 and operators:
+        found = [r for r in found if r.operator in operators] or found
+    if not found:
+        raise not_found(f"找不到叫「{name}」的車站，請用 list_stations 查，或問使用者")
+    if len(found) > 1:
+        options = "、".join(f"{r.id} {r.name}（{r.operator}）" for r in found)
+        raise ApiError(
+            400, "AMBIGUOUS", f"「{name}」有 {len(found)} 個站：{options}；請問使用者是哪一個"
+        )
+    return found[0].id
+
+
 # ── 地點搜尋（自選的出發位置） ─────────────────────────────────
 
 
@@ -272,8 +313,10 @@ async def get_coverage(
         "genres": [],
         "hall_types": [],
         "languages": [],
+        "cuisines": [],
         "restaurant_source": await restaurant_source(r, s),
     }
+    out["cuisines"] = await _plannable_cuisines(db, area_id, out["restaurant_source"])
     if day is None:
         return out
     start = datetime.combine(day, datetime.min.time(), TZ)
@@ -313,6 +356,34 @@ async def get_coverage(
     )
     out["languages"] = list(languages)
     return out
+
+
+async def _plannable_cuisines(db: AsyncSession, area_id: int, source: str) -> list[dict[str, Any]]:
+    """排得進行程的餐廳有哪些料理：條件跟 planner 的 `_load_restaurants` 一樣，
+    AI 才不會指定一個一家都沒有的料理，送出後才收到 NO_FEASIBLE（2026-10-29 mcp-eval 端到端）。"""
+    has_google = await db.scalar(
+        text(
+            "SELECT EXISTS (SELECT 1 FROM restaurants WHERE area_id = :a AND is_active "
+            "AND source = 'google' AND geom IS NOT NULL)"
+        ),
+        {"a": area_id},
+    )
+    source_cond = "source = 'google'" if source == "google" and has_google else "source <> 'google'"
+    rows = await db.execute(
+        text(
+            f"""
+            SELECT g.code, g.label FROM categories g
+            WHERE g.kind = 'cuisine' AND g.code IN (
+                SELECT category_code FROM restaurants
+                WHERE area_id = :a AND is_active AND geom IS NOT NULL
+                  AND price_range IS NOT NULL AND meal_duration IS NOT NULL AND {source_cond}
+            )
+            ORDER BY g.sort_order
+            """
+        ),
+        {"a": area_id},
+    )
+    return [dict(row._mapping) for row in rows]
 
 
 async def llm_connected(r: aioredis.Redis, s: Settings) -> bool:

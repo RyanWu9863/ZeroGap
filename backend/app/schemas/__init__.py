@@ -81,6 +81,7 @@ class CoverageOut(_Model):
     genres: list[CodeLabel] = []
     hall_types: list[CodeLabel] = []
     languages: list[str] = []
+    cuisines: list[CodeLabel] = []
     restaurant_source: RestaurantSourceMode
 
 
