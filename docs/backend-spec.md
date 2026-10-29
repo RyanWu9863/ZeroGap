@@ -644,7 +644,7 @@ WHERE subject_type = 'restaurant' AND decided_by = 'llm';
 | `rejudge_and_refresh_geom` | 每天 03:00，只處理超過期限的資料 |
 
 - 設定檔寫法（RQ 2.5 以上）：`cron.register(refresh_daily, queue_name='crawl', cron='0 6 * * *')`。用 `interval=秒數` 或 `cron=` 二選一。
-- **cron 時間是依排程程式所在環境的時區計算的**，Docker 容器預設是 UTC。所以 `cron` 容器一定要設 `TZ=Asia/Taipei`，否則 06:00 會變成台灣時間 14:00。
+- 上表的時間都是**台北時間**。RQ 2.12 一律用 UTC 的現在時間算下一次觸發，容器的 `TZ` 沒有作用（2026-10-29 修正：原本以為設 `TZ=Asia/Taipei` 就好，實際 06:00 變成台北 14:00）。所以 `app/jobs/cron_config.py` 照台北時間寫，用 `taipei(分, 時, 星期)` 換成 UTC 的 cron 字串，例如 06:00 → `0 22 * * *`、週一 04:00 → `0 20 * * 0`（台灣沒有日光節約時間，固定差 8 小時）。測試：`tests/unit/test_cron_config.py`。
 - 官方文件把 RQ 的 cron 功能標為測試版，也沒有說明開多個 `rq cron` 時會不會重複觸發，所以要靠下一點的鎖來防止重複執行。
 - 每個工作開始時先搶 `lock:job:{名稱}`。
 - `worker-crawl` 啟動時查 `crawl_runs`：今天還沒有成功的 `atmovies` 紀錄，就把 `refresh_daily` 排進佇列。資料庫或 Redis 還沒好時每 5 秒重試，最多 2 分鐘：電腦重開機時 Docker 照 `restart` 重啟容器，不會等 `depends_on` 的 healthcheck（2026-10-27 補上）。
@@ -1190,7 +1190,7 @@ MCP 的工具錯誤沿用上表的 code，寫成 `CODE：訊息`；另外有一�
 | `api` | 自建（uvicorn） | 1～N | 啟動參數加 `--proxy-headers`，才能拿到使用者的真實 IP |
 | `worker` | 自建（`rq worker plans`） | 1～N | 只跑規劃。規劃的速度受 TDX 每分鐘 5 次限制，開多個也不會更快；建議 1～2 個 |
 | `worker-crawl` | 自建（`rq worker crawl`） | 1 | 只跑抓取，抓取再久也不會擋到規劃（2026-10-21 新增，見 5.6）。啟動時先跑 `python -m app.jobs.startup` 補抓今天還沒抓過的資料 |
-| `cron` | 自建（`rq cron app.jobs.cron_config`） | 1 | 必須設定 `TZ=Asia/Taipei`；就算開多個也有鎖保護（2026-10-21 實作） |
+| `cron` | 自建（`rq cron app.jobs.cron_config`） | 1 | 排程照台北時間觸發（設定檔自己換算成 UTC，見 5.6）；就算開多個也有鎖保護（2026-10-21 實作） |
 | `postgres` | postgis/postgis | 1 | |
 | `redis` | redis:7 | 1 | 依 5.1 設定 |
 | `ollama` | ollama/ollama | 1 | 預先下載 qwen2.5:3b；用 CPU 或 GPU 視主機而定 |

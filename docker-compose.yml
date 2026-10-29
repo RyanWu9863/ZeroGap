@@ -88,7 +88,7 @@ services:
 
   cron:
     <<: *app
-    # 只負責按時間把工作排進佇列；時間依 TZ 計算（5.6）
+    # 只負責按時間把工作排進佇列；rq 照 UTC 計時，台北時間在 cron_config.py 換算（5.6）
     command: ["rq", "cron", "--url", "redis://redis:6379/0", "app.jobs.cron_config"]
 
   proxy:

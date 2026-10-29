@@ -980,6 +980,14 @@ rq cron（只負責觸發）── 每天 06:00 ──▶ 抓取佇列 ──▶
 - 發現組員評測沒測到的一點：工具簽名本身的必填欄位（例如 `order`）漏填時，SDK 在呼叫工具前就擋下，訊息是 pydantic 原本的格式（`1 validation error for plan_dateArguments / order / Field required`），不會變成「`order` 是必填，請補上」。評測直接呼叫 `prepare_plan`，所以看不出來。已寫進規格書 6.6。
 - 測試：新增 MCP 的 schema 預設值、站名換 id（含「高鐵桃園站」挑高鐵）、AMBIGUOUS／NOT_FOUND、驗證錯誤附欄位、以錯誤結束後鎖有放；`/api/coverage` 的 `cuisines`。全部 451 個通過。分支 `feat/mcp-tool-descriptions`。
 
+### 2026-10-29 rq cron 改照台北時間觸發
+
+- **問題**（2026-10-27 審查發現，Demo 手冊寫著「還沒修」）：RQ 2.12 的 `rq cron` 用 `datetime.now(timezone.utc)` 交給 croniter 算下一次觸發，容器設的 `TZ=Asia/Taipei` 沒有作用。`cron_config.py` 寫的 06:00、18:00 實際在台北 14:00、02:00 跑；OSM 14:30、Google 座標 11:00，每週一的三個工作變成週一 12:00～13:00。RQ 的 cron 沒有時區參數。
+- **使用者決定**：修。
+- **做法**：`cron_config.py` 照台北時間寫，新增 `taipei(分, 時, 星期)` 換成 UTC 的 cron 字串。台灣沒有日光節約時間，固定差 8 小時；台北 08:00 前在 UTC 是前一天，每週的工作跟著往前一天（週一 04:00 → `0 20 * * 0`）。排程的時間本身沒改，規格書不另外升版（和 MCP 改良同一天，維持 v0.18），只改 5.6、8.1 的說明；compose 的註解、Demo 手冊一起改。
+- **測試**：新增 `tests/unit/test_cron_config.py`（21 個，先看它失敗：開眼早上那次在台北 14:00 觸發）。跟 rq 一樣從 UTC 的時間往後算，換回台北時間比對，包括跨日、跨週。另外用 rq 的 `CronJob` 確認七個工作的下一次觸發都是正確的台北時間。
+- **要重建 `cron` 容器才會生效**（程式包在映像檔裡）。
+
 ## 6. 剩下的步驟
 
 - **第 5 步：部署、測試、錯誤處理**
