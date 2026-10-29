@@ -1,3 +1,4 @@
+import { ApiError } from '@/api/errors'
 import type { PlanRequest } from '@/api/schemas'
 import { areas, categories, counties, coverage, stations, status } from './catalog'
 import { mockResult } from './planResult'
@@ -12,13 +13,23 @@ import { mockResult } from './planResult'
  *   low_confidence  系統拿不定：第 1 案的電影、餐廳和第 2 案的回程路線附備選
  *   no_showtimes    沒有符合條件的場次
  *   queue_full      排隊已滿（HTTP 503）
+ *   pending         規劃一直不回應：看（和測試）等待畫面
+ *   options_error   精靈的商圈清單前 2 次都失敗（第一次＋自動重試），之後按「重試」就成功（計畫 P1-1）
  */
 const wait = (ms: number) => new Promise((r) => setTimeout(r, ms))
 const scenario = () => new URLSearchParams(window.location.search).get('mock')
 
-export async function mockGet(path: string): Promise<unknown> {
+let areasFailLeft = 2
+
+export async function mockGet(path: string, signal?: AbortSignal): Promise<unknown> {
   await wait(120)
+  // 和真的 fetch 一樣：被取消的請求（例如開發模式 React 重掛一次）算取消，不算失敗
+  if (signal?.aborted) throw new DOMException('取消', 'AbortError')
   const url = new URL(path, 'http://mock')
+  if (url.pathname === '/api/areas' && scenario() === 'options_error' && areasFailLeft > 0) {
+    areasFailLeft--
+    throw new ApiError('network', '假資料情境：商圈清單載入失敗')
+  }
   const q = (k: string) => url.searchParams.get(k)
   switch (url.pathname) {
     case '/api/counties':
@@ -88,6 +99,7 @@ const json400 = (message: string) =>
 /** 模擬 POST /api/plans：回傳一個會慢慢送出 SSE 的 Response；signal 中斷就停 */
 export async function mockPlanResponse(req: PlanRequest, signal?: AbortSignal): Promise<Response> {
   await wait(100)
+  if (scenario() === 'pending') await new Promise(() => {})
   // 目前位置離商圈超過 30 公里，跟後端一樣回 400（規格書 6.4；假資料一律用桃園站當商圈的代表點）
   if (req.origin_lat != null && req.origin_lng != null && km(req.origin_lat, req.origin_lng, 24.989, 121.314) > 30) {
     return json400('目前位置離這個商圈超過 30 公里，請改選出發站')

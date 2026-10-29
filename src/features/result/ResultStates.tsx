@@ -14,6 +14,9 @@ function explain(e: RunError | null): { title: string; body: string; fix?: boole
       return { title: '你已經有一個規劃在進行', body: '可能是在別的分頁。等它完成或關掉那個分頁，再試一次。' }
     case 'TIMEOUT':
       return { title: '這次排太久，先停下來了', body: '排隊或規劃超過時間上限，再試一次通常就會好。' }
+    case 'FORMAT':
+      // 前端擋下了看不懂的資料（errors.ts 的 format）：再試也一樣
+      return { title: '收到的資料看不懂', body: '這通常是前端和後端版本對不上，再試也不會好，請通知開發組。' }
     case 'VALIDATION_ERROR':
     case 'NOT_FOUND':
       return { title: '條件有一點問題', body: e.message || '有些選項已經不能用了，回去重新選一次。', fix: true }

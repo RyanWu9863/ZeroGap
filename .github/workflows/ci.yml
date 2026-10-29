@@ -1,0 +1,30 @@
+# 跨平台檢查：組員有人用 Mac、有人用 Windows。只檢查、不發布（發布在 pages.yml）。
+# 只跑 Windows 和 Linux（2026-10-22 拿掉 macOS）：
+# - Mac 在開發者自己的電腦上每次 npm run predemo 都有驗證
+# - 私人 repo 的 macOS 機器算 10 倍額度，而且常常排不到機器（第一次 CI 等了 15 分鐘被取消）
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  check:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, ubuntu-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - run: npx tsc -b
+      - run: npm run lint
+      - run: npm test
+      - run: npm run build:pages
+      - run: npx playwright install --with-deps chromium
+      - run: npx playwright test --project=chromium

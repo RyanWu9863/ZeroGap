@@ -1,8 +1,11 @@
+import { useState } from 'react'
 import { useRequestLabels } from '@/api/labels'
-import { useAreas, useCategories, useCoverage, useStations } from '@/api/queries'
+import { failure, useAreas, useCategories, useCoverage, useStations } from '@/api/queries'
 import type { PlanRequest } from '@/api/schemas'
 import { BUDGET_OPTIONS, WALK_OPTIONS } from '@/shared/lib/config'
+import { todayISO } from '@/shared/lib/dates'
 import { formatMoney, walkDistance } from '@/shared/lib/format'
+import { LoadError } from '@/shared/ui/LoadError'
 import { Chips, Field } from '@/features/wizard/parts/Choice'
 import { DateCalendar } from '@/features/wizard/parts/DateCalendar'
 import { LocationButton } from '@/features/wizard/parts/LocationButton'
@@ -24,13 +27,21 @@ const Loading = () => <p className="py-6 text-center text-muted-foreground">載�
  * 選項來自 /api/areas、/api/stations、/api/coverage、/api/categories（規格書 6.2）。
  */
 export function ConditionEditor({ kind, value: r, onChange }: Props) {
-  const areas = useAreas().data
-  const stations = useStations().data
-  const cuisines = useCategories('cuisine').data
-  const days = useCoverage(r.area || undefined).data
-  const day = useCoverage(r.area || undefined, r.date || undefined).data
+  const areasQ = useAreas()
+  const stationsQ = useStations()
+  const cuisinesQ = useCategories('cuisine')
+  const daysQ = useCoverage(r.area || undefined)
+  const dayQ = useCoverage(r.area || undefined, r.date || undefined)
+  const [areas, stations, cuisines, days, day] = [areasQ.data, stationsQ.data, cuisinesQ.data, daysQ.data, dayQ.data]
+  const [today] = useState(todayISO)
   const { station } = useRequestLabels(r)
   const any = { value: null, label: '不限' }
+
+  // 這個條件要用的清單載入失敗了 → 白話＋重試（計畫 P1-1）
+  const needs = { place: [areasQ, stationsQ], date: [daysQ], movie: [dayQ], food: [cuisinesQ] } as const
+  const used = kind in needs ? needs[kind as keyof typeof needs] : []
+  const failed = used.map(failure).find(Boolean)
+  if (failed) return <LoadError error={failed} onRetry={() => used.forEach((q) => void q.refetch())} compact />
 
   switch (kind) {
     case 'place':
@@ -50,7 +61,7 @@ export function ConditionEditor({ kind, value: r, onChange }: Props) {
       )
     case 'date':
       if (!days) return <Loading />
-      return <DateCalendar available={days.available_dates} value={r.date} onChange={(date) => onChange({ date, ...RESET_MOVIE })} />
+      return <DateCalendar available={days.available_dates} value={r.date} today={today} onChange={(date) => onChange({ date, ...RESET_MOVIE })} />
     case 'time':
       return (
         <TimeRange
