@@ -64,9 +64,13 @@ async function toError(res: Response): Promise<PlanError> {
  * fetch 加上逾時，連不上、等太久分開報（計畫 P1-2）。
  * signal 是呼叫端的取消（TanStack Query 離開頁面、規劃被取消）：那種取消照原樣丟出去，不算錯誤。
  */
-async function send(path: string, init: RequestInit & { timeoutMs?: number }): Promise<Response> {
-  const { timeoutMs, signal, ...rest } = init
-  const timeout = timeoutMs ? AbortSignal.timeout(timeoutMs) : null
+async function send(path: string, init: RequestInit & { timeoutMs?: number; headersOnly?: boolean }): Promise<Response> {
+  const { timeoutMs, headersOnly, signal, ...rest } = init
+  // headersOnly：逾時只算到收到回應標頭為止。規劃的 SSE 串流要跑 2～3 分鐘，
+  // 用 AbortSignal.timeout 會連串流一起切斷（30 秒就斷，2026-10-29 錄影時發現）
+  const ctl = headersOnly && timeoutMs ? new AbortController() : null
+  const timer = ctl ? setTimeout(() => ctl.abort(), timeoutMs) : undefined
+  const timeout = ctl ? ctl.signal : timeoutMs ? AbortSignal.timeout(timeoutMs) : null
   // 舊瀏覽器沒有 AbortSignal.any 就只用逾時
   const combined = timeout && signal && 'any' in AbortSignal ? AbortSignal.any([signal, timeout]) : (timeout ?? signal)
   try {
@@ -75,6 +79,8 @@ async function send(path: string, init: RequestInit & { timeoutMs?: number }): P
     if (timeout?.aborted) throw new ApiError('timeout', `API ${path} 超過 ${timeoutMs! / 1000} 秒沒有回應`)
     if (signal?.aborted) throw e
     throw new ApiError('network', `API ${path} 連不上`)
+  } finally {
+    clearTimeout(timer)
   }
 }
 
@@ -136,6 +142,7 @@ async function streamPlan(req: PlanRequest, opts: { signal?: AbortSignal; onEven
         body: JSON.stringify(req),
         signal: opts.signal,
         timeoutMs: API_TIMEOUT_MS.connect,
+        headersOnly: true,
       })
   if (!res.ok) throw await toError(res)
   if (!res.body) throw new PlanError({ code: 'STREAM_CLOSED', message: '沒有收到串流' })
