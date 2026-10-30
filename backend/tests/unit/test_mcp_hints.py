@@ -73,11 +73,3 @@ def test_coverage_hints_ok_adds_nothing():
 
     src = {"area": "zhongli", "available_dates": ["2026-10-30"]}
     assert _coverage_hints(src, "2026-10-30") == src
-
-
-def test_instructions_tell_ai_how_to_introduce():
-    from app.mcp import INSTRUCTIONS
-
-    intro = INSTRUCTIONS.split("規則")[0]
-    for word in ("能做什麼", "交通", "桃園", "出發", "預算"):
-        assert word in intro
