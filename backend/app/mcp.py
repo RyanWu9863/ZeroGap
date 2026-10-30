@@ -43,7 +43,8 @@ INSTRUCTIONS = (
     "已經講了的（例如「中壢站出發」「每人 800」「十點前回家」）就直接用，不要再跟使用者確認。"
     "走路上限、片型、料理沒講都不用問。\n"
     "4. 商圈沒開放、日期不在 available_dates、想看的片型或影廳那天沒有、想吃的料理不在 cuisines："
-    "告訴使用者並建議替代方案，不要呼叫 plan_date。\n"
+    "告訴使用者並建議替代方案，不要呼叫 plan_date。"
+    "工具結果裡有 can_plan: false 時，照 tell_user 告訴使用者，不要呼叫 plan_date。\n"
     "5. 日期直接照使用者的說法填（例如「週六」「明天」），伺服器會換算，不用自己算。\n"
     "一次規劃約 1～3 分鐘，期間會送出進度通知。資料是學術展示用。"
 )
@@ -121,6 +122,47 @@ def _today() -> date:
     return datetime.now(services.TZ).date()
 
 
+def _area_hints(out: dict[str, Any]) -> dict[str, Any]:
+    """沒開放的商圈、沒有開放商圈的縣市，直接寫「不能規劃」和要跟使用者說的話（mcp-eval v4：
+    超出範圍題小模型只有 29%，靠 AI 記住規則不夠，改成寫在工具結果裡）。"""
+    open_names = "、".join(a["name"] for a in out["areas"] if a["is_open"])
+    areas = [
+        a
+        if a["is_open"]
+        else {
+            **a,
+            "can_plan": False,
+            "tell_user": f"{a['name']}目前沒有開放規劃；可以改成{open_names}",
+        }
+        for a in out["areas"]
+    ]
+    counties = [
+        c
+        if c.get("has_open_areas", True)
+        else {**c, "can_plan": False, "tell_user": f"目前只服務桃園市（{open_names}）"}
+        for c in out["counties"]
+    ]
+    return {**out, "areas": areas, "counties": counties}
+
+
+def _coverage_hints(out: dict[str, Any], day: str | None) -> dict[str, Any]:
+    """商圈沒有任何日期、或問的那天沒有場次時，直接寫「不能規劃」（coverage 只有商圈 code）。"""
+    dates = out.get("available_dates") or []
+    if not dates:
+        return {
+            **out,
+            "can_plan": False,
+            "tell_user": f"商圈 {out['area']} 目前沒有場次資料，沒辦法規劃",
+        }
+    if day is not None and day not in dates:
+        return {
+            **out,
+            "can_plan": False,
+            "tell_user": f"{day} 沒有場次資料；目前可以排 {dates[0]}～{dates[-1]}",
+        }
+    return out
+
+
 @mcp.tool()
 async def list_areas(
     county: Annotated[
@@ -131,10 +173,12 @@ async def list_areas(
     is_open 為 true 才能規劃；目前只有桃園市有開放的商圈。"""
     async with async_session()() as db:
         try:
-            return {
-                "counties": await services.list_counties(db),
-                "areas": await services.list_areas(db, county),
-            }
+            return _area_hints(
+                {
+                    "counties": await services.list_counties(db),
+                    "areas": await services.list_areas(db, county),
+                }
+            )
         except ApiError as exc:
             raise _tool_error(exc) from None
 
@@ -213,7 +257,7 @@ async def data_coverage(
             )
         except ApiError as exc:
             raise _tool_error(exc) from None
-    return _jsonable(out)
+    return _coverage_hints(_jsonable(out), day)
 
 
 @mcp.tool()
