@@ -2,7 +2,7 @@
 
 | 項目 | 內容 |
 |---|---|
-| 版本 | v0.19（mcp-eval 端到端修正：影城附近走路到不了任何能排的餐廳時，`/api/coverage` 不列它的場次和日期、規劃的 `NO_FEASIBLE` 說明是影城離餐廳太遠；TDX 兩點 200 公尺內不查直接走路、1 公里內逾時也改走路；MCP 的 `NO_FEASIBLE` 附上被排除的原因和組數，見 5.3、6.2、6.3、7.1。v0.18：MCP 工具介面改良［組員的 mcp-eval v3］：每個參數加說明、`plan_date` 新增 `origin_station_name`、走路上限在 MCP 可省略［預設 12］、新增 MCP 專用的錯誤代碼 `AMBIGUOUS`；`/api/coverage` 新增 `cuisines`，見 6.1、6.3、6.6。v0.17：Google 座標更新失敗時，404 才馬上停用，暫時的錯誤隔天再試，見 4.5。v0.16：出發點的交通接不上時，`NO_FEASIBLE` 的 `reasons` 只放 `transit_window`、`message` 寫出時間；TDX 的 `arrival` 查不到時往前重查、`depart` 改取最早抵達；路線快取換成 `v3`，見 3.2、5.3、6.4、7.1。v0.15：AI 推論：Ollama 連續連不上就熔斷；LLM 可選擇棄權［預設關閉］；Router 判斷方式可由設定切換［預設不變］；每次規劃寫一行決策紀錄日誌，見 3、3.1、7.1。v0.14：規劃和抓取拆成兩個 worker：`worker` 只聽 `plans`、新增 `worker-crawl` 只聽 `crawl`，抓取時規劃不用再排隊等，見 5.6、8.1。v0.13：第二階段實作：真的 TDX［頭尾步行 20 分鐘、車資沒給時自己估］、TDX 車站、OSM 餐廳、開眼爬蟲、`rq cron`、MCP；新增蘆竹（南崁）商圈、青埔先不開放；八德只用廣豐新天地。v0.12：逐項確認實作時新增的預設值：早到 30 分鐘內等開門、餐廳備選補滿 2 家、沒判斷屬性的店不排、Jev 沒把握就附備選、新增 `restaurant.hours_verified`。v0.11：實作中的補充列在 10.1；`restaurants.source` 新增 `demo`；修正 5.3 路線快取的取整範例；7.3 補上價位區間的代碼；實作時的小調整：`areas.sort_order`、`area_hubs.geom` 可以是 null、migration 一併寫入類別和票價。v0.10：補上前端對照時發現的缺口：下拉選單的回應範例、跨午夜的判斷、`reasons` 的 key、排隊順位的意思、備選欄位、OSM 出處。v0.9：備選只附估計值、第一名固定「最推薦」、回程緩衝加 `return_window`。v0.8 起前端 ZeroGap 照這份規格串接、飲食限制延後；架構與 v0.4 相同） |
+| 版本 | v0.20（mcp-eval v4：MCP 的 `date` 可以直接用使用者的說法［今天、明天、週六、下週日、12/25］，由伺服器換算；`list_areas`、`data_coverage` 不能規劃時回 `can_plan: false` 和 `tell_user`；instructions 加上自我介紹，見 6.6。v0.19（mcp-eval 端到端修正：影城附近走路到不了任何能排的餐廳時，`/api/coverage` 不列它的場次和日期、規劃的 `NO_FEASIBLE` 說明是影城離餐廳太遠；TDX 兩點 200 公尺內不查直接走路、1 公里內逾時也改走路；MCP 的 `NO_FEASIBLE` 附上被排除的原因和組數，見 5.3、6.2、6.3、7.1。v0.18：MCP 工具介面改良［組員的 mcp-eval v3］：每個參數加說明、`plan_date` 新增 `origin_station_name`、走路上限在 MCP 可省略［預設 12］、新增 MCP 專用的錯誤代碼 `AMBIGUOUS`；`/api/coverage` 新增 `cuisines`，見 6.1、6.3、6.6。v0.17：Google 座標更新失敗時，404 才馬上停用，暫時的錯誤隔天再試，見 4.5。v0.16：出發點的交通接不上時，`NO_FEASIBLE` 的 `reasons` 只放 `transit_window`、`message` 寫出時間；TDX 的 `arrival` 查不到時往前重查、`depart` 改取最早抵達；路線快取換成 `v3`，見 3.2、5.3、6.4、7.1。v0.15：AI 推論：Ollama 連續連不上就熔斷；LLM 可選擇棄權［預設關閉］；Router 判斷方式可由設定切換［預設不變］；每次規劃寫一行決策紀錄日誌，見 3、3.1、7.1。v0.14：規劃和抓取拆成兩個 worker：`worker` 只聽 `plans`、新增 `worker-crawl` 只聽 `crawl`，抓取時規劃不用再排隊等，見 5.6、8.1。v0.13：第二階段實作：真的 TDX［頭尾步行 20 分鐘、車資沒給時自己估］、TDX 車站、OSM 餐廳、開眼爬蟲、`rq cron`、MCP；新增蘆竹（南崁）商圈、青埔先不開放；八德只用廣豐新天地。v0.12：逐項確認實作時新增的預設值：早到 30 分鐘內等開門、餐廳備選補滿 2 家、沒判斷屬性的店不排、Jev 沒把握就附備選、新增 `restaurant.hours_verified`。v0.11：實作中的補充列在 10.1；`restaurants.source` 新增 `demo`；修正 5.3 路線快取的取整範例；7.3 補上價位區間的代碼；實作時的小調整：`areas.sort_order`、`area_hubs.geom` 可以是 null、migration 一併寫入類別和票價。v0.10：補上前端對照時發現的缺口：下拉選單的回應範例、跨午夜的判斷、`reasons` 的 key、排隊順位的意思、備選欄位、OSM 出處。v0.9：備選只附估計值、第一名固定「最推薦」、回程緩衝加 `return_window`。v0.8 起前端 ZeroGap 照這份規格串接、飲食限制延後；架構與 v0.4 相同） |
 | 日期 | 2026-10-29 |
 | 狀態 | 草稿 |
 | 討論紀錄 | [spec-discussion.md](spec-discussion.md) |
@@ -985,10 +985,15 @@ MCP 的工具錯誤沿用上表的 code，寫成 `CODE：訊息`；`NO_FEASIBLE`
 
 **工具說明是寫給 AI 看的**（v0.18，組員用 31 句模擬需求評測［mcp-eval］後改的）：
 - 每個參數都有說明：格式、範例、該從哪個工具拿值（例如 `area` 要用 `list_areas` 的 code、`date` 要是 `available_dates` 之一）。
-- 伺服器的 instructions 寫明服務範圍（目前只有桃園市）和 5 條規則：一次一個工具、照順序查（`list_areas` → `data_coverage` → `plan_date`）、只有使用者完全沒提到出發點／日期／時間／預算時才問、商圈沒開放或那天沒有想要的片型／影廳／料理就告訴使用者而不呼叫 `plan_date`、相對日期自己換算。
+- 伺服器的 instructions 寫明服務範圍（目前只有桃園市）和 5 條規則：一次一個工具、照順序查（`list_areas` → `data_coverage` → `plan_date`）、只有使用者完全沒提到出發點／日期／時間／預算時才問、商圈沒開放或那天沒有想要的片型／影廳／料理就告訴使用者而不呼叫 `plan_date`、日期照抄使用者的說法、由伺服器換算（v0.20 起；v0.18、v0.19 是請 AI 自己換算）。
 - `origin_station_name`：使用者講的是車站時直接填站名（例如「中壢站」「桃園火車站」「高鐵桃園站」），伺服器在商圈所在縣市的出發站裡找：比對時去掉「火車站／車站／站」；同名的站用名稱裡的「高鐵／捷運／火車／台鐵」挑業者。找不到回 `NOT_FOUND`，還是有好幾個回 `AMBIGUOUS`（6.1）。有給 `origin_station_id` 時不查站名。
 - `max_walk_minutes`：只有 MCP 可以省略，預設 12（設定的選項裡沒有 12 時取中間的選項）；REST 仍然必填（2026-10-29 使用者決定）。說明寫明只限制影城和餐廳之間的步行。
 - `PlanRequest` 的驗證錯誤附上欄位名稱：`VALIDATION_ERROR：<欄位>：<訊息>`。工具簽名本身的必填欄位（例如 `order`）漏填時，SDK 在呼叫工具前就擋下，訊息是 pydantic 原本的格式（裡面也有欄位名稱）。
+
+**v0.20（mcp-eval v4）：把日期換算和「不能規劃」的判斷搬回伺服器**
+- **`date` 可以直接照抄使用者的說法**（`plan_date`、`data_coverage`）：`app/relative_dates.py` 的 `resolve_date` 換算成 YYYY-MM-DD，用台北的今天。支援今天／明天／後天、週X（今天或之後最近的那一天）、這週X／本週X、下週X、M月D日／M月D號／M/D（今年）；一週是週一～週日，「日」「天」都是週日。看不懂（週末、找一天、中文數字的日期）、已經過了（例如週日說「這週六」）都回 `VALIDATION_ERROR：date：<要問使用者什麼>`，不替使用者猜。REST 不變，仍然只收 YYYY-MM-DD。原因：小模型很難算星期，v3 通過驗證的 9 次全都差在日期。
+- **不能規劃時直接寫在工具結果裡**（只有 MCP，REST 不變）：`list_areas` 沒開放的商圈、沒有開放商圈的縣市，多了 `can_plan: false` 和 `tell_user`（可以直接轉述給使用者的一句話，例如「青埔目前沒有開放規劃；可以改成桃園區、中壢、八德、蘆竹（南崁）」）；`data_coverage` 沒有任何日期，或帶的日期不在 `available_dates` 裡時，也多這兩個欄位。instructions 規則 4 寫明「有 `can_plan: false` 就照 `tell_user` 告訴使用者，不要呼叫 `plan_date`」。原因：超出範圍的題目，小模型只有 29%，三版只改說明文字都沒進步。
+- **自我介紹**：instructions 寫明使用者問「你能做什麼」時要講三件事（電影＋吃飯＋交通接得上、目前只服務桃園市、需要哪些資訊）。原因：兩個模型 6 次自我介紹都沒提到交通，也沒說只服務桃園。
 
 **`plan_date` 的執行流程**
 1. 套用跟 `POST /api/plans` 相同的限流規則和排隊上限，以 MCP 客戶端的 IP 計算。佇列已滿時回傳工具錯誤 `QUEUE_FULL`。
