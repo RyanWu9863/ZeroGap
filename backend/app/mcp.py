@@ -7,9 +7,10 @@
 LLM 備援不用 sampling（新版規範已棄用），跟網頁一樣由 worker 呼叫 Ollama。
 """
 
+import datetime as dt
 import uuid
 from contextlib import aclosing
-from datetime import date
+from datetime import date, datetime
 from typing import Annotated, Any, Literal
 
 from mcp.server import MCPServer
@@ -22,6 +23,7 @@ from app.config import get_settings
 from app.db import async_session
 from app.plan_stream import plan_events, reserve_plan
 from app.redis_client import async_redis
+from app.relative_dates import DateNotUnderstood, resolve_date
 from app.schemas import PlanRequest
 from app.services import ApiError
 
@@ -42,7 +44,7 @@ INSTRUCTIONS = (
     "走路上限、片型、料理沒講都不用問。\n"
     "4. 商圈沒開放、日期不在 available_dates、想看的片型或影廳那天沒有、想吃的料理不在 cuisines："
     "告訴使用者並建議替代方案，不要呼叫 plan_date。\n"
-    "5. 「明天」「週六」這類相對日期，用今天的日期換算成 YYYY-MM-DD。\n"
+    "5. 日期直接照使用者的說法填（例如「週六」「明天」），伺服器會換算，不用自己算。\n"
     "一次規劃約 1～3 分鐘，期間會送出進度通知。資料是學術展示用。"
 )
 
@@ -102,6 +104,21 @@ def validation_error_text(exc: ValidationError) -> str:
         return f"VALIDATION_ERROR：{field} 是必填，請補上；不知道就先問使用者"
     message = first.get("msg", "輸入不合法")
     return f"VALIDATION_ERROR：{field}：{message}" if field else f"VALIDATION_ERROR：{message}"
+
+
+def _date_param(text: str | None, today: date) -> str | None:
+    """MCP 的 date 參數可以直接照抄使用者的說法（「明天」「週六」），在這裡換成 YYYY-MM-DD。
+    小模型很難算星期（mcp-eval v3：通過驗證的 9 次全都差在日期）。"""
+    if text is None:
+        return None
+    try:
+        return resolve_date(text, today).isoformat()
+    except DateNotUnderstood as exc:
+        raise ToolError(f"VALIDATION_ERROR：date：{exc}") from None
+
+
+def _today() -> date:
+    return datetime.now(services.TZ).date()
 
 
 @mcp.tool()
@@ -172,16 +189,28 @@ async def list_categories(
 async def data_coverage(
     area: Annotated[str, Field(description="商圈 code（list_areas 的 code，例如 zhongli）")],
     date: Annotated[
-        date | None,
-        Field(description="YYYY-MM-DD；要知道那天有哪些電影、片型、影廳、語言時一定要帶"),
+        str | None,
+        Field(
+            description=(
+                "可以直接照使用者的說法填，例如「明天」「週六」「下週日」「12/25」，"
+                "也可以填 YYYY-MM-DD；要知道那天有哪些電影、片型、影廳、語言時一定要帶"
+            )
+        ),
     ] = None,
 ) -> dict[str, Any]:
     """商圈有場次的日期（available_dates），和排得到的餐廳有哪些料理（cuisines，跟日期無關）；
     指定日期時另外列出可看的電影（含 id）、片型、影廳、語言。
     available_dates 是空的，代表這個商圈目前沒有資料，不能規劃。"""
+    day = _date_param(date, _today())
     async with async_session()() as db:
         try:
-            out = await services.get_coverage(db, async_redis(), get_settings(), area, date)
+            out = await services.get_coverage(
+                db,
+                async_redis(),
+                get_settings(),
+                area,
+                None if day is None else dt.date.fromisoformat(day),
+            )
         except ApiError as exc:
             raise _tool_error(exc) from None
     return _jsonable(out)
@@ -203,8 +232,8 @@ async def plan_date(
         str,
         Field(
             description=(
-                "YYYY-MM-DD，必須是 data_coverage 的 available_dates 之一；"
-                "「明天」「週六」要用今天的日期換算，不要直接填今天"
+                "可以直接照使用者的說法填，例如「明天」「週六」「下週日」「12/25」，伺服器會換算；"
+                "也可以填 YYYY-MM-DD。必須是 data_coverage 的 available_dates 之一"
             )
         ),
     ],
@@ -365,6 +394,7 @@ async def prepare_plan(params: dict[str, Any]) -> PlanRequest:
     """plan_date 排程前的所有檢查：站名換成 id → PlanRequest 驗格式 → 查資料庫。
     評測（mcp-eval）也直接呼叫這裡，確保評測和正式流程走的是同一段程式。"""
     params = dict(params)
+    params["date"] = _date_param(params.get("date"), _today())
     name = params.pop("origin_station_name", None)
     async with async_session()() as db:
         try:
