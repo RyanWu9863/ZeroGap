@@ -364,3 +364,25 @@ async def test_locations_rate_limited_per_hour(client):
     res = await client.get("/api/locations", params={"q": "中壢"})
     assert res.status_code == 429
     assert res.json()["error"]["code"] == "RATE_LIMITED"
+
+
+async def test_coverage_skips_cinemas_without_restaurants_nearby(client, engine):
+    # 影城附近走路（步行上限最大的選項）到不了任何能排的餐廳：場次排不進行程，不能列給 AI，
+    # 不然 AI 以為有片可看，送出後才收到 NO_FEASIBLE（2026-10-30 mcp-eval 端到端 N01）
+    with engine.begin() as conn:
+        conn.execute(
+            text(
+                "UPDATE cinemas SET geom = ST_Translate(geom::geometry, 0, 0.03)::geography "
+                "WHERE area_id = (SELECT id FROM areas WHERE code = 'taoyuan')"
+            )
+        )
+    try:
+        res = await client.get(
+            "/api/coverage", params={"area": "taoyuan", "date": TOMORROW.isoformat()}
+        )
+        data = res.json()
+        assert data["available_dates"] == []
+        assert data["movies"] == [] and data["genres"] == [] and data["hall_types"] == []
+        assert data["cuisines"]  # 料理照樣列
+    finally:
+        reseed(engine, TODAY)

@@ -63,6 +63,11 @@ ARRIVAL_RETRIES = 3
 # TDX 查不到路線、兩點又在 1 公里內就改排步行：出發站就是商圈代表點時，TDX 起訖點相同會回空的
 # （2026-10-21 實測、使用者決定先查 TDX，查不到才改步行）
 WALK_FALLBACK_M = 1000
+# 200 公尺內等於同一個地方（中壢站出發、中壢商圈的代表點也是中壢站，約 20 公尺）：不查 TDX，
+# 直接走路。
+# 起訖點相同時 TDX 除了回空的、40001，還會卡到逾時，整個規劃變成 UPSTREAM_ERROR
+# （2026-10-30 mcp-eval 端到端 N10，取代 10/21「先查 TDX」的決定）
+SAME_PLACE_M = 200
 # 收到 429（超過每分鐘次數）時等 60 秒再試一次（2026-10-21 使用者決定）
 RATE_LIMIT_WAIT_SECONDS = 60
 # 點數（5.5）：基礎服務每次 2 單位、進階服務 15 單位、旅運規劃（MaaS）不扣點
@@ -390,11 +395,21 @@ class TdxTransit:
     def route(
         self, origin: Endpoint, dest: Endpoint, at: datetime, mode: TimeMode, top: int = 1
     ) -> list[Route]:
+        meters = haversine_m(origin.lat, origin.lng, dest.lat, dest.lng)
+        if meters <= SAME_PLACE_M:
+            walk = walk_route(origin, dest, at, mode)
+            return [walk] if walk else []
         try:
             routes = self._route(origin, dest, at, mode, top)
         except TdxBadParams as exc:
             # 萬一真的是參數錯了，記錄裡查得到
             log.warning("TDX 回 40001，當作查不到路線：%s → %s，%s", origin.key, dest.key, exc)
+            routes = []
+        except TdxError as exc:
+            # 逾時、連不上：1 公里內走得到就改走路，遠的照樣讓規劃回 UPSTREAM_ERROR
+            if meters > WALK_FALLBACK_M:
+                raise
+            log.warning("TDX 出錯，改走路：%s → %s，%s", origin.key, dest.key, exc)
             routes = []
         if not routes:
             walk = walk_route(origin, dest, at, mode)
