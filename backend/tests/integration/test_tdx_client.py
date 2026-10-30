@@ -160,12 +160,12 @@ def test_no_route_within_1km_becomes_walk(r):
     route = respx.get(ROUTING_URL).mock(
         return_value=httpx.Response(200, json={"result": "success", "data": {"routes": []}})
     )
-    near = Endpoint("hub2", "hub", "中壢站", 24.9537, 121.2257, rail=True)  # 跟 A 同一點
+    near = Endpoint("cin17", "cinema", "統領威秀", 24.9561, 121.2243, rail=False)  # 約 300 公尺
     at = datetime(2026, 10, 21, 23, 30, tzinfo=TZ)
     routes = make(r).route(near, A, at, "arrival", top=3)
     assert route.call_count == 1
     assert len(routes) == 1 and routes[0].walk_only and routes[0].fare == 0
-    assert routes[0].reach_at == at and routes[0].walk_after == 0
+    assert routes[0].reach_at == at and routes[0].walk_after > 0
     # 出發：TDX 根本查不到時不往後延，直接改走路
     route.reset()
     assert make(r).route(A, near, at, "depart")[0].walk_only
@@ -367,3 +367,29 @@ def test_connection_errors_are_retried_then_become_tdx_error(r):
     with pytest.raises(TdxError):
         make(r).route(A, B, datetime(2026, 10, 21, 17, 10, tzinfo=TZ), "depart")
     assert routing.call_count == 3
+
+
+@respx.mock
+def test_same_place_walks_without_calling_tdx(r):
+    # 出發站就是商圈代表點（中壢站 → 中壢站，約 20 公尺）：TDX 起訖點相同會回空的、40001，
+    # 甚至卡到逾時，整個規劃變成 UPSTREAM_ERROR（2026-10-30 mcp-eval 端到端 N10）。直接走路
+    respx.post(TOKEN_URL).mock(return_value=token_ok())
+    routing = respx.get(ROUTING_URL).mock(side_effect=httpx.ReadTimeout("timed out"))
+    same = Endpoint("hub2", "hub", "中壢站", 24.95374, 121.22589, rail=True)
+    at = datetime(2026, 10, 31, 19, 0, tzinfo=TZ)
+    go = make(r).route(A, same, at, "depart")
+    back = make(r).route(same, A, at, "arrival", top=3)
+    assert routing.call_count == 0
+    assert go[0].walk_only and go[0].leave_at == at
+    assert back[0].walk_only and back[0].reach_at == at
+
+
+@respx.mock
+def test_timeout_within_1km_becomes_walk(r):
+    # 1 公里內走得到：TDX 逾時也不讓整個規劃失敗
+    respx.post(TOKEN_URL).mock(return_value=token_ok())
+    routing = respx.get(ROUTING_URL).mock(side_effect=httpx.ReadTimeout("timed out"))
+    near = Endpoint("cin17", "cinema", "統領威秀", 24.9561, 121.2243, rail=False)  # 約 300 公尺
+    routes = make(r).route(A, near, datetime(2026, 10, 21, 17, 45, tzinfo=TZ), "depart")
+    assert routes[0].walk_only and routes[0].walk_after > 0
+    assert routing.call_count == 3  # 照樣重試完才改走路

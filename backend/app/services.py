@@ -20,6 +20,7 @@ from app.config import Settings, get_settings
 from app.jev.mock import MODEL as MOCK_JEV_MODEL
 from app.labels import HALL_TYPE_LABELS
 from app.planner import google_details_per_plan
+from app.planning.rules import max_straight_meters
 from app.redis_client import sync_redis
 from app.redis_utils.quota import aused
 from app.redis_utils.ratelimit import hit
@@ -276,18 +277,20 @@ async def _open_area_id(db: AsyncSession, area: str) -> int:
     return area_id
 
 
-async def available_dates(db: AsyncSession, area_id: int) -> list[date]:
-    """這個商圈還有場次可看的日期；已經開演完的不算（6.3）。"""
+async def available_dates(
+    db: AsyncSession, area_id: int, cinema_cond: str = "TRUE", params: dict[str, Any] | None = None
+) -> list[date]:
+    """這個商圈還有場次可看的日期；已經開演完的不算（6.3）。`cinema_cond` 再篩影城（`c`）。"""
     rows = await db.execute(
         text(
-            """
+            f"""
             SELECT DISTINCT (s.starts_at AT TIME ZONE 'Asia/Taipei')::date AS d
             FROM showtimes s JOIN cinemas c ON c.id = s.cinema_id
-            WHERE c.area_id = :a AND c.is_active AND s.starts_at > :now
+            WHERE c.area_id = :a AND c.is_active AND s.starts_at > :now AND {cinema_cond}
             ORDER BY d
             """
         ),
-        {"a": area_id, "now": _now()},
+        {"a": area_id, "now": _now(), **(params or {})},
     )
     return [r.d for r in rows]
 
@@ -303,7 +306,19 @@ async def get_coverage(
     db: AsyncSession, r: aioredis.Redis, s: Settings, area: str, day: date | None
 ) -> dict[str, Any]:
     area_id = await _open_area_id(db, area)
-    dates = await available_dates(db, area_id)
+    source = await restaurant_source(r, s)
+    restaurant_cond = await _plannable_restaurant_cond(db, area_id, source)
+    # 只算附近有能排的餐廳的影城：走路到不了的影城，場次永遠排不進行程（例如桃園新光影城在
+    # 高鐵站旁，離中壢的餐廳 6 公里），列出來 AI 會以為有片可看（2026-10-30 mcp-eval 端到端 N01）
+    cinema_cond = f"""EXISTS (
+        SELECT 1 FROM restaurants r WHERE r.area_id = c.area_id AND {restaurant_cond}
+          AND ST_DWithin(r.geom, c.geom, :radius))"""
+    radius = {
+        "radius": max_straight_meters(
+            max(s.walk_limit_options), s.walk_detour_factor, s.walk_meters_per_minute
+        )
+    }
+    dates = await available_dates(db, area_id, cinema_cond, radius)
     out: dict[str, Any] = {
         "area": area,
         "showtime_from": dates[0] if dates else None,
@@ -314,16 +329,19 @@ async def get_coverage(
         "hall_types": [],
         "languages": [],
         "cuisines": [],
-        "restaurant_source": await restaurant_source(r, s),
+        "restaurant_source": source,
     }
-    out["cuisines"] = await _plannable_cuisines(db, area_id, out["restaurant_source"])
+    out["cuisines"] = await _plannable_cuisines(db, area_id, restaurant_cond)
     if day is None:
         return out
     start = datetime.combine(day, datetime.min.time(), TZ)
-    params = {"a": area_id, "start": max(start, _now()), "end": start + timedelta(days=1)}
-    base = """
+    params = {
+        "a": area_id, "start": max(start, _now()), "end": start + timedelta(days=1), **radius
+    }  # fmt: skip
+    base = f"""
         FROM showtimes s JOIN cinemas c ON c.id = s.cinema_id JOIN movies m ON m.id = s.movie_id
         WHERE c.area_id = :a AND c.is_active AND s.starts_at >= :start AND s.starts_at < :end
+          AND {cinema_cond}
     """
     movies = await db.execute(
         text(
@@ -358,9 +376,8 @@ async def get_coverage(
     return out
 
 
-async def _plannable_cuisines(db: AsyncSession, area_id: int, source: str) -> list[dict[str, Any]]:
-    """排得進行程的餐廳有哪些料理：條件跟 planner 的 `_load_restaurants` 一樣，
-    AI 才不會指定一個一家都沒有的料理，送出後才收到 NO_FEASIBLE（2026-10-29 mcp-eval 端到端）。"""
+async def _plannable_restaurant_cond(db: AsyncSession, area_id: int, source: str) -> str:
+    """排得進行程的餐廳（別名 `r`）：條件跟 planner 的 `_load_restaurants` 一樣。"""
     has_google = await db.scalar(
         text(
             "SELECT EXISTS (SELECT 1 FROM restaurants WHERE area_id = :a AND is_active "
@@ -368,15 +385,27 @@ async def _plannable_cuisines(db: AsyncSession, area_id: int, source: str) -> li
         ),
         {"a": area_id},
     )
-    source_cond = "source = 'google'" if source == "google" and has_google else "source <> 'google'"
+    source_cond = (
+        "r.source = 'google'" if source == "google" and has_google else "r.source <> 'google'"
+    )
+    return (
+        "r.is_active AND r.geom IS NOT NULL AND r.price_range IS NOT NULL "
+        f"AND r.meal_duration IS NOT NULL AND {source_cond}"
+    )
+
+
+async def _plannable_cuisines(
+    db: AsyncSession, area_id: int, restaurant_cond: str
+) -> list[dict[str, Any]]:
+    """排得進行程的餐廳有哪些料理，AI 才不會指定一個一家都沒有的料理，
+    送出後才收到 NO_FEASIBLE（2026-10-29 mcp-eval 端到端）。"""
     rows = await db.execute(
         text(
             f"""
             SELECT g.code, g.label FROM categories g
             WHERE g.kind = 'cuisine' AND g.code IN (
-                SELECT category_code FROM restaurants
-                WHERE area_id = :a AND is_active AND geom IS NOT NULL
-                  AND price_range IS NOT NULL AND meal_duration IS NOT NULL AND {source_cond}
+                SELECT r.category_code FROM restaurants r
+                WHERE r.area_id = :a AND {restaurant_cond}
             )
             ORDER BY g.sort_order
             """
