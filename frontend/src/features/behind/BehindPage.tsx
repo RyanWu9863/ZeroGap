@@ -43,7 +43,7 @@ export function BehindPage() {
   const last = useLastResult()
   const example = last ? null : behindExample()
   const request = last?.request ?? null
-  const result = last ? last.result : example!.result
+  const result = last?.result ?? behindExample().result
   const labels = useRequestLabels(request)
   const { combinations, feasible } = result.stats
 

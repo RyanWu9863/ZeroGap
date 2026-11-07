@@ -3,9 +3,6 @@ import { LOCATION_NAME, usesLocation } from '@/shared/lib/origin'
 import { useAreas, useCategories, useCoverage, useStations } from './queries'
 import type { PlanRequest } from './schemas'
 
-/** 沒有條件時（幕後頁的示範範例）用的空條件：查詢都不會送出，名稱欄位給替代字 */
-const NO_REQUEST = {} as PlanRequest
-
 /**
  * 請求裡只有代碼和 id（規格書 6.4），畫面要顯示名稱時從下拉選單的資料查回來。
  * 資料還沒載入時先給一個看得懂的替代字。
@@ -19,13 +16,18 @@ export type RequestLabels = {
   cuisine: string | null
 }
 
+/**
+ * request 為 null（幕後頁的示範範例，沒有當時的條件）時，名稱欄位給替代字，不編資料。
+ * 下拉選單的查詢（車站、商圈、料理、片型）為了讓 hook 順序固定，照樣會送出；只有依賴條件的當天場次不會送。
+ */
 export function useRequestLabels(request: PlanRequest | null): RequestLabels {
-  const r = request ?? NO_REQUEST
   const stations = useStations().data
   const areas = useAreas().data
   const cuisines = useCategories('cuisine').data
   const genres = useCategories('movie_genre').data
-  const day = useCoverage(r.area || undefined, r.date || undefined).data
+  const day = useCoverage(request?.area || undefined, request?.date || undefined).data
+  if (!request) return { station: '出發站', area: '商圈', movie: null, genre: null, hall: null, cuisine: null }
+  const r = request
   const station = stations?.find((s) => s.id === r.origin_station_id)
   return {
     station: usesLocation(r) ? LOCATION_NAME : station ? stationDisplay(station) : '出發站',

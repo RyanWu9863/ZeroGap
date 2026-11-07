@@ -46,7 +46,10 @@ function CopyButton({ text, label }: { text: string; label: string }) {
       >
         {state === 'done' ? '已複製' : label}
       </button>
-      {state === 'failed' && <span className="text-sm text-muted-foreground">請手動選取複製</span>}
+      {/* 提示放在一直存在的 status 區域裡，螢幕閱讀器才會念出來 */}
+      <span role="status" className={state === 'failed' ? 'text-sm text-muted-foreground' : 'sr-only'}>
+        {state === 'done' ? '已複製' : state === 'failed' ? '請手動選取複製' : ''}
+      </span>
     </span>
   )
 }
