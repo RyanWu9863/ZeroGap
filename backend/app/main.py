@@ -12,6 +12,7 @@ from mcp.server.transport_security import TransportSecuritySettings
 from sqlalchemy.exc import InterfaceError, OperationalError
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
+from app import tracing
 from app.api import router
 from app.config import get_settings
 from app.mcp import mcp
@@ -27,9 +28,11 @@ mcp_app = mcp.streamable_http_app(
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
+    tracing.setup_tracing(get_settings(), "zerogap-api")  # 預設關閉，什麼都不做
     # 掛進來的子 app 的 lifespan 不會執行，要在這裡啟動 MCP
     async with mcp.session_manager.run():
         yield
+    tracing.flush()
 
 
 app = FastAPI(

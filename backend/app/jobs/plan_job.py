@@ -12,10 +12,12 @@ from typing import Any
 from rq import get_current_job
 from rq.timeouts import JobTimeoutException
 
+from app import tracing
 from app.clients import make_jev, make_llm, make_places, make_transit
 from app.config import get_settings
 from app.db import sync_session
 from app.jev.client import JevError
+from app.jobs.queue import TRACE_META
 from app.planner import Deps, PlanError, run_plan
 from app.redis_client import sync_redis
 from app.schemas import ErrorBody, PlanRequest, PlanResult
@@ -52,13 +54,37 @@ def setup_planner_logging() -> None:
     planner_log.setLevel(logging.INFO)
 
 
+def _queue_wait_ms(job: Any) -> float | None:
+    try:
+        if job.enqueued_at and job.started_at:
+            return round((job.started_at - job.enqueued_at).total_seconds() * 1000, 1)
+    except Exception:  # noqa: BLE001
+        pass
+    return None
+
+
 def plan_job(request: dict[str, Any]) -> None:
     setup_planner_logging()
     job = get_current_job()
     job_id = job.id if job else "local"
+    settings = get_settings()
+    tracing.setup_tracing(settings, "zerogap-worker")
+    # API 排進佇列時放的 trace context：接上同一條 trace；沒有就自己開一條，用 job_id 關聯
+    parent = tracing.extract((job.meta or {}).get(TRACE_META) if job else None)
+    attrs = {"job_id": job_id, "rq.queue_wait_ms": _queue_wait_ms(job) if job else None}
+    try:
+        with tracing.span("plan_job", attrs, parent=parent) as sp:
+            _plan_job(request, job_id, settings, sp)
+    finally:
+        tracing.flush()
+
+
+def _plan_job(request: dict[str, Any], job_id: str, settings: Any, sp: Any) -> None:
     r = sync_redis()
 
     def publish(event: str, data: dict[str, Any]) -> None:
+        if event in ("result", "error"):
+            tracing.set_attrs(sp, {"plan.outcome": event})
         r.publish(channel(job_id), encode(event, data))
 
     def progress(stage: str, **data: Any) -> None:
@@ -66,9 +92,10 @@ def plan_job(request: dict[str, Any]) -> None:
 
     def error(code: str, message: str, reasons: dict[str, int] | None = None) -> None:
         body = ErrorBody(code=code, message=message, reasons=reasons)
+        tracing.set_attrs(sp, {"plan.error_code": code})
+        tracing.set_error(sp, code)
         publish("error", body.model_dump(exclude_none=True))
 
-    settings = get_settings()
     try:
         req = PlanRequest.model_validate(request)
         with sync_session()() as session:

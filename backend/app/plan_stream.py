@@ -16,6 +16,7 @@ import anyio
 import redis.asyncio as aioredis
 from rq.job import JobStatus
 
+from app import tracing
 from app.config import Settings
 from app.jobs.plan_job import channel
 from app.jobs.queue import (
@@ -83,6 +84,28 @@ async def plan_events(
     body: dict[str, Any],
     ip: str,
     disconnected: Callable[[], Awaitable[bool]] = _never,
+    trace_parent: Any = None,
+) -> AsyncIterator[Event]:
+    """`trace_parent`：追蹤開啟時 `POST /api/plans` 那個 span 的 context（`tracing.capture()`），
+    讓 `plan.stream` 接在它下面；MCP 不傳，`plan.stream` 自己是一條 trace 的開頭。"""
+    sp, ctx = tracing.start_span("plan.stream", {"job_id": job_id}, parent=trace_parent)
+    try:
+        async for item in _plan_events(r, s, job_id, body, ip, disconnected, ctx):
+            if item[0] in ("result", "error"):
+                tracing.set_attrs(sp, {"plan.outcome": item[0]})
+            yield item
+    finally:
+        tracing.end_span(sp)
+
+
+async def _plan_events(
+    r: aioredis.Redis,
+    s: Settings,
+    job_id: str,
+    body: dict[str, Any],
+    ip: str,
+    disconnected: Callable[[], Awaitable[bool]],
+    trace_ctx: Any = None,
 ) -> AsyncIterator[Event]:
     rq_conn = rq_redis()
     pubsub = r.pubsub()
@@ -90,7 +113,9 @@ async def plan_events(
     try:
         await pubsub.subscribe(channel(job_id))
         try:
-            await asyncio.to_thread(enqueue_plan, rq_conn, job_id, body, s)
+            # to_thread 會帶著目前的 context，enqueue_plan 從 plan.enqueue 這個 span 取 traceparent
+            with tracing.span("plan.enqueue", {"job_id": job_id}, parent=trace_ctx):
+                await asyncio.to_thread(enqueue_plan, rq_conn, job_id, body, s)
         except QueueFull:
             # 送出前檢查過一次；幾個請求同時進來時還是可能在這裡滿
             finished = True

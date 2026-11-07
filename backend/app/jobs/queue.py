@@ -8,10 +8,12 @@ from rq.command import send_stop_job_command
 from rq.exceptions import InvalidJobOperation, NoSuchJobError
 from rq.job import Job, JobStatus
 
+from app import tracing
 from app.config import Settings
 
 PLANS = "plans"
 PLAN_JOB = "app.jobs.plan_job.plan_job"
+TRACE_META = "otel"  # job.meta 裡放 trace context 的 key
 
 
 class QueueFull(Exception):
@@ -30,6 +32,12 @@ def enqueue_plan(conn: redis.Redis, job_id: str, request: dict[str, Any], s: Set
     q = plans_queue(conn)
     if q.count >= s.plan_queue_max_waiting:
         raise QueueFull
+    extra: dict[str, Any] = {}
+    # 追蹤開啟時，把目前的 trace context（W3C traceparent）放進 job 的 meta，worker 接著用；
+    # 關閉時是空的，排進佇列的內容和以前完全相同
+    carrier = tracing.inject()
+    if carrier:
+        extra["meta"] = {TRACE_META: carrier}
     return q.enqueue(
         PLAN_JOB,
         request,
@@ -38,6 +46,7 @@ def enqueue_plan(conn: redis.Redis, job_id: str, request: dict[str, Any], s: Set
         ttl=s.plan_queue_ttl_seconds,
         result_ttl=0,  # 結果走 Pub/Sub，不存
         failure_ttl=3600,
+        **extra,
     )
 
 
