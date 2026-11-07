@@ -53,7 +53,7 @@
 | 真的交通 | 時間軸的搭車段 | 班次是 TDX 查的真實班次；台鐵的車資是估的（有標示） |
 | API 文件 | 瀏覽器開 http://localhost:8000/api/docs | FastAPI 自動產生 |
 | MCP | 用支援 MCP 的 AI 客戶端連 `http://localhost:8000/mcp` | 6 個工具：list_areas、search_locations、list_stations、list_categories、data_coverage、plan_date；plan_date 會送出進度通知 |
-| 決策紀錄 | `docker compose logs worker` | 每次規劃印一行 `decision_trace`：每一題由 Jev 還是 LLM 決定、機率、花多久（v0.15） |
+| 決策紀錄 | `docker compose logs worker` | 每次規劃印一行 `decision_trace`：每一題由 Jev 還是 LLM 決定（Jev 額度用完、LLM 也沒回答時記成 `fallback`，原因在 `fallback_reason`）、機率、花多久（v0.15、v0.19）。同樣的內容也寫進資料表 `decision_records`，可用 `job_id` 查（v0.19） |
 | 三大技術 | 講解 | FastAPI（SSE、MCP）、PostgreSQL（PostGIS 算步行範圍、CHECK 約束守住 Google 條款）、Redis（RQ 佇列、限流、快取、Pub/Sub） |
 
 **要說明的限制**
