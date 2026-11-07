@@ -54,7 +54,6 @@ export function MethodPage() {
   usePageTitle('方法')
   const { data } = useStatus()
   const latest = latestUpdate(Object.values(data?.data_updated_at ?? {}))
-  const f = facts
   const { roomy, snug } = BUFFER_LEVELS
 
   return (
@@ -75,7 +74,7 @@ export function MethodPage() {
         <MethodStep
           n={0}
           title="先把所有可能都列出來"
-          fact={<><Num>{fmt(f.combinations)}</Num> <Unit>種組合</Unit><Demo /></>}
+          fact={<><Num>{fmt(facts.combinations)}</Num> <Unit>種組合</Unit><Demo /></>}
         >
           那天每一場電影 × 每一家餐廳 × 去回的每一班車，先全部列出來，再一關一關刪。
         </MethodStep>
@@ -83,16 +82,16 @@ export function MethodPage() {
         <MethodStep
           n={1}
           title="第一關：趕得上開演"
-          fact={f.showtimeBuffer !== null && <><Unit>開演前還有</Unit> <Num>{fmt(f.showtimeBuffer)}</Num> <Unit>分</Unit><Demo /></>}
+          fact={facts.showtimeBuffer !== null && <><Unit>開演前還有</Unit> <Num>{fmt(facts.showtimeBuffer)}</Num> <Unit>分</Unit><Demo /></>}
         >
           從出發點搭車、走到影城，要在開演前到。
-          {f.showtimeBuffer !== null && `這個例子走到影城時，離開演還有 ${fmt(f.showtimeBuffer)} 分鐘。`}
+          {facts.showtimeBuffer !== null && `這個例子走到影城時，離開演還有 ${fmt(facts.showtimeBuffer)} 分鐘。`}
         </MethodStep>
 
         <MethodStep
           n={2}
           title="第二關：趕得上點餐"
-          fact={f.lastOrderBuffer !== null && <><Unit>離最後點餐還有</Unit> <Num>{fmt(f.lastOrderBuffer)}</Num> <Unit>分</Unit><Demo /></>}
+          fact={facts.lastOrderBuffer !== null && <><Unit>離最後點餐還有</Unit> <Num>{fmt(facts.lastOrderBuffer)}</Num> <Unit>分</Unit><Demo /></>}
         >
           散場後走到餐廳，要在最後點餐時間之前（先吃飯再看電影時，吃完也要趕得上開演）。
         </MethodStep>
@@ -100,7 +99,7 @@ export function MethodPage() {
         <MethodStep
           n={3}
           title="第三關：走路不超過上限"
-          fact={f.walkMinutes !== null && <><Unit>影城到餐廳走</Unit> <Num>{fmt(f.walkMinutes)}</Num> <Unit>分</Unit><Demo /></>}
+          fact={facts.walkMinutes !== null && <><Unit>影城到餐廳走</Unit> <Num>{fmt(facts.walkMinutes)}</Num> <Unit>分</Unit><Demo /></>}
         >
           影城和餐廳之間的走路時間，不能超過你設定的上限。
         </MethodStep>
@@ -109,11 +108,11 @@ export function MethodPage() {
           n={4}
           title="第四關：趕得上回程車"
           fact={
-            (f.returnBuffer !== null || f.homeBuffer !== null) && (
+            (facts.returnBuffer !== null || facts.homeBuffer !== null) && (
               <>
-                {f.returnBuffer !== null && <><Unit>離預定那班車還有</Unit> <Num>{fmt(f.returnBuffer)}</Num> <Unit>分</Unit></>}
-                {f.returnBuffer !== null && f.homeBuffer !== null && <Unit>；</Unit>}
-                {f.homeBuffer !== null && <><Unit>到家前還有</Unit> <Num>{fmt(f.homeBuffer)}</Num> <Unit>分</Unit></>}
+                {facts.returnBuffer !== null && <><Unit>離預定那班車還有</Unit> <Num>{fmt(facts.returnBuffer)}</Num> <Unit>分</Unit></>}
+                {facts.returnBuffer !== null && facts.homeBuffer !== null && <Unit>；</Unit>}
+                {facts.homeBuffer !== null && <><Unit>到家前還有</Unit> <Num>{fmt(facts.homeBuffer)}</Num> <Unit>分</Unit></>}
                 <Demo />
               </>
             )
@@ -127,9 +126,9 @@ export function MethodPage() {
           title="第五關：不超過預算"
           fact={
             <>
-              <Unit>每人</Unit> <Num>${fmt(f.costTotal)}</Num>
+              <Unit>每人</Unit> <Num>${fmt(facts.costTotal)}</Num>
               <p className="mt-1 text-base font-normal text-foreground sm:text-lg">
-                電影 {fmt(f.costParts.ticket)}、餐點 {fmt(f.costParts.meal)}、車資 {fmt(f.costParts.fares)}
+                電影 {fmt(facts.costParts.ticket)}、餐點 {fmt(facts.costParts.meal)}、車資 {fmt(facts.costParts.fares)}
               </p>
               <Demo />
             </>
@@ -143,7 +142,7 @@ export function MethodPage() {
           title="五關都過的才留下"
           fact={
             <>
-              <Num>{fmt(f.feasible)}</Num> <Unit>種每段都接得上</Unit> <Unit>→ 挑出</Unit> <Num>{fmt(f.plans)}</Num> <Unit>個</Unit>
+              <Num>{fmt(facts.feasible)}</Num> <Unit>種每段都接得上</Unit> <Unit>→ 挑出</Unit> <Num>{fmt(facts.plans)}</Num> <Unit>個</Unit>
               <Demo />
             </>
           }
@@ -154,9 +153,9 @@ export function MethodPage() {
         <MethodStep
           n={7}
           title="緩衝怎麼算"
-          fact={<><Unit>這個例子最緊的一段</Unit> <Num>{fmt(f.minBuffer)}</Num> <Unit>分</Unit><Demo /></>}
+          fact={<><Unit>這個例子最緊的一段</Unit> <Num>{fmt(facts.minBuffer)}</Num> <Unit>分</Unit><Demo /></>}
         >
-          緩衝＝你到的時間和「最晚可以到」之間差幾分鐘。{roomy} 分以上算寬鬆、{snug}～{roomy - 1} 分算剛好、{snug} 分以下算偏緊。
+          緩衝＝你到的時間和「最晚可以到」之間差幾分鐘。{roomy} 分以上算寬鬆、{snug}～{roomy - 1} 分算剛好、少於 {snug} 分算偏緊。
         </MethodStep>
 
         <MethodStep n={8} title="為什麼要查最早到、最晚走的車" fact={<Timeline />}>

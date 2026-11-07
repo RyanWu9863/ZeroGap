@@ -237,3 +237,11 @@
     animation: none;
   }
 }
+
+/* 列印時方法頁每一段都要看得到（沒捲到的段落不能是透明的） */
+@media print {
+  section[id^='method-'] {
+    opacity: 1 !important;
+    transform: none !important;
+  }
+}

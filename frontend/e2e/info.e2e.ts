@@ -43,12 +43,20 @@ test.describe('方法頁', () => {
     await expect(page.getByText('73,038')).toBeVisible()
     await expect(page.getByText('1,201')).toBeVisible()
   })
-  test('減少動態：一打開每一段都已經是最後一格', async ({ page }) => {
+  test('減少動態：不用捲，十段一打開就都是最後一格', async ({ page }) => {
     await page.emulateMedia({ reducedMotion: 'reduce' })
     await page.goto('/method')
-    const last = page.locator('#method-9')
-    await last.scrollIntoViewIfNeeded()
-    await expect(last).toHaveCSS('opacity', '1')
+    const sections = page.locator('section[id^="method-"]')
+    await expect(sections).toHaveCount(10)
+    const opacities = await sections.evaluateAll((els) => els.map((e) => getComputedStyle(e).opacity))
+    expect(opacities).toEqual(Array(10).fill('1'))
+  })
+  test('有動態時：還沒捲到的那一段一開始是淡的', async ({ page }) => {
+    await page.emulateMedia({ reducedMotion: 'no-preference' })
+    await page.goto('/method')
+    await expect(page.getByRole('heading', { level: 1 })).toBeVisible()
+    const opacity = await page.locator('#method-9').evaluate((e) => getComputedStyle(e).opacity)
+    expect(opacity).not.toBe('1')
   })
   test('不出現 AI、Jev、LLM、機率', async ({ page }) => {
     await page.goto('/method')
