@@ -131,6 +131,9 @@ class _Candidate:
 
 
 class Planner:
+    # _ask_jev 遇到 Jev 每月額度用完時設成 True，給決策紀錄區分「沒有 Jev 結果」
+    _jev_unavailable = False
+
     def __init__(self, req: PlanRequest, job_id: str, deps: Deps, progress: Progress):
         self.req, self.job_id, self.d, self.progress = req, job_id, deps, progress
         self.s = deps.settings
@@ -199,6 +202,7 @@ class Planner:
         if not has_room(self.d.redis, "jev_cost_micro_usd", self.s.quota_jev_cost_micro_usd):
             # 每月費用用完：全部交給 LLM（3、5.5），機率都一樣
             self._jev_result = None
+            self._jev_unavailable = True
             return {
                 q.id: ChoiceAnswer({o.code: 1 / len(q.options) for o in q.options})
                 for q in questions
@@ -207,6 +211,7 @@ class Planner:
             self._wait("rl:jev", self.s.jev_per_minute, "jev")
         result = self.d.jev.choose(questions)
         self._jev_result = result
+        self._jev_unavailable = False
         add_usage(self.d.redis, "jev_cost_micro_usd", jev_cost_micro_usd(result.input_tokens))
         return result.answers
 
@@ -223,7 +228,14 @@ class Planner:
 
     def _record(self, question: ChoiceQuestion, answer: ChoiceAnswer, pick: LlmPick | None):
         self.decisions.append(
-            record_decision(question, answer, self.policy, pick, self._jev_result)
+            record_decision(
+                question,
+                answer,
+                self.policy,
+                pick,
+                self._jev_result,
+                jev_unavailable=self._jev_unavailable,
+            )
         )
 
     def _log_decisions(self) -> None:

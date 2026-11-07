@@ -140,3 +140,26 @@ def test_summary_counts_fallback_only_when_present():
     assert summarize(records)["decided_by_fallback"] == 1
     assert "decided_by_fallback" not in summarize(records[:1])
 
+
+def test_planner_records_fallback_when_jev_quota_is_used_up():
+    """planner._decide 在額度用完（_jev_result 是 None）時要把它傳給紀錄層。"""
+    from types import SimpleNamespace
+
+    from app.planner import Planner
+
+    class TimeoutLlm:
+        def pick(self, question, probs):
+            return LlmPick(sorted(probs)[0], False, "timeout", 30000.0, "m")
+
+    p = Planner.__new__(Planner)
+    p.policy, p.decisions, p._jev_result, p.job_id = POLICY, [], None, "job-unit"
+    p._jev_unavailable = True  # _ask_jev 在每月額度用完時設的
+    p.progress = lambda stage, **data: None
+    p.d = SimpleNamespace(llm=TimeoutLlm())
+    assert p._decide(QUESTION, UNIFORM) == ("r1", False)
+    [rec] = p.decisions
+    assert (rec.decided_by, rec.fallback_reason) == ("fallback", "jev_unavailable")
+
+    p.decisions, p._jev_result, p._jev_unavailable = [], JEV, False
+    p._decide(QUESTION, UNIFORM)
+    assert (p.decisions[0].decided_by, p.decisions[0].fallback_reason) == ("jev", "llm_timeout")
