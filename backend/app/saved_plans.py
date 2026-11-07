@@ -17,7 +17,7 @@ from app.config import Settings
 
 log = logging.getLogger(__name__)
 
-JOB_ID_RE = re.compile(r"[0-9a-f]{32}")
+JOB_ID_RE = re.compile(r"^[0-9a-f]{32}$")
 
 
 def saved_key(job_id: str) -> str:
@@ -42,6 +42,14 @@ async def save_plan(
         "expires_at": (now + timedelta(seconds=ttl)).isoformat(),
     }
     try:
+        mem = await r.info("memory")
+        maxmemory = int(mem.get("maxmemory", 0))
+        if (
+            maxmemory > 0
+            and int(mem.get("used_memory", 0)) > s.saved_plan_max_memory_ratio * maxmemory
+        ):
+            log.warning("Redis 記憶體已用超過七成，這次不存分享用的行程（job_id=%s）", job_id)
+            return False
         await r.set(saved_key(job_id), json.dumps(doc, ensure_ascii=False), ex=ttl)
     except redis.RedisError:
         log.warning("分享用的行程存不進 Redis（job_id=%s），這次不附連結", job_id, exc_info=True)

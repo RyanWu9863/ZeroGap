@@ -170,7 +170,9 @@ async def test_plan_date_returns_share_url(env, worker, engine, monkeypatch, red
     r.close()
 
 
-async def test_plan_date_without_base_url_has_no_share_url(env, worker, engine):
+async def test_plan_date_without_base_url_has_no_share_url(env, worker, engine, monkeypatch):
+    monkeypatch.setenv("PUBLIC_WEB_BASE_URL", "")
+    get_settings.cache_clear()
     with engine.connect() as c:
         sid = c.scalar(text("SELECT id FROM stations WHERE station_uid = 'demo-TRA-zhongli'"))
     async with connect() as client:

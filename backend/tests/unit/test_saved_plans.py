@@ -18,9 +18,13 @@ def settings(**values) -> Settings:
 
 
 class MemoryRedis:
-    def __init__(self):
+    def __init__(self, used_memory=0, maxmemory=0):
         self.data: dict[str, str] = {}
         self.ex: int | None = None
+        self.mem = {"used_memory": used_memory, "maxmemory": maxmemory}
+
+    async def info(self, section=None):
+        return self.mem
 
     async def set(self, key, value, ex=None):
         self.data[key] = value
@@ -31,6 +35,9 @@ class MemoryRedis:
 
 
 class BrokenRedis:
+    async def info(self, section=None):
+        return {"used_memory": 0, "maxmemory": 0}
+
     async def set(self, *args, **kwargs):
         raise redis.RedisError("OOM command not allowed")
 
@@ -86,3 +93,31 @@ async def test_load_missing_is_none():
 
 async def test_save_returns_false_when_redis_fails():
     assert await saved_plans.save_plan(BrokenRedis(), settings(), JOB, {}, {}, NOW) is False
+
+
+async def test_save_skipped_when_redis_memory_over_threshold():
+    r = MemoryRedis(used_memory=71, maxmemory=100)
+    assert await saved_plans.save_plan(r, settings(), JOB, {}, {}, NOW) is False
+    assert r.data == {}
+
+
+async def test_save_when_redis_has_no_memory_limit():
+    r = MemoryRedis(used_memory=10**12, maxmemory=0)
+    assert await saved_plans.save_plan(r, settings(), JOB, {}, {}, NOW) is True
+    assert saved_plans.saved_key(JOB) in r.data
+
+
+async def test_save_when_redis_memory_under_threshold():
+    r = MemoryRedis(used_memory=69, maxmemory=100)
+    assert await saved_plans.save_plan(r, settings(), JOB, {}, {}, NOW) is True
+    assert saved_plans.saved_key(JOB) in r.data
+
+
+async def test_save_returns_false_when_info_fails():
+    class InfoBroken(MemoryRedis):
+        async def info(self, section=None):
+            raise redis.RedisError("down")
+
+    r = InfoBroken()
+    assert await saved_plans.save_plan(r, settings(), JOB, {}, {}, NOW) is False
+    assert r.data == {}

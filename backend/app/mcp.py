@@ -291,7 +291,7 @@ async def plan_date(
     ] = None,
 ) -> dict[str, Any]:
     """規劃行程，回傳前三名方案（格式同 REST 的 POST /api/plans 的 result）。
-    回傳的 share_url 是網頁版連結，請一併給使用者：點開可以看完整的時間軸和每段緩衝。
+    回傳裡有 share_url 時，請一併給使用者：點開可以看完整的時間軸和每段緩衝。
 
     呼叫前要先用 data_coverage 確認那天有場次；每個參數都要用前面工具查到的值。
     回到出發點就算到家。「不限」「交給 Jev 決定」都傳 null。

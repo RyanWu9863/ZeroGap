@@ -2,7 +2,7 @@
 
 | 項目 | 內容 |
 |---|---|
-| 版本 | v0.21（分享連結：排出來的結果存 7 天，新增 GET /api/plans/{job_id}；MCP plan_date 回傳 share_url，見 5.2、6.2、6.6、6.8、8.2、10.1。v0.19、v0.20 在 PR #1、#2，合併時依合併順序調整版本號。v0.18（MCP 工具介面改良［組員的 mcp-eval v3］：每個參數加說明、`plan_date` 新增 `origin_station_name`、走路上限在 MCP 可省略［預設 12］、新增 MCP 專用的錯誤代碼 `AMBIGUOUS`；`/api/coverage` 新增 `cuisines`，見 6.1、6.3、6.6。v0.17：Google 座標更新失敗時，404 才馬上停用，暫時的錯誤隔天再試，見 4.5。v0.16：出發點的交通接不上時，`NO_FEASIBLE` 的 `reasons` 只放 `transit_window`、`message` 寫出時間；TDX 的 `arrival` 查不到時往前重查、`depart` 改取最早抵達；路線快取換成 `v3`，見 3.2、5.3、6.4、7.1。v0.15：AI 推論：Ollama 連續連不上就熔斷；LLM 可選擇棄權［預設關閉］；Router 判斷方式可由設定切換［預設不變］；每次規劃寫一行決策紀錄日誌，見 3、3.1、7.1。v0.14：規劃和抓取拆成兩個 worker：`worker` 只聽 `plans`、新增 `worker-crawl` 只聽 `crawl`，抓取時規劃不用再排隊等，見 5.6、8.1。v0.13：第二階段實作：真的 TDX［頭尾步行 20 分鐘、車資沒給時自己估］、TDX 車站、OSM 餐廳、開眼爬蟲、`rq cron`、MCP；新增蘆竹（南崁）商圈、青埔先不開放；八德只用廣豐新天地。v0.12：逐項確認實作時新增的預設值：早到 30 分鐘內等開門、餐廳備選補滿 2 家、沒判斷屬性的店不排、Jev 沒把握就附備選、新增 `restaurant.hours_verified`。v0.11：實作中的補充列在 10.1；`restaurants.source` 新增 `demo`；修正 5.3 路線快取的取整範例；7.3 補上價位區間的代碼；實作時的小調整：`areas.sort_order`、`area_hubs.geom` 可以是 null、migration 一併寫入類別和票價。v0.10：補上前端對照時發現的缺口：下拉選單的回應範例、跨午夜的判斷、`reasons` 的 key、排隊順位的意思、備選欄位、OSM 出處。v0.9：備選只附估計值、第一名固定「最推薦」、回程緩衝加 `return_window`。v0.8 起前端 ZeroGap 照這份規格串接、飲食限制延後；架構與 v0.4 相同） |
+| 版本 | v0.21（分享連結：排出來的結果存 7 天，新增 GET /api/plans/{job_id}；MCP plan_date 回傳 share_url，見 5.2、6.2、6.6、6.7、6.8、8.2、10.1。v0.19、v0.20 在 PR #1、#2，合併時依合併順序調整版本號。v0.18：MCP 工具介面改良［組員的 mcp-eval v3］：每個參數加說明、`plan_date` 新增 `origin_station_name`、走路上限在 MCP 可省略［預設 12］、新增 MCP 專用的錯誤代碼 `AMBIGUOUS`；`/api/coverage` 新增 `cuisines`，見 6.1、6.3、6.6。v0.17：Google 座標更新失敗時，404 才馬上停用，暫時的錯誤隔天再試，見 4.5。v0.16：出發點的交通接不上時，`NO_FEASIBLE` 的 `reasons` 只放 `transit_window`、`message` 寫出時間；TDX 的 `arrival` 查不到時往前重查、`depart` 改取最早抵達；路線快取換成 `v3`，見 3.2、5.3、6.4、7.1。v0.15：AI 推論：Ollama 連續連不上就熔斷；LLM 可選擇棄權［預設關閉］；Router 判斷方式可由設定切換［預設不變］；每次規劃寫一行決策紀錄日誌，見 3、3.1、7.1。v0.14：規劃和抓取拆成兩個 worker：`worker` 只聽 `plans`、新增 `worker-crawl` 只聽 `crawl`，抓取時規劃不用再排隊等，見 5.6、8.1。v0.13：第二階段實作：真的 TDX［頭尾步行 20 分鐘、車資沒給時自己估］、TDX 車站、OSM 餐廳、開眼爬蟲、`rq cron`、MCP；新增蘆竹（南崁）商圈、青埔先不開放；八德只用廣豐新天地。v0.12：逐項確認實作時新增的預設值：早到 30 分鐘內等開門、餐廳備選補滿 2 家、沒判斷屬性的店不排、Jev 沒把握就附備選、新增 `restaurant.hours_verified`。v0.11：實作中的補充列在 10.1；`restaurants.source` 新增 `demo`；修正 5.3 路線快取的取整範例；7.3 補上價位區間的代碼；實作時的小調整：`areas.sort_order`、`area_hubs.geom` 可以是 null、migration 一併寫入類別和票價。v0.10：補上前端對照時發現的缺口：下拉選單的回應範例、跨午夜的判斷、`reasons` 的 key、排隊順位的意思、備選欄位、OSM 出處。v0.9：備選只附估計值、第一名固定「最推薦」、回程緩衝加 `return_window`。v0.8 起前端 ZeroGap 照這份規格串接、飲食限制延後；架構與 v0.4 相同） |
 | 日期 | 2026-11-07 |
 | 狀態 | 草稿 |
 | 討論紀錄 | [spec-discussion.md](spec-discussion.md) |
@@ -996,7 +996,7 @@ MCP 的工具錯誤沿用上表的 code，寫成 `CODE：訊息`；另外有一�
 1. 套用跟 `POST /api/plans` 相同的限流規則和排隊上限，以 MCP 客戶端的 IP 計算。佇列已滿時回傳工具錯誤 `QUEUE_FULL`。
 2. 先訂閱 `plan:{job_id}:events`，再把工作排進佇列。
 3. 收到 `queued`、`progress` 事件時，轉成 MCP 的**進度通知**，客戶端就看得到「排隊第 2 位」「1,880 種組合 → 39 種接得上」。
-4. 收到 `result` 就把結果當成工具的回傳值；收到 `error` 就回傳工具錯誤。離開時一定要把事件的 generator 收尾（`contextlib.aclosing`），才會馬上釋放這個 IP 的「規劃中」標記；不然以錯誤結束後，同一個 IP 會一直收到 `PLAN_IN_PROGRESS`（v0.18，mcp-eval 端到端發現）。結果附上 `share_url`＝`{PUBLIC_WEB_BASE_URL}/p/{job_id}`，工具說明請 AI 一併給使用者（v0.21）。
+4. 收到 `result` 就把結果當成工具的回傳值；收到 `error` 就回傳工具錯誤。離開時一定要把事件的 generator 收尾（`contextlib.aclosing`），才會馬上釋放這個 IP 的「規劃中」標記；不然以錯誤結束後，同一個 IP 會一直收到 `PLAN_IN_PROGRESS`（v0.18，mcp-eval 端到端發現）。結果附上（有設定 PUBLIC_WEB_BASE_URL 且存檔成功時）`share_url`＝`{PUBLIC_WEB_BASE_URL}/p/{job_id}`，工具說明請 AI 一併給使用者（v0.21）。
 5. 客戶端取消呼叫或斷線時，取消工作，跟 SSE 的規則一樣。新版規範拿掉了斷線續傳，所以客戶端要重新呼叫。
 
 ### 6.7 前端串接
@@ -1061,8 +1061,8 @@ MCP 的工具錯誤沿用上表的 code，寫成 `CODE：訊息`；另外有一�
   ```
 - 只存排出來的結果；`NO_FEASIBLE` 等錯誤不存。
 - 存不進去（`redis.RedisError`，例如 Redis 滿了）不影響規劃：只記一行 warning 日誌（logger `app.saved_plans`，訊息「分享用的行程存不進 Redis」），照樣交出結果，只是沒有連結。MCP 靠 `plan_events` 的 `on_saved` 回呼知道有沒有存成功，沒存成功就不附 `share_url`，避免給出打不開的連結。
-- 大小：一份約 20～40 KB；每個 IP 每小時最多 10 次規劃（5.5），Redis 256 MB（5.1）足夠。
-- 用「目前位置」出發時，座標照原樣存（2026-11-07 使用者決定）；前端分享時要提醒「連結會包含你的出發位置」（前端第 4 批）。
+- 大小：一份約 15 KB（實測：3 個方案的結果約 14.6 KB，加上請求）。最壞情況：每個 IP 每小時最多 10 次規劃（5.5），7 天最多約 1,680 份、約 25 MB；全站受限於單一 `plans` worker 的速度，一週約 9,450 份，約 140～380 MB，已可能超過 Redis 256 MB（5.1，`noeviction`）。Redis 滿了會讓限流等所有寫入失敗、整個 API 回 503，所以 `save_plan` 先看記憶體：用量超過 `maxmemory` 的 70%（`SAVED_PLAN_MAX_MEMORY_RATIO`，預設 0.7；`maxmemory` 為 0 表示沒限制就不檢查）就跳過這次存檔，只記 warning、照樣交出結果、不附連結，把剩下的空間留給限流和佇列。公開上線前要再檢討（縮短保存天數或限制筆數）。
+- 用「目前位置」出發時，座標和 `origin_name`（出發地名稱）照原樣存（2026-11-07 使用者決定）；前端分享時要提醒「連結會包含你的出發位置」（前端第 4 批）。
 
 **讀取**
 - `job_id` 必須是 32 碼小寫十六進位（`^[0-9a-f]{32}$`），格式不對直接回 404 `NOT_FOUND`，不碰 Redis。
@@ -1237,7 +1237,7 @@ MCP 的工具錯誤沿用上表的 code，寫成 `CODE：訊息`；另外有一�
 
 ### 8.2 環境變數（`.env`，不進版本控制）
 
-`DATABASE_URL`、`REDIS_URL`、`TDX_CLIENT_ID`、`TDX_CLIENT_SECRET`、`GOOGLE_PLACES_API_KEY`、`TYPESAFE_API_KEY`、`JEV_MODE=real|mock`、`JEV_MODEL`、`JEV_MIN_TOP_PROBABILITY=0.6`、`ROUTER_POLICY=fixed`、`ROUTER_PARAM`、`OLLAMA_BASE_URL`、`OLLAMA_MODEL=qwen2.5:3b`、`LLM_ALLOW_ABSTAIN=false`、`CORS_ORIGINS`、`PUBLIC_WEB_BASE_URL`（網頁的網址；MCP 的 `plan_date` 回傳 `{這個網址}/p/{job_id}`，沒填就不附連結，6.8）、`SAVED_PLAN_TTL_SECONDS=604800`（分享連結的結果保留幾秒，6.8），以及各項限流、額度、時間規則（候位、用餐時間、步行速度等）的數字。
+`DATABASE_URL`、`REDIS_URL`、`TDX_CLIENT_ID`、`TDX_CLIENT_SECRET`、`GOOGLE_PLACES_API_KEY`、`TYPESAFE_API_KEY`、`JEV_MODE=real|mock`、`JEV_MODEL`、`JEV_MIN_TOP_PROBABILITY=0.6`、`ROUTER_POLICY=fixed`、`ROUTER_PARAM`、`OLLAMA_BASE_URL`、`OLLAMA_MODEL=qwen2.5:3b`、`LLM_ALLOW_ABSTAIN=false`、`CORS_ORIGINS`、`PUBLIC_WEB_BASE_URL`（網頁的網址；MCP 的 `plan_date` 回傳 `{這個網址}/p/{job_id}`，沒填就不附連結，6.8）、`SAVED_PLAN_TTL_SECONDS=604800`（分享連結的結果保留幾秒，6.8）、`SAVED_PLAN_MAX_MEMORY_RATIO=0.7`（Redis 記憶體用量超過 `maxmemory` 的這個比例就不存分享用的行程，6.8），以及各項限流、額度、時間規則（候位、用餐時間、步行速度等）的數字。
 
 ### 8.3 外部 API 的錯誤處理【預設】
 

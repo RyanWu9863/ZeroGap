@@ -1013,6 +1013,7 @@ rq cron（只負責觸發）── 每天 06:00 ──▶ 抓取佇列 ──▶
   | S4 | 分支從 `main` 開、獨立一個 PR；`mcp.py` 只改回傳那幾行 | 跟 PR #1、#2 的重疊越小越好，誰後合併誰調版本號 |
   | S5 | 只存排出來的結果，`NO_FEASIBLE` 等錯誤不存 | 錯誤沒有可分享的行程 |
   | S6 | `PUBLIC_WEB_BASE_URL` 沒設定就不附 `share_url`；存檔失敗也不附 | 不給出打不開的連結 |
+  | S7 | Redis 記憶體用量超過 `maxmemory` 的 70% 就不存分享用的行程（`SAVED_PLAN_MAX_MEMORY_RATIO`） | 一份約 15 KB，每 IP 7 天最多約 1,680 份（約 25 MB），全站一週約 9,450 份（約 140～380 MB），「256 MB 足夠」不成立；Redis 滿了（`noeviction`）限流等寫入都會失敗、整個 API 回 503，所以先留空間給限流和佇列。公開上線前要再檢討（縮短保存天數或限制筆數） |
 - **改了哪些檔案**：新增 `backend/app/saved_plans.py`；改 `backend/app/plan_stream.py`（交出 `result` 前存檔、新增 `on_saved` 回呼）、`backend/app/api.py`（`GET /api/plans/{job_id}`）、`backend/app/mcp.py`（回傳 `share_url`）、`backend/app/config.py`；`.env.example`、`docs/backend-spec.md`（v0.21：5.2、6.2、6.6、6.7、6.8、8.2、10.1）、導讀 `docs/導讀_分享連結.md`。
 - **測試**：新增單元 `test_saved_plans` 12 個、`test_plan_stream` +3、`test_api` +5、`test_mcp` +2。後端全部 491 個通過、3 個失敗；3 個失敗是 `tests/integration/test_redis_utils.py::TestQuota` 本來就有的日期相關測試（程式裡固定「現在」是 2026-10-20，key 在 2026-11-05 到期），這個分支沒碰。分支 `feat/plan-share-link`。
 - **還沒做**：前端分享頁 `/p/:id`、zod schema、分享時的位置提醒（前端第 4 批）；合約檢查工具加入 `saved_plan`。
