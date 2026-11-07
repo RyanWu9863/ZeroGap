@@ -645,9 +645,9 @@ git diff --stat origin/main..HEAD -- frontend   # 必須沒有輸出
 
 | Task | 狀態 |
 |---|---|
-| 1 設定＋saved_plans | 未開始 |
-| 2 plan_events 存檔 | 未開始 |
-| 3 GET 端點 | 未開始 |
-| 4 MCP share_url | 未開始 |
-| 5 規格書、紀錄、導讀 | 未開始 |
-| 6 推分支、開 PR | 未開始 |
+| 1 設定＋saved_plans | ✅ 23db169 |
+| 2 plan_events 存檔 | ✅ 100741f |
+| 3 GET 端點 | ✅ e7dd8eb |
+| 4 MCP share_url | ✅ ca6b82d |
+| 5 規格書、紀錄、導讀 | ✅ f4f4af4；最終審查修正 70ea9e7（Redis 記憶體七成防線等）、e2a0c12 |
+| 6 推分支、開 PR | ✅ PR #5（未合併） |
