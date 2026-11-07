@@ -85,7 +85,7 @@ export function PlanFunnel({ request, run, onDone, onCancel }: Props) {
             <li
               key={s.key}
               style={{ width: `calc(100% - ${i * 5}%)` }}
-              className={cn('zg-surface mx-auto min-w-[16rem] px-4 py-3', done && 'bg-[var(--zg-glow)]', active && 'border-[var(--zg-flow)]', bad && 'border-zg-fail', !done && !active && !bad && 'opacity-60')}
+              className={cn('zg-surface mx-auto min-w-[16rem] px-4 py-3', done && 'bg-[var(--zg-glow)]', active && 'border-[var(--zg-flow)]', bad && 'border-zg-fail')}
             >
               <div className="flex items-center gap-3">
                 <span className={cn('grid size-6 shrink-0 place-items-center rounded-full border', done && 'border-transparent text-[var(--zg-flow)]', bad && 'border-transparent bg-zg-fail-soft text-zg-fail')}>
