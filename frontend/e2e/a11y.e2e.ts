@@ -26,6 +26,9 @@ const PAGES: { name: string; path: string; ready: (p: Page) => Promise<void>; st
       await p.getByRole('heading', { name: '這 3 個行程，每一段都接得上。' }).waitFor()
     },
   },
+  { name: '方法頁', path: '/method', ready: (p) => p.getByRole('heading', { level: 1 }).waitFor(), still: true }, // 減少動態：十段一開始就全部顯示，才掃得到每一段
+  { name: 'AI 助理頁', path: '/ai', ready: (p) => p.getByRole('heading', { level: 1 }).waitFor() },
+  { name: '關於頁', path: '/about', ready: (p) => p.getByRole('heading', { level: 1 }).waitFor() },
   { name: '系統幕後', path: '/behind', ready: (p) => p.getByRole('heading', { name: /^從全部組合到/ }).waitFor() },
   { name: '找不到頁面', path: '/no-such-page', ready: (p) => p.getByRole('heading', { name: '找不到這一頁' }).waitFor() },
 ]
