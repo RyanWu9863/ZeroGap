@@ -172,13 +172,10 @@ function ResultView({ state }: { state: ReturnType<typeof useResultState> }) {
           <Timeline plan={plan} date={request.date} stationName={labels.station} swap={swapsHere[plan.rank] ?? null} onSwap={(s) => setSwap(plan.rank, s)} />
         </section>
         <aside className="space-y-4 lg:sticky lg:top-20 lg:self-start">
-          {exp ? (
-            <Suspense fallback={<RouteSketch plan={plan} />}>
-              <RouteMap plan={plan} date={request.date} />
-            </Suspense>
-          ) : (
-            <RouteSketch plan={plan} />
-          )}
+          {/* 真實地圖預設就顯示（規格 D10）；地圖程式下載完前先用舊的示意圖 */}
+          <Suspense fallback={<RouteSketch plan={plan} />}>
+            <RouteMap plan={plan} date={request.date} />
+          </Suspense>
           <CostPanel plan={plan} budget={request.budget_per_person} swapped={swapped} />
           <CopyButton request={request} plan={plan} swapped={swapped} className="hidden lg:block" />
           <Link to="/behind" className="flex items-center justify-center gap-1 py-2 text-sm text-muted-foreground hover:text-foreground">
