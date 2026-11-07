@@ -8,7 +8,6 @@ import { usePageTitle } from '@/shared/lib/usePageTitle'
 import { LogoMark } from '@/shared/brand/Logo'
 import { benchmarkRequest } from '@/mocks/request'
 import { funnelStages } from '@/shared/lib/funnel'
-import { TrialRecords } from '@/features/trial/TrialRecords'
 import { AgentSection } from './AgentSection'
 import { FunnelCharts } from './FunnelCharts'
 import { MethodSection } from './MethodSection'
@@ -43,7 +42,7 @@ export function BehindPage() {
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div>
             <p className="font-mono text-xs tracking-[0.3em] text-muted-foreground">THIS QUERY</p>
-            <h2 className="mt-2 text-2xl font-bold cine:font-semibold lin:font-semibold">
+            <h2 className="mt-2 text-2xl font-bold">
               {isExample ? '範例：中壢站出發、桃園區（假資料）' : `本次查詢：${labels.station} → ${labels.area}`}
             </h2>
           </div>
@@ -78,15 +77,14 @@ export function BehindPage() {
 
       <section>
         <p className="font-mono text-xs tracking-[0.3em] text-muted-foreground">DATA & STATUS</p>
-        <h2 className="mb-6 mt-2 text-2xl font-bold cine:font-semibold lin:font-semibold">資料從哪裡來、現在新不新</h2>
+        <h2 className="mb-6 mt-2 text-2xl font-bold">資料從哪裡來、現在新不新</h2>
         <SourcesSection />
       </section>
 
-      <TrialRecords />
 
       <section>
         <p className="font-mono text-xs tracking-[0.3em] text-muted-foreground">FOR AGENTS</p>
-        <h2 className="mb-6 mt-2 text-2xl font-bold cine:font-semibold lin:font-semibold">同一份合約，人和 Agent 都能用</h2>
+        <h2 className="mb-6 mt-2 text-2xl font-bold">同一份合約，人和 Agent 都能用</h2>
         <AgentSection request={request} data={result} />
       </section>
     </div>

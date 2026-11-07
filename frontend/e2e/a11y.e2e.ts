@@ -2,8 +2,8 @@ import AxeBuilder from '@axe-core/playwright'
 import { expect, test, type Page } from '@playwright/test'
 
 /*
- * 無障礙自動檢查（計畫 P2-2）：三個試做版 × 每一頁，用 axe 掃 WCAG 2.1 A／AA。
- * 「嚴重」和「重大」等級的問題一律要修；只在桌機 Chromium 跑一次，顏色對比在三版各自檢查。
+ * 無障礙自動檢查（計畫 P2-2）：每一頁，用 axe 掃 WCAG 2.1 A／AA。
+ * 「嚴重」和「重大」等級的問題一律要修；只在桌機 Chromium 跑一次。
  */
 const PAGES: { name: string; path: string; ready: (p: Page) => Promise<void> }[] = [
   { name: '介紹頁', path: '/', ready: (p) => p.getByRole('heading', { level: 1 }).first().waitFor() },
@@ -21,24 +21,21 @@ const PAGES: { name: string; path: string; ready: (p: Page) => Promise<void> }[]
   { name: '找不到頁面', path: '/no-such-page', ready: (p) => p.getByRole('heading', { name: '找不到這一頁' }).waitFor() },
 ]
 
-for (const proto of ['timetable', 'cinematic', 'linear']) {
-  for (const pg of PAGES) {
-    test(`無障礙：${proto}・${pg.name}`, async ({ page }, info) => {
-      test.skip(info.project.name !== 'chromium', '只在桌機 Chromium 掃一次')
-      test.setTimeout(120_000) // 結果頁要先播完篩選動畫；CI 的 Windows 機器忙時預設 45 秒會不夠（同 experience.e2e.ts 的 AXE_TIMEOUT）
-      const sep = pg.path.includes('?') ? '&' : '?'
-      await page.goto(`${pg.path}${sep}proto=${proto}`)
-      await pg.ready(page)
-      // 等進場動畫全部跑完（淡入到一半時顏色會比較淡），顏色對比才量得準
-      await page.waitForTimeout(300)
-      await page.waitForFunction(() => document.getAnimations().every((a) => a.playState !== 'running'))
-      await page.waitForTimeout(300)
-      const { violations } = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']).analyze()
-      const bad = violations.filter((v) => v.impact === 'serious' || v.impact === 'critical')
-      const report = bad.map((v) => `${v.impact} ${v.id}：${v.help}\n  ${v.nodes.slice(0, 3).map((n) => n.target.join(' ')).join('\n  ')}`)
-      expect(report, report.join('\n')).toEqual([])
-    })
-  }
+for (const pg of PAGES) {
+  test(`無障礙：${pg.name}`, async ({ page }, info) => {
+    test.skip(info.project.name !== 'chromium', '只在桌機 Chromium 掃一次')
+    test.setTimeout(120_000) // 結果頁要先播完篩選動畫；CI 的 Windows 機器忙時預設 45 秒會不夠（同 experience.e2e.ts 的 AXE_TIMEOUT）
+    await page.goto(pg.path)
+    await pg.ready(page)
+    // 等進場動畫全部跑完（淡入到一半時顏色會比較淡），顏色對比才量得準
+    await page.waitForTimeout(300)
+    await page.waitForFunction(() => document.getAnimations().every((a) => a.playState !== 'running'))
+    await page.waitForTimeout(300)
+    const { violations } = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']).analyze()
+    const bad = violations.filter((v) => v.impact === 'serious' || v.impact === 'critical')
+    const report = bad.map((v) => `${v.impact} ${v.id}：${v.help}\n  ${v.nodes.slice(0, 3).map((n) => n.target.join(' ')).join('\n  ')}`)
+    expect(report, report.join('\n')).toEqual([])
+  })
 }
 
 test('換步驟時焦點移到新的標題，分頁標題跟著換（P2-2）', async ({ page }) => {

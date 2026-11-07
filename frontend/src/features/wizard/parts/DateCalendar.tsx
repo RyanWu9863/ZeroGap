@@ -52,7 +52,7 @@ export function DateCalendar({
             disabled={!ok.has(q.d)}
             aria-pressed={value === q.d}
             onClick={() => onChange(q.d)}
-            className="rounded-full border bg-card px-3.5 py-1.5 text-sm hover:border-foreground/40 pointer-coarse:min-h-10 disabled:cursor-not-allowed disabled:opacity-40 aria-pressed:border-primary aria-pressed:bg-primary aria-pressed:text-primary-foreground lin:rounded-md"
+            className="rounded-full border bg-card px-3.5 py-1.5 text-sm hover:border-foreground/40 pointer-coarse:min-h-10 disabled:cursor-not-allowed disabled:opacity-40 aria-pressed:border-primary aria-pressed:bg-primary aria-pressed:text-primary-foreground"
           >
             {q.label} <span className="zg-num text-xs">{formatDate(q.d)}</span>
           </button>

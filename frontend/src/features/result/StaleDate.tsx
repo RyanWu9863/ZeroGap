@@ -19,7 +19,7 @@ export function StaleDate({ request, today, onFix }: {
   const next = data ? nearestAvailable(data.available_dates, today) : null
   return (
     <div className="mx-auto max-w-lg px-4 py-12 text-center">
-      <h1 className="text-2xl font-bold cine:font-semibold lin:font-semibold">這組行程的日期已經過了</h1>
+      <h1 className="text-2xl font-bold">這組行程的日期已經過了</h1>
       <p className="mt-3 text-muted-foreground">
         條件裡的日期是 <span className="zg-num font-medium text-zg-fail">{formatDate(request.date)}</span>，換一天再幫你排。
       </p>

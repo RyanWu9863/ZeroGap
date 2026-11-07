@@ -242,31 +242,29 @@ test.describe('行程路線地圖（PR4）', () => {
   })
 })
 
-for (const proto of ['timetable', 'cinematic', 'linear']) {
-  test(`無障礙：${proto}・三方案舞台和詳情`, async ({ page }, info) => {
-    test.skip(info.project.name !== 'chromium', '只在桌機 Chromium 掃')
-    test.setTimeout(AXE_TIMEOUT)
-    await page.goto(resultUrl(`&proto=${proto}`))
-    await expect(resultsHeading(page)).toBeVisible(AFTER_FUNNEL)
-    await expectAxeClean(page)
-    await page.getByRole('button', { name: '看完整行程' }).click()
-    await expect(page.getByRole('dialog')).toBeVisible()
-    await expectAxeClean(page)
-  })
+test('無障礙：三方案舞台和詳情', async ({ page }, info) => {
+  test.skip(info.project.name !== 'chromium', '只在桌機 Chromium 掃')
+  test.setTimeout(AXE_TIMEOUT)
+  await page.goto(resultUrl(''))
+  await expect(resultsHeading(page)).toBeVisible(AFTER_FUNNEL)
+  await expectAxeClean(page)
+  await page.getByRole('button', { name: '看完整行程' }).click()
+  await expect(page.getByRole('dialog')).toBeVisible()
+  await expectAxeClean(page)
+})
 
-  test(`無障礙：${proto}・篩選漏斗（展開關卡）`, async ({ page }, info) => {
-    test.skip(info.project.name !== 'chromium', '只在桌機 Chromium 掃')
-    test.setTimeout(AXE_TIMEOUT)
-    // 不等整頁 load：字型等資源下載慢時（CI 的 Windows），load 事件來的時候漏斗可能已經播完、
-    // 自動跳到結果頁，關卡按鈕就再也找不到了（用拖慢字型 8 秒重現過）
-    await page.goto(resultUrl(`&proto=${proto}`), { waitUntil: 'commit' })
-    // 一出現就直接送點擊、不等按鈕「靜止」：慢的機器（CI 的 Windows）上，等關卡的進場動畫停下來時，
-    // 漏斗可能已經播完、自動跳到結果頁。展開過關卡就會停在這裡等「看行程」
-    await page.getByRole('button', { name: /趕得上開演/ }).dispatchEvent('click')
-    await expect(page.getByRole('button', { name: '看行程' })).toBeVisible(AFTER_FUNNEL)
-    await expectAxeClean(page)
-  })
-}
+test('無障礙：篩選漏斗（展開關卡）', async ({ page }, info) => {
+  test.skip(info.project.name !== 'chromium', '只在桌機 Chromium 掃')
+  test.setTimeout(AXE_TIMEOUT)
+  // 不等整頁 load：字型等資源下載慢時（CI 的 Windows），load 事件來的時候漏斗可能已經播完、
+  // 自動跳到結果頁，關卡按鈕就再也找不到了（用拖慢字型 8 秒重現過）
+  await page.goto(resultUrl(''), { waitUntil: 'commit' })
+  // 一出現就直接送點擊、不等按鈕「靜止」：慢的機器（CI 的 Windows）上，等關卡的進場動畫停下來時，
+  // 漏斗可能已經播完、自動跳到結果頁。展開過關卡就會停在這裡等「看行程」
+  await page.getByRole('button', { name: /趕得上開演/ }).dispatchEvent('click')
+  await expect(page.getByRole('button', { name: '看行程' })).toBeVisible(AFTER_FUNNEL)
+  await expectAxeClean(page)
+})
 
 test.describe('系統幕後三種視覺化（PR5）', () => {
   const views = (page: Page) => page.getByTestId('behind-views')
@@ -308,17 +306,15 @@ test.describe('系統幕後三種視覺化（PR5）', () => {
   })
 })
 
-for (const proto of ['timetable', 'cinematic', 'linear']) {
-  test(`無障礙：${proto}・系統幕後三種視覺化`, async ({ page }, info) => {
-    test.skip(info.project.name !== 'chromium', '只在桌機 Chromium 掃')
-    test.setTimeout(AXE_TIMEOUT)
-    await page.goto(`/behind?exp=1&proto=${proto}`)
-    for (const tab of ['A 篩選漏斗', 'B 決策時間軸', 'C 決策比較']) {
-      await page.getByRole('tab', { name: tab }).click()
-      await expectAxeClean(page)
-    }
-  })
-}
+test('無障礙：系統幕後三種視覺化', async ({ page }, info) => {
+  test.skip(info.project.name !== 'chromium', '只在桌機 Chromium 掃')
+  test.setTimeout(AXE_TIMEOUT)
+  await page.goto('/behind?exp=1')
+  for (const tab of ['A 篩選漏斗', 'B 決策時間軸', 'C 決策比較']) {
+    await page.getByRole('tab', { name: tab }).click()
+    await expectAxeClean(page)
+  }
+})
 
 test('減少動態：漏斗、方案舞台、詳情都照常能用（動畫改成直接到位）', async ({ page }) => {
   await page.emulateMedia({ reducedMotion: 'reduce' })

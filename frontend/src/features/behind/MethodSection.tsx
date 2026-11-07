@@ -13,7 +13,7 @@ export function MethodSection() {
   return (
     <section>
       <p className="font-mono text-xs tracking-[0.3em] text-muted-foreground">HOW IT WORKS</p>
-      <h2 className="mt-2 text-2xl font-bold cine:font-semibold lin:font-semibold">數字交給程式，選擇交給機率。</h2>
+      <h2 className="mt-2 text-2xl font-bold">數字交給程式，選擇交給機率。</h2>
       <ol className="mt-6 flex flex-wrap items-center gap-2 text-xs" aria-label="系統流程">
         {PIPELINE.map((step, i) => (
           <li key={step} className="flex items-center gap-2">
@@ -25,7 +25,7 @@ export function MethodSection() {
       <div className="mt-6 grid gap-4 md:grid-cols-3">
         {PILLARS.map((p) => (
           <div key={p.n} className="zg-surface p-5">
-            <span className="zg-num text-2xl font-semibold text-zg-ok cine:text-primary lin:text-primary">{p.n}</span>
+            <span className="zg-num text-2xl font-semibold text-zg-ok">{p.n}</span>
             <h3 className="mt-2 font-semibold">{p.title}</h3>
             <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">{p.body}</p>
           </div>

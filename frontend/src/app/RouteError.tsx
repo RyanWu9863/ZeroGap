@@ -9,7 +9,7 @@ import { usePageTitle } from '@/shared/lib/usePageTitle'
  * 這裡刻意不讀任何 store：出錯的原因可能正是 store 裡的資料壞了。
  */
 
-const btn = 'inline-flex h-10 items-center gap-1.5 rounded-full px-5 text-sm font-medium lin:rounded-md'
+const btn = 'inline-flex h-10 items-center gap-1.5 rounded-full px-5 text-sm font-medium'
 const primary = `${btn} bg-primary text-primary-foreground`
 const secondary = `${btn} border hover:bg-muted`
 
@@ -17,7 +17,7 @@ function ErrorLayout({ title, children, actions, footer }: { title: string; chil
   return (
     <div className="mx-auto flex max-w-md flex-col items-center px-4 py-24 text-center">
       <LogoMark size={48} />
-      <h1 className="mt-6 text-2xl font-bold cine:font-semibold lin:font-semibold">{title}</h1>
+      <h1 className="mt-6 text-2xl font-bold">{title}</h1>
       <div className="mt-3 space-y-2 text-muted-foreground">{children}</div>
       <div className="mt-8 flex flex-wrap justify-center gap-3">{actions}</div>
       {footer}
@@ -47,7 +47,7 @@ export function NotFound() {
   )
 }
 
-/** 只清掉「規劃條件」的暫存；試用紀錄（zg-trial）要留著 */
+/** 只清掉「規劃條件」的暫存 */
 function clearPlanAndReload() {
   try {
     localStorage.removeItem('zg-plan')

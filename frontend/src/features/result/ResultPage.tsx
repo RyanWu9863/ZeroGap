@@ -1,14 +1,12 @@
 import { ArrowRight, Info, LocateFixed } from 'lucide-react'
-import { lazy, Suspense, useCallback, useEffect, useState } from 'react'
+import { lazy, Suspense, useCallback, useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router'
 import { useCuisineLabel, useRequestLabels } from '@/api/labels'
 import { cancelPlan, requestKey, usePlanRun } from '@/api/planRuns'
 import type { PlanRequest } from '@/api/schemas'
-import { TrialSurvey } from '@/features/trial/TrialSurvey'
 import { isPastDate } from '@/shared/lib/dates'
 import { usePageTitle } from '@/shared/lib/usePageTitle'
 import { useExperiment } from '@/shared/theme/experiment'
-import { useTrialStore } from '@/features/trial/trialStore'
 import { ConditionBar } from './ConditionBar'
 import { CopyButton } from './CopyButton'
 import { CostPanel } from './CostPanel'
@@ -107,12 +105,6 @@ function ResultView({ state }: { state: ReturnType<typeof useResultState> }) {
 
   const result = run?.status === 'done' ? run.result : null
   const plans = result?.plans ?? []
-  // 試用計時：方案真的出現在畫面上才算「拿到行程」（Q79）
-  const markTrial = useTrialStore((s) => s.mark)
-  const showingPlans = !showProgress && plans.length > 0
-  useEffect(() => {
-    if (showingPlans) markTrial('resultAt')
-  }, [showingPlans, markTrial])
 
   // 無解的一鍵放寬、結果頁的小視窗改條件，都會用新條件重新規劃
   const rerun = (patch: Partial<PlanRequest>) => update(patch)
@@ -142,7 +134,7 @@ function ResultView({ state }: { state: ReturnType<typeof useResultState> }) {
   return (
     <div className="mx-auto max-w-6xl px-4 pt-8 sm:px-6">
       <ConditionBar req={request} onApply={rerun} />
-      <h1 className="mt-6 text-2xl font-bold sm:text-3xl cine:font-semibold lin:font-semibold">{n === 1 ? '這個行程' : `這 ${n} 個行程`}，每一段都接得上。</h1>
+      <h1 className="mt-6 text-2xl font-bold sm:text-3xl">{n === 1 ? '這個行程' : `這 ${n} 個行程`}，每一段都接得上。</h1>
       <p className="mt-1.5 text-sm text-muted-foreground">
         從 <span className="zg-num">{result.stats.combinations.toLocaleString()}</span> 種組合中，找到{' '}
         <span className="zg-num">{result.stats.feasible.toLocaleString()}</span> 種每段都接得上的行程，挑出最適合你的 {n} 個。
@@ -199,7 +191,6 @@ function ResultView({ state }: { state: ReturnType<typeof useResultState> }) {
         <FreshnessNote />
       </div>
 
-      <TrialSurvey />
 
       {/* 手機：「複製行程」固定在底部（Q64） */}
       <div

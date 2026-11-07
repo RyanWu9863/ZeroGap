@@ -1,7 +1,6 @@
 import { ArrowLeft, ArrowRight } from 'lucide-react'
 import { AnimatePresence, motion } from 'motion/react'
-import { useEffect, useRef, useState } from 'react'
-import { useTrialStore } from '@/features/trial/trialStore'
+import { useRef, useState } from 'react'
 import { usePageTitle } from '@/shared/lib/usePageTitle'
 import { Link, Navigate, useNavigate, useParams } from 'react-router'
 import { atLocation, locate, LocateError, noOrigin, usesLocation } from '@/shared/lib/origin'
@@ -27,9 +26,7 @@ export function WizardPage() {
   const request = usePlanStore((s) => s.request)
   const setRequest = usePlanStore((s) => s.setRequest)
   const [locating, setLocating] = useState(false)
-  const markTrial = useTrialStore((s) => s.mark)
   const dateCtx = useDateContext()
-  useEffect(() => markTrial('startClickAt'), [markTrial]) // 試用計時：按了開始（Q79）
   // 往後一步從右邊滑入、往前一步從左邊滑入（React 官方「依前一次的值調整 state」寫法）
   const [prev, setPrev] = useState(n)
   const [dir, setDir] = useState(1)
@@ -113,7 +110,7 @@ export function WizardPage() {
             <button
               onClick={() => navigate(`/plan/${n + 1}`)}
               disabled={!complete}
-              className="inline-flex h-10 items-center gap-1.5 rounded-full bg-primary px-5 text-sm font-medium text-primary-foreground disabled:opacity-40 lin:rounded-md"
+              className="inline-flex h-10 items-center gap-1.5 rounded-full bg-primary px-5 text-sm font-medium text-primary-foreground disabled:opacity-40"
             >
               下一步 <ArrowRight className="size-4" />
             </button>
@@ -124,7 +121,7 @@ export function WizardPage() {
             <button
               onClick={submit}
               disabled={locating}
-              className="flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-primary text-base font-semibold text-primary-foreground disabled:opacity-70 lin:rounded-md"
+              className="flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-primary text-base font-semibold text-primary-foreground disabled:opacity-70"
             >
               {locating ? '正在取得目前位置…' : '排出接得上的行程'} <ArrowRight className="size-4" />
             </button>

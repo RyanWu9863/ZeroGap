@@ -1,5 +1,4 @@
 import { useEffect } from 'react'
-import { TrialGate } from '@/features/trial/TrialGate'
 import { usePageTitle } from '@/shared/lib/usePageTitle'
 import { Hero } from './Hero'
 import { PainCompare } from './PainCompare'
@@ -21,8 +20,6 @@ export function IntroPage() {
   }, [])
   return (
     <>
-      {/* 試用模式：主持人按下才開始計時（Q79） */}
-      <TrialGate />
       <Hero />
       <TimelinePreview />
       <PainCompare />

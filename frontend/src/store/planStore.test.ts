@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest'
+import { describe, expect, it } from 'vitest'
 import { benchmarkRequest } from '@/mocks/request'
 import { mergePlanState, usePlanStore } from './planStore'
 
@@ -17,17 +17,4 @@ describe('zg-plan 暫存讀回（P1-3）', () => {
     expect(s.request).not.toHaveProperty('old_field')
   })
   it('方案編號超出 1–3 → 回到第 1 案', () => expect(mergePlan({ selectedRank: 9 }).selectedRank).toBe(1))
-})
-
-describe('zg-trial 暫存讀回（P1-3）', () => {
-  it('壞掉的那筆試用紀錄丟掉，其他紀錄一定留著', async () => {
-    vi.stubGlobal('window', { location: { search: '' } })
-    const { mergeTrialState, useTrialStore } = await import('@/features/trial/trialStore')
-    const good = { id: 'a1', proto: 'timetable', startedAt: 1, resultAt: 2, answers: { yellow: 'estimate', willing: 4, faster: true } }
-    const s = mergeTrialState({ sessions: [good, { id: 3 }], current: 'bad', active: true }, useTrialStore.getInitialState())
-    expect(s.sessions).toEqual([good])
-    expect(s.current).toBeNull()
-    expect(s.active).toBe(true)
-    vi.unstubAllGlobals()
-  })
 })
