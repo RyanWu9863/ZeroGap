@@ -11,7 +11,8 @@ describe('時間換算', () => {
 })
 
 describe('stepComplete', () => {
-  it('基準案例四步都填完', () => expect(firstIncomplete(benchmarkRequest)).toBeNull())
+  // 基準案例的日期是「今天」，下午五點後出發時間已過；測試固定一個未來日期
+  it('基準案例四步都填完', () => expect(firstIncomplete({ ...benchmarkRequest, date: '2099-01-01' })).toBeNull())
   it('清空後卡在第 1 步', () => expect(firstIncomplete(blankRequest)).toBe(1))
   it('回到站早於出門 → 第 2 步沒完成', () => {
     expect(stepComplete(2, { ...benchmarkRequest, earliest_departure: '20:00', latest_home: '19:00' })).toBe(false)
