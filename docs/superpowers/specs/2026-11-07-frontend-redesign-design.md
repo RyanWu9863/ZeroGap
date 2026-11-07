@@ -142,10 +142,12 @@ AI 影片提示詞的 repo（Sora、Kling 那類）不採用：影片檔大，�
 
 ## 9. 程式要留、要刪、要搬回的
 
+> 2026-11-07 寫計畫時改成：**整條合併**私人 repo 的 `integrate/backend-v0.9-main`（已改接後端格式，試合零衝突、`tsc` 零錯誤、146 個單元測試通過），再刪掉不要的；不逐檔搬（試搬 11 個檔就出現 5 個型別錯誤）。使用者同意。另外**保留展示模式**（`store/demoStore`），當 Demo 現場的保險。詳見第 2 批計畫。
+
 | | 內容 |
 |---|---|
-| 留 | `api/`、`mocks/`、`store/planStore`、`shared/lib`（時間、緩衝、步驟、出發點、地圖連結、複製）、`features/result/{relax,swap,urlState,stages}.ts`、`features/wizard/validation.ts` 和精靈的零件，以及這些檔案的單元測試 |
-| 刪 | `app/ProtoSwitcher`、`shared/theme/{proto,LightTrails,LinearBackdrop}`、`features/{trial,present,behind}`、`store/demoStore`、`api/benchmark.ts`（簡報模式用的）；`features/intro`、`features/result` 的畫面元件換成新的 |
+| 留 | `api/`、`mocks/`、`store/planStore`、`store/demoStore`（展示模式，開關第 5 批搬到幕後頁）、`shared/lib`（時間、緩衝、步驟、出發點、地圖連結、複製）、`features/result/{relax,swap,urlState,stages}.ts`、`features/wizard/validation.ts` 和精靈的零件，以及這些檔案的單元測試 |
+| 刪 | `app/ProtoSwitcher`、`shared/theme/{proto,LightTrails,LinearBackdrop}`、`features/{trial,present}`、舊的 `features/behind`（第 5 批換成新的幕後頁）；`features/intro`、`features/result` 的畫面元件換成新的 |
 | 從優化版搬回（照新設計改寫，不是整包搬） | `api/errors.ts`＋逾時、`app/RouteError.tsx`、`store/persistSafe.ts`、`e2e/a11y.e2e.ts`（`@axe-core/playwright` 4.13.0）、`e2e/seen.ts`、`scripts/build-pages.mjs`、`scripts/measure-perf.mjs`、字型非同步載入、路由拆包＋閒置時預先下載、`map/route.ts` 的路線節點整理 |
 
 ## 10. 測試
