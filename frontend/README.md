@@ -14,7 +14,7 @@ npm run build:pages  # GitHub Pages 版（預設網址多一層 /zerogap-fronten
 npm run og         # 重新產生連結預覽圖 public/og.png
 npm run icons      # 重新產生 iOS 主畫面圖示 public/apple-touch-icon.png
 npm run predemo    # Demo 前一鍵檢查：型別＋單元測試＋流程測試＋打包
-npm run perf       # 手機 4G 載入時間量測（LCP 要在 2.5 秒內）
+npm run perf       # 手機慢速 4G 載入時間量測（LCP 目標 2 秒內）
 ```
 
 ## Mac 和 Windows 都能開發
@@ -57,7 +57,7 @@ API 合約照**後端規格書 v0.13 第 6 章**（`docs/backend-spec.md`，舊�
 | 結果頁 | `/result` | 等待畫面（SSE 進度）、有解、無解一鍵放寬、換一部／換一家、其他班次、改條件小視窗、條件寫進網址（三版） |
 | 系統幕後 | `/behind` | 方法、漏斗（長條／桑基）、Jev 機率、資料來源、展示模式、Agent 接口、原始 JSON |
 
-畫面左下角可以切換三版試做稿：**A 時刻表**（淺色）／**B 電影感**（深色）／**C Linear 風**（深色極簡）。也可以直接傳網址 `?proto=timetable`、`?proto=cinematic`、`?proto=linear`。
+**外觀**：右上角可以切換夜／日，預設跟著手機或電腦的設定。字體、外框、夜日運作方式見 `docs/導讀_08_地基.md`。
 
 預覽特殊情境（只在假資料模式有效）：
 
@@ -71,10 +71,7 @@ API 合約照**後端規格書 v0.13 第 6 章**（`docs/backend-spec.md`，舊�
 
 | 參數 | 用途 |
 |---|---|
-| `?proto=timetable｜cinematic｜linear` | 切換試做版 |
 | `?exp=1`／`?exp=0` | 沉浸式新版：篩選漏斗、電影式三方案、路線地圖、幕後三種視覺化（見 `docs/導讀_07_沉浸式新版.md`）；預設關閉 |
-| `?trial=1`／`?trial=0` | 試用模式：自動計時＋3 題問卷，紀錄在系統幕後匯出 |
-| `?present=1`／`?present=0` | 簡報模式：字放大，按 1–3 套用情境卡、B 系統幕後、H 首頁 |
 | `?mock=no_solution`、`low_confidence`、`no_showtimes`、`queue_full` | 預覽無解、系統拿不定、沒有場次、排隊已滿（只在假資料模式） |
 | `?mock=pending` | 預覽等待畫面：規劃一直不回應（只在假資料模式） |
 | `?mock=options_error` | 預覽精靈的「載入失敗＋重試」：商圈清單前 2 次失敗，按重試就恢復（只在假資料模式） |
