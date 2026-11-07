@@ -2,8 +2,8 @@
 
 | 項目 | 內容 |
 |---|---|
-| 版本 | v0.18（MCP 工具介面改良［組員的 mcp-eval v3］：每個參數加說明、`plan_date` 新增 `origin_station_name`、走路上限在 MCP 可省略［預設 12］、新增 MCP 專用的錯誤代碼 `AMBIGUOUS`；`/api/coverage` 新增 `cuisines`，見 6.1、6.3、6.6。v0.17：Google 座標更新失敗時，404 才馬上停用，暫時的錯誤隔天再試，見 4.5。v0.16：出發點的交通接不上時，`NO_FEASIBLE` 的 `reasons` 只放 `transit_window`、`message` 寫出時間；TDX 的 `arrival` 查不到時往前重查、`depart` 改取最早抵達；路線快取換成 `v3`，見 3.2、5.3、6.4、7.1。v0.15：AI 推論：Ollama 連續連不上就熔斷；LLM 可選擇棄權［預設關閉］；Router 判斷方式可由設定切換［預設不變］；每次規劃寫一行決策紀錄日誌，見 3、3.1、7.1。v0.14：規劃和抓取拆成兩個 worker：`worker` 只聽 `plans`、新增 `worker-crawl` 只聽 `crawl`，抓取時規劃不用再排隊等，見 5.6、8.1。v0.13：第二階段實作：真的 TDX［頭尾步行 20 分鐘、車資沒給時自己估］、TDX 車站、OSM 餐廳、開眼爬蟲、`rq cron`、MCP；新增蘆竹（南崁）商圈、青埔先不開放；八德只用廣豐新天地。v0.12：逐項確認實作時新增的預設值：早到 30 分鐘內等開門、餐廳備選補滿 2 家、沒判斷屬性的店不排、Jev 沒把握就附備選、新增 `restaurant.hours_verified`。v0.11：實作中的補充列在 10.1；`restaurants.source` 新增 `demo`；修正 5.3 路線快取的取整範例；7.3 補上價位區間的代碼；實作時的小調整：`areas.sort_order`、`area_hubs.geom` 可以是 null、migration 一併寫入類別和票價。v0.10：補上前端對照時發現的缺口：下拉選單的回應範例、跨午夜的判斷、`reasons` 的 key、排隊順位的意思、備選欄位、OSM 出處。v0.9：備選只附估計值、第一名固定「最推薦」、回程緩衝加 `return_window`。v0.8 起前端 ZeroGap 照這份規格串接、飲食限制延後；架構與 v0.4 相同） |
-| 日期 | 2026-10-29 |
+| 版本 | v0.21（分享連結：排出來的結果存 7 天，新增 GET /api/plans/{job_id}；MCP plan_date 回傳 share_url，見 5.2、6.2、6.6、6.8、8.2、10.1。v0.19、v0.20 在 PR #1、#2，合併時依合併順序調整版本號。v0.18（MCP 工具介面改良［組員的 mcp-eval v3］：每個參數加說明、`plan_date` 新增 `origin_station_name`、走路上限在 MCP 可省略［預設 12］、新增 MCP 專用的錯誤代碼 `AMBIGUOUS`；`/api/coverage` 新增 `cuisines`，見 6.1、6.3、6.6。v0.17：Google 座標更新失敗時，404 才馬上停用，暫時的錯誤隔天再試，見 4.5。v0.16：出發點的交通接不上時，`NO_FEASIBLE` 的 `reasons` 只放 `transit_window`、`message` 寫出時間；TDX 的 `arrival` 查不到時往前重查、`depart` 改取最早抵達；路線快取換成 `v3`，見 3.2、5.3、6.4、7.1。v0.15：AI 推論：Ollama 連續連不上就熔斷；LLM 可選擇棄權［預設關閉］；Router 判斷方式可由設定切換［預設不變］；每次規劃寫一行決策紀錄日誌，見 3、3.1、7.1。v0.14：規劃和抓取拆成兩個 worker：`worker` 只聽 `plans`、新增 `worker-crawl` 只聽 `crawl`，抓取時規劃不用再排隊等，見 5.6、8.1。v0.13：第二階段實作：真的 TDX［頭尾步行 20 分鐘、車資沒給時自己估］、TDX 車站、OSM 餐廳、開眼爬蟲、`rq cron`、MCP；新增蘆竹（南崁）商圈、青埔先不開放；八德只用廣豐新天地。v0.12：逐項確認實作時新增的預設值：早到 30 分鐘內等開門、餐廳備選補滿 2 家、沒判斷屬性的店不排、Jev 沒把握就附備選、新增 `restaurant.hours_verified`。v0.11：實作中的補充列在 10.1；`restaurants.source` 新增 `demo`；修正 5.3 路線快取的取整範例；7.3 補上價位區間的代碼；實作時的小調整：`areas.sort_order`、`area_hubs.geom` 可以是 null、migration 一併寫入類別和票價。v0.10：補上前端對照時發現的缺口：下拉選單的回應範例、跨午夜的判斷、`reasons` 的 key、排隊順位的意思、備選欄位、OSM 出處。v0.9：備選只附估計值、第一名固定「最推薦」、回程緩衝加 `return_window`。v0.8 起前端 ZeroGap 照這份規格串接、飲食限制延後；架構與 v0.4 相同） |
+| 日期 | 2026-11-07 |
 | 狀態 | 草稿 |
 | 討論紀錄 | [spec-discussion.md](spec-discussion.md) |
 
@@ -569,6 +569,7 @@ WHERE subject_type = 'restaurant' AND decided_by = 'llm';
 | 每個 IP 同時一個規劃 | `active:plan:{IP}` | string（job_id） | 25 分鐘（排隊最多 15 分鐘＋執行最多 10 分鐘）；規劃結束或取消時刪除 |
 | 每月額度 | `quota:{對象}:{YYYY-MM}` | string（計數器） | 下個月 5 日 |
 | 規劃進度頻道 | `plan:{job_id}:events` | Pub/Sub | — |
+| 分享連結 | `plan:{job_id}:saved` | string（JSON：job_id、request、result、created_at、expires_at） | 7 天【預設】（`SAVED_PLAN_TTL_SECONDS`） |
 | LLM 連線狀態 | `status:llm` | string | 30 秒【預設】 |
 | 佇列 | `rq:*` | 由 RQ 管理 | — |
 
@@ -702,6 +703,7 @@ MCP 的工具錯誤沿用上表的 code，寫成 `CODE：訊息`；另外有一�
 | GET | `/api/coverage?area={code}&date={YYYY-MM-DD}` | 有場次的日期範圍和日期清單；指定日期時，另外列出可看的電影，以及目前有場次的片型、影廳、語言 | `data_coverage` |
 | GET | `/api/status` | 狀態列：Jev 模式、LLM 連線狀態、各資料的更新時間 | — |
 | POST | `/api/plans` | 送出規劃，**直接回傳 SSE 串流** | `plan_date` |
+| GET | `/api/plans/{job_id}` | 分享連結：拿回當初排出來的同一份結果（6.8）。保留 7 天，過期或格式不對回 404 | `plan_date` 的 `share_url` 指向網頁，網頁再呼叫這個端點 |
 | GET | `/api/health` | 健康檢查【預設】：資料庫和 Redis 都連得上才回 200 | — |
 | GET | `/api/docs` | 自動產生的 API 文件（FastAPI 的 Swagger UI）（實作時新增） | — |
 
@@ -981,7 +983,7 @@ MCP 的工具錯誤沿用上表的 code，寫成 `CODE：訊息`；另外有一�
 | `search_locations` | `q`、`area`（可省略） | 同 `GET /api/locations` | `services.search_locations` |
 | `list_categories` | `kind` | 片型或料理類別 | `services.list_categories` |
 | `data_coverage` | `area`、`date`（可省略） | 同 `GET /api/coverage` | `services.get_coverage` |
-| `plan_date` | 同 6.4 的請求欄位，另外：`origin_station_name`（可省略）、`max_walk_minutes` 可省略 | 同 6.5 的結果 | `services.validate_plan` ＋ `plan_stream` |
+| `plan_date` | 同 6.4 的請求欄位，另外：`origin_station_name`（可省略）、`max_walk_minutes` 可省略 | 同 6.5 的結果；有設定 `PUBLIC_WEB_BASE_URL` 且存檔成功時，多一個 `share_url`（6.8） | `services.validate_plan` ＋ `plan_stream` |
 
 **工具說明是寫給 AI 看的**（v0.18，組員用 31 句模擬需求評測［mcp-eval］後改的）：
 - 每個參數都有說明：格式、範例、該從哪個工具拿值（例如 `area` 要用 `list_areas` 的 code、`date` 要是 `available_dates` 之一）。
@@ -994,7 +996,7 @@ MCP 的工具錯誤沿用上表的 code，寫成 `CODE：訊息`；另外有一�
 1. 套用跟 `POST /api/plans` 相同的限流規則和排隊上限，以 MCP 客戶端的 IP 計算。佇列已滿時回傳工具錯誤 `QUEUE_FULL`。
 2. 先訂閱 `plan:{job_id}:events`，再把工作排進佇列。
 3. 收到 `queued`、`progress` 事件時，轉成 MCP 的**進度通知**，客戶端就看得到「排隊第 2 位」「1,880 種組合 → 39 種接得上」。
-4. 收到 `result` 就把結果當成工具的回傳值；收到 `error` 就回傳工具錯誤。離開時一定要把事件的 generator 收尾（`contextlib.aclosing`），才會馬上釋放這個 IP 的「規劃中」標記；不然以錯誤結束後，同一個 IP 會一直收到 `PLAN_IN_PROGRESS`（v0.18，mcp-eval 端到端發現）。
+4. 收到 `result` 就把結果當成工具的回傳值；收到 `error` 就回傳工具錯誤。離開時一定要把事件的 generator 收尾（`contextlib.aclosing`），才會馬上釋放這個 IP 的「規劃中」標記；不然以錯誤結束後，同一個 IP 會一直收到 `PLAN_IN_PROGRESS`（v0.18，mcp-eval 端到端發現）。結果附上 `share_url`＝`{PUBLIC_WEB_BASE_URL}/p/{job_id}`，工具說明請 AI 一併給使用者（v0.21）。
 5. 客戶端取消呼叫或斷線時，取消工作，跟 SSE 的規則一樣。新版規範拿掉了斷線續傳，所以客戶端要重新呼叫。
 
 ### 6.7 前端串接
@@ -1020,7 +1022,7 @@ MCP 的工具錯誤沿用上表的 code，寫成 `CODE：訊息`；另外有一�
 | 無解 | `error` 事件：`NO_FEASIBLE` 附 `reasons`，key 見 6.4 的表；`NO_SHOWTIMES` 表示沒有符合條件的場次。`reasons` 只有 `transit_window` 時（v0.16），是出發點的交通接不上：請前端加上標籤（例如「出發點的交通接不上」）、顯示 `message`，不要給放寬電影或餐廳條件的按鈕；在前端改好之前，標題會顯示 key 的原文，zod 的 `reasons` 是 `z.record(z.string(), z.number())`，不會解析失敗 |
 | 電影備選換了餐廳 | 電影備選的 `restaurant_id`、`restaurant_name`、`restaurant_cuisine` 有值時，要告訴使用者餐廳也跟著換了 |
 | 狀態列 | `GET /api/status` |
-| 重新整理 | 結果不保存，也不能重新取得，前端自己暫存在瀏覽器 |
+| 重新整理 | 後端會保存排出來的結果 7 天，可用 `GET /api/plans/{job_id}` 重新取得（6.8，v0.21）；前端也可以自己暫存在瀏覽器 |
 
 **代理設定**
 - 後端的 SSE 回應帶 `X-Accel-Buffering: no`，所以前端容器的 nginx 和 `proxy` 都不會緩衝這個串流。不要在 nginx 的 `proxy_ignore_headers` 裡忽略這個標頭。
@@ -1039,6 +1041,38 @@ MCP 的工具錯誤沿用上表的 code，寫成 `CODE：訊息`；另外有一�
 - 接受：#1 每一步的緩衝、#2 每一步的地點、#3 特色標籤、#4 有場次的日期、#6 哪一項不確定。#6 用 `decided_by` 和 `alternatives` 表達，請求不加 `restaurant_name`。
 - 不需要：#5 Demo 前重新匯入資料，因為資料每天自動更新。
 - 這一版不做：#7 每道關卡剔除幾組、#8 商圈卡片的影城名稱和餐廳數、#9 每一步對應的花費、#10 淘汰樣本。前端會退回比較簡單的顯示。
+
+### 6.8 分享連結 `GET /api/plans/{job_id}`（v0.21）
+
+使用者在 AI 助理裡排行程時，MCP 只回文字，看不到時間軸。做法是後端把排出來的結果存起來，給一個編號（就是 `job_id`），連結 `{網站}/p/{job_id}` 打開就是網頁上的**同一份**行程，不重排。網頁自己排好時也用同一個連結分享。
+
+**存在哪裡、存什麼**
+- `plan_events` 收到 worker 的 `result` 事件時，**在把結果交出去之前**寫進 Redis。`POST /api/plans`（SSE）和 MCP `plan_date` 都走 `plan_events`，一個地方涵蓋兩條路。SSE `result` 事件的格式不變，不加欄位。
+- Key：`plan:{job_id}:saved`（5.2），string（JSON），過期 `SAVED_PLAN_TTL_SECONDS`（預設 604800 秒＝7 天【預設】）。
+- 內容：
+  ```jsonc
+  {
+    "job_id": "8f3a…",
+    "request": { },   // 當初送出的 PlanRequest（model_dump(mode="json")）
+    "result": { },    // SSE result 事件的 data，原封不動
+    "created_at": "2026-11-07T21:03:00+08:00",
+    "expires_at": "2026-11-14T21:03:00+08:00"
+  }
+  ```
+- 只存排出來的結果；`NO_FEASIBLE` 等錯誤不存。
+- 存不進去（`redis.RedisError`，例如 Redis 滿了）不影響規劃：只記一行 warning 日誌（logger `app.saved_plans`，訊息「分享用的行程存不進 Redis」），照樣交出結果，只是沒有連結。MCP 靠 `plan_events` 的 `on_saved` 回呼知道有沒有存成功，沒存成功就不附 `share_url`，避免給出打不開的連結。
+- 大小：一份約 20～40 KB；每個 IP 每小時最多 10 次規劃（5.5），Redis 256 MB（5.1）足夠。
+- 用「目前位置」出發時，座標照原樣存（2026-11-07 使用者決定）；前端分享時要提醒「連結會包含你的出發位置」（前端第 4 批）。
+
+**讀取**
+- `job_id` 必須是 32 碼小寫十六進位（`^[0-9a-f]{32}$`），格式不對直接回 404 `NOT_FOUND`，不碰 Redis。
+- 限流同其他查詢：`rl:api:read:{IP}`，每分鐘 60 次（5.5）。
+- 找不到（過期或從來沒有）→ 404 `NOT_FOUND`，訊息「找不到這份行程，可能已經超過 7 天」。
+- 找到 → 200，回傳上面的整份內容。`request`、`result` **原樣回傳**，不用目前的 Pydantic 模型再驗一次：7 天內後端可能改版，舊資料不該因為新版驗證而打不開；前端用 zod 驗。
+- 不回傳「過期了沒」的判斷：前端用 `expires_at` 和行程日期自己判斷。
+
+**MCP**
+- 設定了 `PUBLIC_WEB_BASE_URL` 且存檔成功時，`plan_date` 的回傳多一個 `share_url`＝`{PUBLIC_WEB_BASE_URL 去掉結尾 /}/p/{job_id}`；沒設定就不附（本機開發時不會給出打不開的連結）。
 
 ---
 
@@ -1203,7 +1237,7 @@ MCP 的工具錯誤沿用上表的 code，寫成 `CODE：訊息`；另外有一�
 
 ### 8.2 環境變數（`.env`，不進版本控制）
 
-`DATABASE_URL`、`REDIS_URL`、`TDX_CLIENT_ID`、`TDX_CLIENT_SECRET`、`GOOGLE_PLACES_API_KEY`、`TYPESAFE_API_KEY`、`JEV_MODE=real|mock`、`JEV_MODEL`、`JEV_MIN_TOP_PROBABILITY=0.6`、`ROUTER_POLICY=fixed`、`ROUTER_PARAM`、`OLLAMA_BASE_URL`、`OLLAMA_MODEL=qwen2.5:3b`、`LLM_ALLOW_ABSTAIN=false`、`CORS_ORIGINS`，以及各項限流、額度、時間規則（候位、用餐時間、步行速度等）的數字。
+`DATABASE_URL`、`REDIS_URL`、`TDX_CLIENT_ID`、`TDX_CLIENT_SECRET`、`GOOGLE_PLACES_API_KEY`、`TYPESAFE_API_KEY`、`JEV_MODE=real|mock`、`JEV_MODEL`、`JEV_MIN_TOP_PROBABILITY=0.6`、`ROUTER_POLICY=fixed`、`ROUTER_PARAM`、`OLLAMA_BASE_URL`、`OLLAMA_MODEL=qwen2.5:3b`、`LLM_ALLOW_ABSTAIN=false`、`CORS_ORIGINS`、`PUBLIC_WEB_BASE_URL`（網頁的網址；MCP 的 `plan_date` 回傳 `{這個網址}/p/{job_id}`，沒填就不附連結，6.8）、`SAVED_PLAN_TTL_SECONDS=604800`（分享連結的結果保留幾秒，6.8），以及各項限流、額度、時間規則（候位、用餐時間、步行速度等）的數字。
 
 ### 8.3 外部 API 的錯誤處理【預設】
 
@@ -1303,6 +1337,7 @@ MCP 的工具錯誤沿用上表的 code，寫成 `CODE：訊息`；另外有一�
 | 抓取工作逾時 | 30 分鐘 | 5.6 |
 | Redis 記憶體上限 | 256 MB | 5.1 |
 | LLM 連線狀態快取 | 30 秒 | 5.2 |
+| 分享連結保留時間 | 7 天（2026-11-07 設計決定）；`SAVED_PLAN_TTL_SECONDS` 可調 | 6.8 |
 | SSE 心跳 | 每 15 秒一次 | 6.4 |
 | CORS | 只允許前端網域 | 6.1 |
 | 健康檢查端點 | `GET /api/health` | 6.2 |

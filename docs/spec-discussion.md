@@ -1001,6 +1001,22 @@ rq cron（只負責觸發）── 每天 06:00 ──▶ 抓取佇列 ──▶
 - **結論**：已經正常，放寬後接得上的比較多。10/21 的原因應該是 H5（去程照最早出發排，拿到慢的那條；10/24、10/27 修掉），10/27 回程往前重查也有關係，沒有再細分。
 - **順便看到**：本機的 Ollama 沒開（主機上沒有 process、11434 沒回應），規劃時 2 次連不上就熔斷，剩下的題目都用 Jev 第一名，決策紀錄是 `connect` 2、`circuit_open` 3。熔斷照設計運作；Demo 前要記得開 Ollama（手冊第 2 節第 2 步）。
 
+### 2026-11-07 分享連結（規格書 v0.21）
+
+- **起因**：MCP 的 `plan_date` 只回文字，使用者在 AI 助理裡看不到時間軸和緩衝；前端重新設計也要一個可以分享的結果頁。做法是後端把排出來的結果存起來、給一個編號，連結打開就是同一份行程（設計規格 `docs/superpowers/specs/2026-11-07-plan-share-link-design.md`）。
+- **決定**：
+  | # | 決定 | 理由 |
+  |---|---|---|
+  | S1 | 後端存結果、連結帶編號 | 不重排，結果一模一樣；整份塞進網址太長 |
+  | S2 | 編號就是 `job_id`（32 碼小寫十六進位亂數）、保留 7 天 | 猜不到；不用另外發號；7 天夠約會前後分享，也不會讓 Redis 堆積 |
+  | S3 | 用「目前位置」出發時座標照原樣存，前端分享時提醒（2026-11-07 使用者決定） | 分享頁要能還原同一份行程；用提醒讓使用者自己決定要不要分享 |
+  | S4 | 分支從 `main` 開、獨立一個 PR；`mcp.py` 只改回傳那幾行 | 跟 PR #1、#2 的重疊越小越好，誰後合併誰調版本號 |
+  | S5 | 只存排出來的結果，`NO_FEASIBLE` 等錯誤不存 | 錯誤沒有可分享的行程 |
+  | S6 | `PUBLIC_WEB_BASE_URL` 沒設定就不附 `share_url`；存檔失敗也不附 | 不給出打不開的連結 |
+- **改了哪些檔案**：新增 `backend/app/saved_plans.py`；改 `backend/app/plan_stream.py`（交出 `result` 前存檔、新增 `on_saved` 回呼）、`backend/app/api.py`（`GET /api/plans/{job_id}`）、`backend/app/mcp.py`（回傳 `share_url`）、`backend/app/config.py`；`.env.example`、`docs/backend-spec.md`（v0.21：5.2、6.2、6.6、6.7、6.8、8.2、10.1）、導讀 `docs/導讀_分享連結.md`。
+- **測試**：新增單元 `test_saved_plans` 12 個、`test_plan_stream` +3、`test_api` +5、`test_mcp` +2。後端全部 491 個通過、3 個失敗；3 個失敗是 `tests/integration/test_redis_utils.py::TestQuota` 本來就有的日期相關測試（程式裡固定「現在」是 2026-10-20，key 在 2026-11-05 到期），這個分支沒碰。分支 `feat/plan-share-link`。
+- **還沒做**：前端分享頁 `/p/:id`、zod schema、分享時的位置提醒（前端第 4 批）；合約檢查工具加入 `saved_plan`。
+
 ## 6. 剩下的步驟
 
 - **第 5 步：部署、測試、錯誤處理**
