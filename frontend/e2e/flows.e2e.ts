@@ -188,8 +188,8 @@ test.describe('目前位置離商圈太遠', () => {
   test('後端回 400，畫面說明並請改選出發站', async ({ page }) => {
     await page.goto('/plan/1')
     await page.getByRole('button', { name: /使用目前位置/ }).click()
-    // 定位是非同步的：等畫面確認用了目前位置再換頁，不然條件還沒存進瀏覽器
-    await expect(page.getByRole('button', { name: /已使用目前位置/ })).toHaveAttribute('aria-pressed', 'true')
+    // 等定位寫進條件（zg-plan 暫存有 origin_lat）再換頁，不然有時會帶著舊的出發站
+    await expect.poll(() => page.evaluate(() => JSON.parse(localStorage.getItem('zg-plan') ?? '{}').state?.request?.origin_lat ?? null)).not.toBeNull()
     await page.goto('/plan/4')
     await page.getByRole('button', { name: '排出接得上的行程' }).click()
     await expect(page.getByText('目前位置離這個商圈超過 30 公里，請改選出發站')).toBeVisible()
