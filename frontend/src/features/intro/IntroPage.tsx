@@ -1,4 +1,5 @@
 import { useEffect } from 'react'
+import { HomeHero } from '@/features/home/HomeHero'
 import { usePageTitle } from '@/shared/lib/usePageTitle'
 import { Hero } from './Hero'
 import { PainCompare } from './PainCompare'
@@ -20,6 +21,7 @@ export function IntroPage() {
   }, [])
   return (
     <>
+      <HomeHero />
       <Hero />
       <TimelinePreview />
       <PainCompare />
