@@ -48,4 +48,11 @@ test.describe('外框', () => {
     await expect(page.getByRole('navigation', { name: '主要頁面', exact: true }).getByRole('link', { name: '排行程' })).toBeVisible()
     await expect(page.getByRole('navigation', { name: '主要頁面（底部）' })).toBeHidden()
   })
+
+  test('在精靈第 2 步時，「排行程」導覽標示為目前頁面', async ({ page }) => {
+    await page.goto('/plan/2')
+    const name = isNarrow(page) ? '主要頁面（底部）' : '主要頁面'
+    const link = page.getByRole('navigation', { name, exact: true }).getByRole('link', { name: '排行程' })
+    await expect(link).toHaveAttribute('aria-current', 'page')
+  })
 })

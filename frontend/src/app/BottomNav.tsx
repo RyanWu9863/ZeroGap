@@ -1,5 +1,5 @@
 import { CalendarClock, type LucideIcon } from 'lucide-react'
-import { NavLink } from 'react-router'
+import { Link } from 'react-router'
 
 /** 導覽項目：頂部和手機底部共用。第 5 批加方法、AI 助理、關於時在這裡加 */
 export const NAV_ITEMS: { to: string; label: string; icon: LucideIcon; match: (path: string) => boolean }[] = [
@@ -19,14 +19,14 @@ export function BottomNav({ pathname }: { pathname: string }) {
           const active = match(pathname)
           return (
             <li key={to}>
-              <NavLink
+              <Link
                 to={to}
                 aria-current={active ? 'page' : undefined}
                 className={`flex min-h-14 min-w-16 flex-col items-center justify-center gap-0.5 px-3 text-xs ${active ? 'text-primary font-medium' : 'text-muted-foreground'}`}
               >
                 <Icon className="size-5" aria-hidden />
                 {label}
-              </NavLink>
+              </Link>
             </li>
           )
         })}

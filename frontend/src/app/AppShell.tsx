@@ -1,5 +1,5 @@
 import { MotionConfig } from 'motion/react'
-import { Link, NavLink, Outlet, ScrollRestoration, useLocation } from 'react-router'
+import { Link, Outlet, ScrollRestoration, useLocation } from 'react-router'
 import { USE_MOCK } from '@/api/client'
 import { Logo } from '@/shared/brand/Logo'
 import { ThemeToggle } from '@/shared/theme/ThemeToggle'
@@ -33,13 +33,13 @@ export function AppShell() {
               <ul className="flex items-center gap-1">
                 {NAV_ITEMS.map(({ to, label, match }) => (
                   <li key={to}>
-                    <NavLink
+                    <Link
                       to={to}
                       aria-current={match(pathname) ? 'page' : undefined}
                       className={`rounded-md px-3 py-2 text-sm transition-colors hover:text-foreground ${match(pathname) ? 'text-foreground font-medium' : 'text-muted-foreground'}`}
                     >
                       {label}
-                    </NavLink>
+                    </Link>
                   </li>
                 ))}
               </ul>
