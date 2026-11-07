@@ -7,8 +7,8 @@ const linkClass = 'underline underline-offset-2 hover:text-foreground'
 const SOURCES = [
   { what: '車站、公車和火車班次', from: '交通部 TDX 運輸資料流通服務', terms: '政府資料開放授權條款第 1 版；班次每次排行程時即時查詢。' },
   { what: '電影場次', from: '開眼電影網', terms: '僅供學術展示，場次以影城公告為準。' },
-  { what: '餐廳（一部分）', from: 'OpenStreetMap', terms: '© OpenStreetMap 貢獻者，ODbL 授權。' },
-  { what: '餐廳（一部分）、地圖', from: 'Google 地圖、Google Places', terms: '依 Google 地圖服務條款使用，畫面上會標示來源；不保存 Google 的座標。' },
+  { what: '餐廳（一部分）', from: 'OpenStreetMap', terms: <>© OpenStreetMap 貢獻者，<a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer" className={linkClass}>ODbL 授權</a>。</> },
+  { what: '餐廳（一部分）、地圖', from: 'Google 地圖、Google Places', terms: '依 Google 地圖服務條款使用，畫面上會標示來源；Google 地點的座標只短期暫存，不長期保存。' },
 ]
 
 export function AboutPage() {
@@ -63,9 +63,9 @@ export function AboutPage() {
         <ul className="mt-2 list-disc space-y-2 pl-5 leading-relaxed">
           <li>不用註冊、沒有帳號，也沒有追蹤你的廣告或分析程式。</li>
           <li>分享連結：排好的行程會在伺服器上保存 7 天，知道連結的人都打得開。如果是從「目前位置」出發，連結裡的行程含有你出發的大概位置（約 100 公尺內）。</li>
-          <li>這個網站在你的瀏覽器存了這些東西：</li>
         </ul>
-        <ul className="mt-2 space-y-2 pl-5">
+        <p className="mt-4 leading-relaxed">這個網站在你的瀏覽器存了這些東西：</p>
+        <ul className="mt-2 list-disc space-y-2 pl-5">
           {STORAGE_KEYS.map((k) => (
             <li key={k.key} className="text-sm">
               <code className="rounded bg-muted px-1.5 py-0.5 font-mono text-xs">{k.key}</code>

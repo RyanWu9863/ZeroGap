@@ -4,7 +4,11 @@ import { STORAGE_KEYS } from './storageKeys'
 // 掃 src 底下所有程式（不含測試）裡出現的 'zg-…' 儲存名稱
 const sources = import.meta.glob(['/src/**/*.{ts,tsx}', '!/src/**/*.test.{ts,tsx}'], { query: '?raw', import: 'default', eager: true }) as Record<string, string>
 const used = new Set<string>()
-for (const code of Object.values(sources)) for (const m of code.matchAll(/(?:name:\s*|_KEY\s*=\s*)'(zg-[a-z-]+)'/g)) used.add(m[1])
+const patterns = [
+  /(?:name:\s*|_KEY\s*=\s*)['"`](zg-[a-z0-9-]+)['"`]/g, // persist 的 name、常數
+  /(?:get|set|remove)Item\(\s*['"`](zg-[a-z0-9-]+)['"`]/g, // 直接呼叫 localStorage / sessionStorage
+]
+for (const code of Object.values(sources)) for (const re of patterns) for (const m of code.matchAll(re)) used.add(m[1])
 
 describe('關於頁列出的瀏覽器儲存', () => {
   it('跟程式裡真的用到的一致', () => {
