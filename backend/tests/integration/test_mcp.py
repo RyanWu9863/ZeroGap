@@ -16,6 +16,7 @@ from sqlalchemy import text
 
 import app.db
 import app.redis_client
+from app import saved_plans
 from app.config import get_settings
 from app.mcp import mcp
 from tests.integration.conftest import reseed
@@ -150,6 +151,31 @@ async def test_plan_date_reports_progress_and_returns_result(env, worker, engine
     assert out["plans"][0]["highlight"]["key"] == "recommended"
     assert any(m.startswith("排隊中") for m in messages)
     assert any("種組合" in m for m in messages)
+
+
+async def test_plan_date_returns_share_url(env, worker, engine, monkeypatch, redis_url):
+    monkeypatch.setenv("PUBLIC_WEB_BASE_URL", "https://zerogap.example/")
+    get_settings.cache_clear()
+    with engine.connect() as c:
+        sid = c.scalar(text("SELECT id FROM stations WHERE station_uid = 'demo-TRA-zhongli'"))
+    async with connect() as client:
+        result = await client.call_tool("plan_date", plan_args(sid), read_timeout_seconds=120)
+    out = data(result)
+    job = out["job_id"]
+    assert out["share_url"] == f"https://zerogap.example/p/{job}"
+    # 連結真的打得開：存下來的跟 MCP 回傳的是同一份
+    r = redis.Redis.from_url(redis_url, decode_responses=True)
+    saved = json.loads(r.get(saved_plans.saved_key(job)))
+    assert saved["result"]["plans"] == out["plans"]
+    r.close()
+
+
+async def test_plan_date_without_base_url_has_no_share_url(env, worker, engine):
+    with engine.connect() as c:
+        sid = c.scalar(text("SELECT id FROM stations WHERE station_uid = 'demo-TRA-zhongli'"))
+    async with connect() as client:
+        result = await client.call_tool("plan_date", plan_args(sid), read_timeout_seconds=120)
+    assert "share_url" not in data(result)
 
 
 async def test_plan_date_validation_error(env):
