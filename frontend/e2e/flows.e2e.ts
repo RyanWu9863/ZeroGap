@@ -33,6 +33,7 @@ test('有解：介紹頁 → 四步精靈 → 等待畫面 → 三個方案，�
 })
 
 test('等待畫面可以取消，回到精靈第 4 步', async ({ page }) => {
+  await page.clock.setFixedTime(new Date('2026-11-08T10:00:00+08:00')) // 白天：直接開第 4 步送出時，今天 17:00 出發還沒過
   await page.goto('/plan/4')
   await page.getByRole('button', { name: '排出接得上的行程' }).click()
   await page.getByRole('button', { name: '取消規劃' }).click()
@@ -51,9 +52,23 @@ test('日期過期：舊網址先提示再一鍵重排；精靈把舊日期換�
   await page.goto(resultUrl('date=2026-10-30'))
   await expect(page.getByRole('heading', { name: '這組行程的日期已經過了' })).toBeVisible()
   await page.goto('/plan/2')
-  await expect(page.getByText('原本選的 10/30（五） 已經過了或沒有場次')).toBeVisible()
+  await expect(page.getByText('原本的日期沒有場次，換成最近可以排的 11/2（一）')).toBeVisible()
   await expect(page.getByRole('group', { name: '選擇日期' }).getByRole('button', { name: '11/2（一）' })).toHaveAttribute('aria-pressed', 'true')
   await expect(page.getByRole('button', { name: '下一步' })).toBeEnabled()
+})
+
+test('晚上打開精靈：今天的出發時間已過，第 2 步自動換到最近可以排的日子，可以按下一步', async ({ page }) => {
+  await page.clock.setFixedTime(new Date('2026-11-08T19:00:00+08:00')) // 預設條件是今天 17:00 出發
+  await page.goto('/plan/2')
+  await expect(page.getByText('今天 17:00 已經過了，換成最近可以排的 11/9（一）')).toBeVisible()
+  const calendar = page.getByRole('group', { name: '選擇日期' })
+  await expect(calendar.getByRole('button', { name: '11/9（一）' })).toHaveAttribute('aria-pressed', 'true')
+  await expect(page.getByRole('button', { name: '下一步' })).toBeEnabled()
+  // 使用者自己選回今天：不再自動換掉，改提醒要選現在之後的出門時間
+  await calendar.getByRole('button', { name: '11/8（日）' }).click()
+  await expect(calendar.getByRole('button', { name: '11/8（日）' })).toHaveAttribute('aria-pressed', 'true')
+  await expect(page.getByText('今天要選現在之後的出門時間。')).toBeVisible()
+  await expect(page.getByRole('button', { name: '下一步' })).toBeDisabled()
 })
 
 test('找不到頁面：亂打網址顯示中文說明，導覽列還在，可以回首頁（P0-2）', async ({ page }) => {
@@ -186,6 +201,7 @@ test.describe('目前位置離商圈太遠', () => {
   test.use({ permissions: ['geolocation'], geolocation: { latitude: 22.6273, longitude: 120.3014 } }) // 高雄
 
   test('後端回 400，畫面說明並請改選出發站', async ({ page }) => {
+    await page.clock.setFixedTime(new Date('2026-11-08T10:00:00+08:00')) // 白天：直接開第 4 步送出時，今天 17:00 出發還沒過
     await page.goto('/plan/1')
     await page.getByRole('button', { name: /使用目前位置/ }).click()
     // 等定位寫進條件（zg-plan 暫存有 origin_lat）再換頁，不然有時會帶著舊的出發站
