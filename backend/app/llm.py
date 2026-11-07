@@ -51,6 +51,14 @@ class LlmPick:
     model: str | None = None
 
 
+class BreakerStore(Protocol):
+    """熔斷狀態放在外面（例如 Redis，見 app.redis_utils.breaker），讓多個 LlmPicker 共用。"""
+
+    def state(self, threshold: int, probe_ttl: float) -> Literal["closed", "open", "probe"]: ...
+    def record_success(self) -> None: ...
+    def record_failure(self, threshold: int, cooldown: float) -> int: ...
+
+
 class Llm(Protocol):
     def pick(self, question: ChoiceQuestion, probs: dict[str, float]) -> LlmPick: ...
     def is_connected(self) -> bool: ...
@@ -95,6 +103,7 @@ class LlmPicker:
         breaker_cooldown: float = 300.0,
         clock: Callable[[], float] = time.monotonic,
         allow_abstain: bool = False,
+        breaker_store: BreakerStore | None = None,
     ):
         """棄權：`allow_abstain=True` 時，LLM 可以回答「無法判斷」，這時採用 Jev 最高的選項
         （`status="abstain"`）。和 date-v2 的做法相同：資料不夠就不要硬選。
@@ -103,7 +112,9 @@ class LlmPicker:
         熔斷：連續 `breaker_failures` 次連不上（逾時、連線錯誤、HTTP 錯誤），
         接下來 `breaker_cooldown` 秒直接採用 Jev 最高的選項，不再等逾時；
         時間到了先試一次，成功就恢復，失敗就再熔斷。`breaker_failures=0` 是不熔斷。
-        planner 每次規劃建立一個新的 LlmPicker，所以熔斷只影響同一次規劃。
+        沒有傳 `breaker_store` 時，狀態放在這個物件裡，只影響同一次規劃（planner 每次規劃
+        建立一個新的 LlmPicker）。傳了就放在 store 裡，所有 worker、所有規劃共用；
+        冷卻結束後只放一個請求去試，其他的照樣熔斷。
         冷卻預設 300 秒，比一次規劃（約 2～3 分鐘）長：連續失敗兩次後，這次規劃剩下的題目
         就不再問 LLM。只要 60 秒的話，規劃期間每次冷卻結束都會再等一次逾時。
         """
@@ -121,10 +132,11 @@ class LlmPicker:
         self.allow_abstain = allow_abstain
         self._failures = 0
         self._open_until: float | None = None
+        self.breaker_store = breaker_store if breaker_failures else None
 
     def pick(self, question: ChoiceQuestion, probs: dict[str, float]) -> LlmPick:
         ranked = _ranked(probs)
-        if self._open_until is not None and self.clock() < self._open_until:
+        if self._is_open():
             return LlmPick(ranked[0], False, status="circuit_open", model=self.model)
         candidates = ranked[: self.top_n]
         allowed = [*candidates, ABSTAIN] if self.allow_abstain else candidates
@@ -161,7 +173,26 @@ class LlmPicker:
             return fallback("not_candidate")
         return LlmPick(choice, True, status="ok", latency_ms=latency_ms, model=self.model)
 
+    def _is_open(self) -> bool:
+        if self.breaker_store is not None:
+            # 試探鎖比一次呼叫的逾時多留 5 秒
+            state = self.breaker_store.state(self.breaker_failures, self.timeout + 5)
+            return state == "open"
+        return self._open_until is not None and self.clock() < self._open_until
+
     def _record(self, status: LlmStatus) -> None:
+        if self.breaker_store is not None:
+            if status not in _UNREACHABLE:
+                self.breaker_store.record_success()
+                return
+            count = self.breaker_store.record_failure(self.breaker_failures, self.breaker_cooldown)
+            if count >= self.breaker_failures:
+                log.warning(
+                    "Ollama 連續 %d 次連不上（所有 worker 共用），%.0f 秒內直接採用 Jev 最高的選項",
+                    count,
+                    self.breaker_cooldown,
+                )
+            return
         if status not in _UNREACHABLE:
             self._failures, self._open_until = 0, None
             return

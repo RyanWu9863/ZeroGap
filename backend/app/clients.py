@@ -8,6 +8,7 @@ from app.jev.client import JevClient
 from app.jev.mock import MockJev
 from app.llm import Llm, LlmPicker, MockLlm
 from app.places import GooglePlaces, MockPlaces, Places
+from app.redis_utils.breaker import RedisBreakerStore
 from app.tdx import TdxTransit
 from app.transit import MockTransit, Transit
 
@@ -43,9 +44,13 @@ def make_places(s: Settings) -> Places:
     )
 
 
-def make_llm(s: Settings) -> Llm:
+def make_llm(s: Settings, r: redis.Redis | None = None) -> Llm:
+    """有傳 Redis 而且 `llm_breaker_shared` 開著，熔斷狀態就放 Redis，所有規劃共用。"""
     if s.llm_mode == "mock":
         return MockLlm()
+    store = None
+    if r is not None and s.llm_breaker_shared:
+        store = RedisBreakerStore(r, s.ollama_base_url)
     return LlmPicker(
         s.ollama_base_url,
         s.ollama_model,
@@ -53,4 +58,5 @@ def make_llm(s: Settings) -> Llm:
         keep_alive=s.ollama_keep_alive,
         think=s.ollama_think,
         allow_abstain=s.llm_allow_abstain,
+        breaker_store=store,
     )

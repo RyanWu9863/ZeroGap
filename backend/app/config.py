@@ -49,6 +49,9 @@ class Settings(BaseSettings):
     ollama_think: bool | None = None  # qwen3 之類會思考的模型設成 false
     # LLM 可以回答「無法判斷」，這時採用 Jev 最高的選項；先關閉，等實測過棄權的頻率再決定
     llm_allow_abstain: bool = False
+    # Ollama 熔斷狀態放 Redis，所有 worker、所有規劃共用（app.redis_utils.breaker）。
+    # 關掉就回到每次規劃各自計算。Redis 出錯時當作沒有熔斷，不影響規劃
+    llm_breaker_shared: bool = True
     # 規劃結束時把每一題的決策紀錄寫進 decision_records（日誌那一行照常輸出）。
     # 寫入失敗只記警告，不影響規劃
     decision_trace_db: bool = True

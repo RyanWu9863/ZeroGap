@@ -78,6 +78,7 @@ TDX、Google、Jev 都用模擬版、只有 LLM 用真的（本機 Ollama），�
 |---|---|
 | `OLLAMA_MODEL` | 換模型，例如 `qwen3:8b`（要先 `ollama pull`） |
 | `LLM_ALLOW_ABSTAIN=true` | LLM 可以回答「無法判斷」，這時改用 Jev 機率最高的選項 |
+| `LLM_BREAKER_SHARED=false` | Ollama 熔斷狀態不放 Redis，改回每次規劃各自計算（預設 true：所有 worker 共用） |
 | `ROUTER_POLICY`、`ROUTER_PARAM` | 判斷 Jev 有沒有把握的方式：`fixed`（預設）、`options`、`margin`、`entropy`，見規格書 3.1 |
 | `API_PLAN_PER_HOUR` | 同一個 IP 每小時能規劃幾次（預設 10），大量測試時調高 |
 
