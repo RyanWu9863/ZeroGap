@@ -60,7 +60,8 @@ def record_decision(
     f = decision_features(probs) if probs else None
     jev_top = answer.top if probs else None
     by_llm = bool(pick and pick.used_llm)
-    if by_llm or not probs:
+    if by_llm or len(probs) <= 1:
+        # 只有一個選項（或沒有選項）就沒有選擇的空間，Jev 額度用完也不算 fallback
         decided_by, reason = ("llm" if by_llm else "jev"), None
     elif jev_unavailable:
         decided_by, reason = "fallback", "jev_unavailable"
