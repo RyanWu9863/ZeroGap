@@ -54,8 +54,8 @@ export function SourcesSection() {
         {/* 說明放在 <dl> 外面：<dl> 裡只能放 <dt>／<dd> 組（P2-2） */}
         {data && <p className="pt-3 text-xs text-muted-foreground">班次不預先匯入：每次規劃時向 TDX 即時查詢。</p>}
       </div>
-      <div className="zg-surface p-5">
-        <h3 className="font-semibold">展示模式</h3>
+      <div id="demo" className="zg-surface scroll-mt-20 p-5">
+        <h3 className="font-semibold">展示模式（Demo 現場的保險）</h3>
         <p className="mt-2 text-sm text-muted-foreground">
           Demo 現場後端或網路出問題時打開：改用預先錄製的回應，畫面頂端會一直顯示「展示模式」標籤。
           {USE_MOCK && '（目前整個前端本來就在用開發用假資料。）'}

@@ -102,3 +102,26 @@ test.describe('關於頁', () => {
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
   })
 })
+
+test.describe('幕後頁', () => {
+  test('不管外觀選什麼，幕後都是夜；有 MCP 流程和六個工具；示範範例標示範', async ({ page }) => {
+    await page.emulateMedia({ colorScheme: 'light' })
+    await page.goto('/behind')
+    await expect(page.locator('[data-theme="night"]').first()).toBeVisible()
+    await expect(page.locator('html')).toHaveAttribute('data-theme', 'day')
+    await expect(page.getByRole('heading', { name: /^從全部組合到/ })).toBeVisible()
+    await expect(page.getByText('73,038').first()).toBeVisible()
+    await expect(page.getByText('plan_date').first()).toBeVisible()
+    await expect(page.getByText('share_url').first()).toBeVisible()
+  })
+  test('展示模式：在幕後打開，每一頁頂端都有標籤和「到幕後頁關掉」', async ({ page }) => {
+    await page.goto('/behind')
+    await page.getByLabel('打開展示模式').check()
+    await page.goto('/method')
+    await expect(page.getByText(/展示模式：使用預先錄製的回應/)).toBeVisible()
+    await page.getByRole('link', { name: '到幕後頁關掉' }).click()
+    await expect(page).toHaveURL(/\/behind#demo$/)
+    await page.getByLabel('打開展示模式').uncheck()
+    await expect(page.getByText(/展示模式：使用預先錄製的回應/)).toHaveCount(0)
+  })
+})

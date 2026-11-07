@@ -20,6 +20,7 @@ export function AppShell() {
       {demo && (
         <div className="bg-zg-tight px-4 py-1.5 text-center text-xs font-medium text-background" role="status" style={{ paddingTop: 'max(0.375rem, env(safe-area-inset-top, 0px))' }}>
           展示模式：使用預先錄製的回應，不是即時查詢
+          <Link to="/behind#demo" className="ml-3 underline underline-offset-2">到幕後頁關掉</Link>
         </div>
       )}
       <header className="sticky z-40 border-b bg-background/80 backdrop-blur-md" style={{ top: 'env(safe-area-inset-top, 0px)' }}>

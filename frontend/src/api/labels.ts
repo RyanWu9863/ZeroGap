@@ -3,6 +3,9 @@ import { LOCATION_NAME, usesLocation } from '@/shared/lib/origin'
 import { useAreas, useCategories, useCoverage, useStations } from './queries'
 import type { PlanRequest } from './schemas'
 
+/** 沒有條件時（幕後頁的示範範例）用的空條件：查詢都不會送出，名稱欄位給替代字 */
+const NO_REQUEST = {} as PlanRequest
+
 /**
  * 請求裡只有代碼和 id（規格書 6.4），畫面要顯示名稱時從下拉選單的資料查回來。
  * 資料還沒載入時先給一個看得懂的替代字。
@@ -16,7 +19,8 @@ export type RequestLabels = {
   cuisine: string | null
 }
 
-export function useRequestLabels(r: PlanRequest): RequestLabels {
+export function useRequestLabels(request: PlanRequest | null): RequestLabels {
+  const r = request ?? NO_REQUEST
   const stations = useStations().data
   const areas = useAreas().data
   const cuisines = useCategories('cuisine').data
