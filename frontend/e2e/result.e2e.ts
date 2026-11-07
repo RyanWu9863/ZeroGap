@@ -164,6 +164,10 @@ test.describe('錶盤與方案切換', () => {
 })
 
 test.describe('分享、行事曆、改條件', () => {
+  // 固定在白天：晚上跑的話今天的班次都過了，分享和行事曆會變成過期而不能按
+  test.beforeEach(async ({ page }) => {
+    await page.clock.setFixedTime(new Date('2026-11-08T10:00:00+08:00'))
+  })
   test('分享：電腦複製出 /p/編號 的完整網址', async ({ page, context, browserName, isMobile }) => {
     test.skip(browserName !== 'chromium' || isMobile, '剪貼簿權限只在 chromium 電腦版測')
     await context.grantPermissions(['clipboard-read', 'clipboard-write'])
@@ -199,7 +203,34 @@ test.describe('分享、行事曆、改條件', () => {
       for (let i = 0; i < 3; i++) await page.getByRole('button', { name: '下一步' }).click()
       await page.getByRole('button', { name: '排出接得上的行程' }).click()
       await expect(page).toHaveURL(PLAN_URL, { timeout: 30_000 })
-      await expect(page.getByText(/含有你出發的大概位置/)).toBeVisible()
+      // 底部固定列和右欄各有一份，任何寬度都只看得到一份
+      await expect(page.getByText(/含有你出發的大概位置/).locator('visible=true')).toHaveCount(1)
     })
+  })
+})
+
+test.describe('分享頁狀態列', () => {
+  test('排好時間那一行', async ({ page }) => {
+    await planFromHome(page)
+    await expect(page.getByText(/這份行程在 \d{2}\/\d{2} \d{2}:\d{2} 排好，班次已確認/)).toBeVisible()
+    await expect(page.getByRole('alert')).toHaveCount(0)
+  })
+
+  test('過期的行程：顯示過期、可以用同樣條件重排', async ({ page }) => {
+    await planFromHome(page)
+    await page.clock.setFixedTime(new Date('2026-11-09T10:00:00+08:00')) // 隔天，每個方案都出發過了
+    await page.reload()
+    await expect(page.getByRole('alert')).toContainText('這份行程已經過期')
+    await expect(page.getByRole('button', { name: '加到行事曆' })).toBeDisabled()
+    await page.getByRole('button', { name: '用同樣條件重排' }).click()
+    await expect(page).toHaveURL(/\/result\?/)
+  })
+
+  test('這個方案怎麼來的：展開看得到真數字和備選', async ({ page }) => {
+    await page.goto(resultUrl('&mock=low_confidence'))
+    await expect(page).toHaveURL(PLAN_URL, { timeout: 30_000 })
+    await page.getByText('這個方案怎麼來的').click()
+    await expect(page.getByText(/種每段都接得上$/)).toBeVisible()
+    await expect(page.getByText('其他也排得進去的選擇')).toBeVisible()
   })
 })

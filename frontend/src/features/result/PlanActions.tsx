@@ -23,6 +23,7 @@ export function PlanActions({
   swapped,
   stationName,
   compact = false,
+  expired = false,
   className,
 }: {
   doc: SavedPlan
@@ -31,6 +32,8 @@ export function PlanActions({
   stationName: string
   /** 手機底部固定列：只放「分享連結」，提醒文字不放 */
   compact?: boolean
+  /** 分享頁過期了：分享連結、加到行事曆都不能按 */
+  expired?: boolean
   className?: string
 }) {
   const navigate = useNavigate()
@@ -43,10 +46,11 @@ export function PlanActions({
     if (touch && typeof navigator.share === 'function') {
       try {
         await navigator.share({ title: 'ZeroGap 行程', text: `電影《${plan.movie.title}》＋晚餐，${clock(plan.depart_at)} 出門`, url })
+        return
       } catch (e) {
-        if (!(e instanceof DOMException && e.name === 'AbortError')) setShare('manual')
+        if (e instanceof DOMException && e.name === 'AbortError') return
+        // 分享面板打不開：先試著直接複製，連複製都不行才請使用者手動複製
       }
-      return
     }
     const ok = await writeClipboard(url)
     setShare(ok ? 'done' : 'manual')
@@ -72,7 +76,7 @@ export function PlanActions({
 
   // 手機的分享按鈕在底部固定列，這裡的那顆只在電腦版出現（不會有兩顆同名按鈕）
   const shareButton = (
-    <Button onClick={onShare} className={cn(btn, !compact && 'max-lg:hidden')}>
+    <Button onClick={onShare} disabled={expired} className={cn(btn, !compact && 'max-lg:hidden')}>
       {share === 'done' ? <Check className="size-4" /> : <Share2 className="size-4" />}
       分享連結
     </Button>
@@ -89,9 +93,21 @@ export function PlanActions({
     </div>
   )
 
+  const located = doc.request.origin_lat != null
+  const mockNote = USE_MOCK || demo
+  // 提醒文字每個寬度只顯示一份：手機在底部固定列的分享按鈕旁，電腦在右欄（max-lg:hidden）
+  const notes = (
+    <>
+      {expired && <p className="text-xs text-muted-foreground">行程過期了，先重排再分享。</p>}
+      {located && <p className="text-xs text-muted-foreground">這個連結含有你出發的大概位置（約 100 公尺內），只傳給信任的人。</p>}
+      {mockNote && <p className="text-xs text-muted-foreground">展示版：這個連結只在這台瀏覽器打得開。</p>}
+    </>
+  )
+
   if (compact) {
     return (
       <div className={cn('space-y-2', className)}>
+        <div className="space-y-0.5 empty:hidden">{notes}</div>
         {shareButton}
         {status}
         {manual}
@@ -103,7 +119,7 @@ export function PlanActions({
     <div className={cn('space-y-3', className)}>
       <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
         {shareButton}
-        <Button variant="outline" onClick={onCalendar} className={btn}>
+        <Button variant="outline" onClick={onCalendar} disabled={expired} className={btn}>
           <CalendarPlus className="size-4" />
           加到行事曆
         </Button>
@@ -114,8 +130,7 @@ export function PlanActions({
       </div>
       {status}
       {manual}
-      {doc.request.origin_lat != null && <p className="text-xs text-muted-foreground">這個連結含有你出發的大概位置（約 100 公尺內），只傳給信任的人。</p>}
-      {(USE_MOCK || demo) && <p className="text-xs text-muted-foreground">展示版：這個連結只在這台瀏覽器打得開。</p>}
+      <div className="space-y-3 max-lg:hidden empty:hidden">{notes}</div>
       <CopyButton request={doc.request} plan={plan} swapped={swapped} />
     </div>
   )
