@@ -13,6 +13,8 @@
         var night = pref === 'night' || (pref === 'system' && matchMedia('(prefers-color-scheme: dark)').matches)
         document.documentElement.dataset.theme = night ? 'night' : 'day'
         if (night) document.documentElement.classList.add('dark')
+        var tc = document.querySelector('meta[name="theme-color"]')
+        if (tc) tc.setAttribute('content', night ? '#0b1016' : '#f4f7f9')
       } catch (e) {}
     </script>
     <meta name="format-detection" content="telephone=no" />

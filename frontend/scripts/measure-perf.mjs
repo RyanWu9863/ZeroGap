@@ -17,9 +17,7 @@ const NETWORKS = [
   { name: '一般 4G', latency: 60, down: (9 * KB * KB) / 8, up: (1.5 * KB * KB) / 8, cpu: 4 },
 ]
 const PAGES = [
-  { name: '首頁（A 時刻表）', path: '/?proto=timetable' },
-  { name: '首頁（B 電影感）', path: '/?proto=cinematic' },
-  { name: '首頁（C Linear 風）', path: '/?proto=linear' },
+  { name: '首頁', path: '/' },
   { name: '精靈第 1 步', path: '/plan/1' },
 ]
 

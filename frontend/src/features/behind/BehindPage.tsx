@@ -81,7 +81,6 @@ export function BehindPage() {
         <SourcesSection />
       </section>
 
-
       <section>
         <p className="font-mono text-xs tracking-[0.3em] text-muted-foreground">FOR AGENTS</p>
         <h2 className="mb-6 mt-2 text-2xl font-bold">同一份合約，人和 Agent 都能用</h2>

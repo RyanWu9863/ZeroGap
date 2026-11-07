@@ -5,7 +5,7 @@ import { keepAsIs, pickValid, STORAGE_VERSION } from '@/store/persistSafe'
 
 /*
  * 沉浸式新版的開關（docs/沉浸式體驗_第一階段盤點與設計方案.md）。
- * 預設關閉：試用和三版比較看到的畫面完全不變；?exp=1 打開、?exp=0 關閉，會記在瀏覽器。
+ * 預設關閉：試用和舊版看到的畫面完全不變；?exp=1 打開、?exp=0 關閉，會記在瀏覽器。
  * 投票後決定新版要不要變成預設，到時候把這個開關拿掉。
  */
 const fromUrl = (): boolean | null => {

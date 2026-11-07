@@ -1,13 +1,12 @@
-import { useQuery } from '@tanstack/react-query'
-import { getStatus } from '@/api/client'
+import { useStatus } from '@/api/queries'
 import { latestUpdate } from './latestUpdate'
 
 /** 頁尾（規格 3.1）：資料多新、從哪來、原始碼。拿不到更新時間就不顯示那一行，不擋畫面 */
 export function SiteFooter() {
-  const { data } = useQuery({ queryKey: ['status'], queryFn: ({ signal }) => getStatus(signal), staleTime: 5 * 60_000 })
+  const { data } = useStatus()
   const latest = latestUpdate(Object.values(data?.data_updated_at ?? {}))
   return (
-    <footer className="mx-auto grid max-w-6xl gap-2 px-4 pb-28 pt-16 text-xs text-muted-foreground sm:px-6 sm:pb-12">
+    <footer className="mx-auto grid max-w-6xl gap-2 px-4 pb-[calc(8.5rem+env(safe-area-inset-bottom,0px))] pt-16 text-xs text-muted-foreground sm:px-6 sm:pb-12">
       {latest && (
         <p>
           資料更新：
