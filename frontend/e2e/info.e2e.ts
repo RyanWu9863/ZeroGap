@@ -29,3 +29,30 @@ test.describe('導覽四顆', () => {
     for (const name of ['方法', '在 AI 助理裡使用', '關於']) await expect(footer.getByRole('link', { name })).toBeVisible()
   })
 })
+
+test.describe('方法頁', () => {
+  test('往下捲，十段都看得到，數字是真後端範例', async ({ page }) => {
+    await page.goto('/method')
+    await expect(page.getByRole('heading', { level: 1, name: '我們怎麼確定每一段都接得上' })).toBeVisible()
+    const titles = page.getByRole('heading', { level: 2 })
+    await expect(titles).toHaveCount(10)
+    for (let i = 0; i < 10; i++) {
+      await titles.nth(i).scrollIntoViewIfNeeded()
+      await expect(titles.nth(i)).toBeVisible()
+    }
+    await expect(page.getByText('73,038')).toBeVisible()
+    await expect(page.getByText('1,201')).toBeVisible()
+  })
+  test('減少動態：一打開每一段都已經是最後一格', async ({ page }) => {
+    await page.emulateMedia({ reducedMotion: 'reduce' })
+    await page.goto('/method')
+    const last = page.locator('#method-9')
+    await last.scrollIntoViewIfNeeded()
+    await expect(last).toHaveCSS('opacity', '1')
+  })
+  test('不出現 AI、Jev、LLM、機率', async ({ page }) => {
+    await page.goto('/method')
+    const text = await page.locator('main').innerText()
+    expect(text).not.toMatch(/\bAI\b|Jev|LLM|機率/)
+  })
+})
