@@ -23,6 +23,8 @@ export type Run = {
   /** 目前階段；waiting_quota 不算階段，另外用 waitingQuota 表示 */
   stage: Exclude<Stage, 'waiting_quota'> | null
   waitingQuota: boolean
+  /** waiting_quota 事件給的等待秒數（Task 3 接上 SSE） */
+  waitSeconds: number | null
   combinations: number | null
   feasible: number | null
   result: PlanResult | null
@@ -64,7 +66,7 @@ export const usePlanRunStore = create<Store>()(
   }),
 )
 
-const blank = (): Run => ({ status: 'connecting', startedAt: Date.now(), position: null, stage: null, waitingQuota: false, combinations: null, feasible: null, result: null, error: null, finishedAt: null })
+const blank = (): Run => ({ status: 'connecting', startedAt: Date.now(), position: null, stage: null, waitingQuota: false, waitSeconds: null, combinations: null, feasible: null, result: null, error: null, finishedAt: null })
 
 const patch = (key: string, p: Partial<Run>) =>
   usePlanRunStore.setState((s) => (s.runs[key] ? { runs: { ...s.runs, [key]: { ...s.runs[key], ...p } } } : s))

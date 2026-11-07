@@ -1,7 +1,8 @@
 import { ApiError } from '@/api/errors'
-import type { PlanRequest } from '@/api/schemas'
+import type { PlanRequest, PlanResult } from '@/api/schemas'
 import { areas, categories, counties, coverage, stations, status } from './catalog'
 import { mockResult } from './planResult'
+import { mockSavePlan, newJobId } from './savedPlans'
 
 /*
  * 假後端（VITE_USE_MOCK=true、展示模式、GitHub Pages 展示版用）。
@@ -57,11 +58,11 @@ export async function mockGet(path: string, signal?: AbortSignal): Promise<unkno
 type Frame = [delayMs: number, event: string, data: unknown]
 
 /** 這次要依序送出的事件（相隔的毫秒數、事件名稱、內容） */
-function frames(req: PlanRequest): Frame[] {
+function frames(req: PlanRequest, jobId: string): Frame[] {
   const s = scenario()
   const head: Frame[] = [
-    [0, 'queued', { job_id: 'mock-job', position: 2 }],
-    [300, 'queued', { job_id: 'mock-job', position: 1 }],
+    [0, 'queued', { job_id: jobId, position: 2 }],
+    [300, 'queued', { job_id: jobId, position: 1 }],
     [300, 'progress', { stage: 'loading_data' }],
   ]
   if (s === 'no_showtimes') return [...head, [300, 'error', { code: 'NO_SHOWTIMES', message: '沒有符合條件的場次' }]]
@@ -88,7 +89,7 @@ function frames(req: PlanRequest): Frame[] {
     [200, 'progress', { stage: 'verifying_hours' }],
     [200, 'progress', { stage: 'routing' }],
     [200, 'progress', { stage: 'building_result' }],
-    [200, 'result', mockResult(req, low)],
+    [200, 'result', mockResult(req, low, jobId)],
   ]
 }
 
@@ -116,17 +117,24 @@ export async function mockPlanResponse(req: PlanRequest, signal?: AbortSignal): 
       headers: { 'Content-Type': 'application/json', 'Retry-After': '60' },
     })
   }
+  const jobId = newJobId()
   const enc = new TextEncoder()
   const timers: ReturnType<typeof setTimeout>[] = []
   const body = new ReadableStream<Uint8Array>({
     start(controller) {
       let t = 0
-      for (const [delay, event, data] of frames(req)) {
+      for (const [delay, event, data] of frames(req, jobId)) {
         t += delay
         // 先送心跳註解，事件再從位元組中間切成兩半送（可能切在中文字中間）：確認拆串流的程式不怕被切斷
         const bytes = enc.encode(`: ping\n\nevent: ${event}\ndata: ${JSON.stringify(data)}\n\n`)
         const cut = Math.floor(bytes.length / 2) + 1
-        timers.push(setTimeout(() => controller.enqueue(bytes.slice(0, cut)), t))
+        timers.push(
+          setTimeout(() => {
+            // 結果送出前先存進假後端（被取消的規劃計時器已清掉，不會存）
+            if (event === 'result') mockSavePlan({ job_id: jobId, request: req, result: data as PlanResult })
+            controller.enqueue(bytes.slice(0, cut))
+          }, t),
+        )
         timers.push(setTimeout(() => controller.enqueue(bytes.slice(cut)), t + 10))
       }
       timers.push(setTimeout(() => controller.close(), t + 30))
