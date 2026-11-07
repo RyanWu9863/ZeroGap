@@ -4,12 +4,15 @@ import type { Plan } from '@/api/schemas'
 import { cn } from '@/lib/utils'
 import { SourceCredit } from '@/shared/brand/Attribution'
 import { placeUrl, routeUrl } from '@/shared/lib/maps'
-import { useMapStore, type MapMode } from './mapStore'
+import { HAS_MAPS_KEY, useMapStore, type MapMode } from './mapStore'
 import { hasCoords, routeNodes } from './route'
 import { SketchRoute } from './SketchRoute'
 
 const GoogleRoute = lazy(() => import('./GoogleRoute'))
-const HAS_KEY = Boolean(import.meta.env.VITE_GOOGLE_MAPS_KEY)
+/** 沒有金鑰時給一般使用者看的白話；開發模式多一句怎麼設定 */
+const NO_KEY_TEXT =
+  '這個網站目前沒有開啟 Google 地圖，先用路線示意圖。' +
+  (import.meta.env.DEV ? '（開發提示：在 frontend/.env 設定 VITE_GOOGLE_MAPS_KEY）' : '')
 
 const MODES: { id: MapMode; label: string }[] = [
   { id: 'sketch', label: '路線示意' },
@@ -17,8 +20,8 @@ const MODES: { id: MapMode; label: string }[] = [
 ]
 
 /**
- * 行程路線（沉浸式新版 PR4，取代右欄的 RouteSketch）。
- * 兩種模式：簡潔示意圖（預設）／Google 地圖。切換時保留選中的站和地圖視角；換方案時跟著換。
+ * 行程路線（沉浸式新版 PR4；2026-11-07 起結果頁預設就用它，取代右欄的 RouteSketch）。
+ * 兩種模式：Google 地圖（有金鑰時預設，可縮放、拖曳）／簡潔示意圖。切換時保留選中的站和地圖視角；換方案時跟著換。
  * 誠實標示：Google 地圖上的連線是站和站之間的直線，不是導航路線。
  * 座標只用後端給的；Google 來源的餐廳沒有座標（規格書 6.7），那種方案只能用示意圖。
  */
@@ -34,8 +37,8 @@ export function RouteMap({ plan, date }: { plan: Plan; date: string }) {
   // 開 Google 地圖網頁：Google 來源的餐廳帶 place_id，其他有座標用座標（maps.ts）
   const linkable = nodes.map((x) => ({ ...x.place, name: x.name }))
 
-  const fallback = !HAS_KEY
-    ? '還沒設定 Google 地圖金鑰（VITE_GOOGLE_MAPS_KEY），先用路線示意圖。'
+  const fallback = !HAS_MAPS_KEY
+    ? NO_KEY_TEXT
     : !hasCoords(nodes)
       ? '這個方案的餐廳資料來自 Google，沒有可以畫在地圖上的座標，先用路線示意圖。'
       : failed

@@ -225,7 +225,7 @@ test.describe('行程路線地圖（PR4）', () => {
     await page.goto(resultUrl())
     await map(page).getByRole('button', { name: /第 4 站/ }).click()
     await map(page).getByRole('radio', { name: 'Google 地圖' }).click()
-    await expect(map(page).getByRole('status')).toContainText('還沒設定 Google 地圖金鑰')
+    await expect(map(page).getByRole('status')).toContainText('目前沒有開啟 Google 地圖')
     await expect(map(page).getByText('4. 桃園站')).toBeVisible()
     await map(page).getByRole('radio', { name: '路線示意' }).click()
     await expect(map(page).getByRole('button', { name: /第 4 站/ })).toHaveAttribute('aria-pressed', 'true')
