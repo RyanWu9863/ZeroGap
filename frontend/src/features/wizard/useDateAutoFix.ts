@@ -38,6 +38,8 @@ export function useDateAutoFix(ctx: DateContext & { today: string }) {
 
   return {
     notice,
+    /** 這次畫面算出來要換日期、還沒換好（下一次畫面才會是新日期） */
+    pending: next !== request.date,
     /** 使用者自己選了日期 */
     pickDate: (date: string) => {
       setTouched(true)

@@ -12,7 +12,7 @@ const resultsHeading = (page: Page) => page.getByRole('heading', { name: '這 3 
 test('有解：介紹頁 → 四步精靈 → 等待畫面 → 三個方案，估計值是黃底（A8）、Google 標誌看得到', async ({ page }) => {
   await watchFor(page, ['篩出每一段都接得上的組合'])
   await page.goto('/')
-  await page.getByRole('main').getByRole('link', { name: '開始規劃' }).first().click()
+  await page.getByRole('main').getByRole('link', { name: /更多條件/ }).click()
   for (let i = 0; i < 3; i++) await page.getByRole('button', { name: '下一步' }).click()
   await page.getByRole('button', { name: '排出接得上的行程' }).click()
 
