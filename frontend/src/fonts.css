@@ -1,8 +1,9 @@
 /*
- * 字型宣告（計畫 P2-4）：四套字型的 @font-face 有幾百條，原本放在 index.css 會擋住第一個畫面。
- * 拆出來由 main.tsx 非同步載入。
- * 字型本來就是「先用系統字型、下載好再換」，所以晚一點載入不會閃版面。
+ * 字型宣告（優化計畫 P2-4）：@font-face 有幾百條，放在 index.css 會擋住第一個畫面，
+ * 所以拆出來由 main.tsx 非同步載入。字型本來就是「先用系統字型、下載好再換」，晚一點載入不會閃版面。
+ * 三套字型跟發表會簡報的動畫頁一致（規格 4.1）：思源黑體寫字、Archivo 寫大數字、IBM Plex Mono 寫時刻。
  */
 @import "@fontsource-variable/noto-sans-tc";
-@import "@fontsource-variable/jetbrains-mono";
-@import "@fontsource-variable/inter";
+@import "@fontsource-variable/archivo";
+@import "@fontsource/ibm-plex-mono/400.css";
+@import "@fontsource/ibm-plex-mono/600.css";

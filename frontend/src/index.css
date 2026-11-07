@@ -6,12 +6,10 @@
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
-  --font-sans: "Noto Sans TC Variable", system-ui, sans-serif;
-  --font-serif: "Noto Serif TC Variable", serif;
-  --font-mono: "JetBrains Mono Variable", ui-monospace, monospace;
-  --font-inter: "Inter Variable", "Noto Sans TC Variable", system-ui, sans-serif;
+  --font-sans: "Noto Sans TC Variable", "PingFang TC", "Microsoft JhengHei", system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  --font-num: "Archivo Variable", "Noto Sans TC Variable", system-ui, sans-serif;
   --font-heading: var(--zg-heading-font);
-  --font-num: var(--zg-num-font);
 
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -153,11 +151,19 @@
   }
 }
 
-/* 時間、金額用等寬數字，上下對齊上下對齊好讀 */
+/* 時間、金額用等寬數字，上下對齊好讀 */
 @utility zg-num {
   font-family: var(--zg-num-font);
   font-variant-numeric: tabular-nums;
   letter-spacing: -0.01em;
+}
+
+/* 大數字（組合數、方案數）：Archivo，跟簡報一致 */
+@utility zg-figure {
+  font-family: var(--font-num);
+  font-variant-numeric: tabular-nums;
+  font-weight: 800;
+  letter-spacing: -0.02em;
 }
 
 @layer base {
