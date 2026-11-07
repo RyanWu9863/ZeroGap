@@ -14,21 +14,23 @@ const GAP = 5
 const DOT = 2
 /** 最後留下的方案點放大到多大、外圈光暈多大 */
 const PLAN_DOT = 6
+/** 接得上但沒選上的點，最後稍微放大，跟熄掉的點分得出來 */
+const FEASIBLE_DOT = 3
 const GLOW = 14
 
 /* 時間軸（毫秒，t 從 0 開始） */
 /** 0–600：全部點從透明淡入成 --zg-flow、alpha 0.55 */
 const FADE_IN = [0, 600] as const
-/** 900–2100：stage 0（接不上的）變成 --muted-foreground、alpha 0.18 */
+/** 900–2100：stage 0（接不上的）變成 --muted-foreground、alpha 0.15 */
 const PRUNE = [900, 2100] as const
-/** 2400–3300：stage 1 變灰、alpha 0.3；stage 2（給你的方案）放大、全亮、加光暈 */
+/** 2400–3300：stage 1（接得上、沒選上）保持 --zg-flow、alpha 0.4、放大到 3px；stage 2（給你的方案）放大、全亮、加光暈 */
 const PICK = [2400, 3300] as const
 /** 這之後停止重畫，停在最後一格 */
 const END = PICK[1]
 
 const ALPHA_ON = 0.55
-const ALPHA_PRUNED = 0.18
-const ALPHA_FEASIBLE = 0.3
+const ALPHA_PRUNED = 0.15
+const ALPHA_FEASIBLE = 0.4
 
 /** t 在 start→end 之間走到哪裡，回傳 0～1（之前是 0、之後是 1，中間線性） */
 function mix(t: number, start: number, end: number): number {
@@ -115,8 +117,8 @@ function draw(ctx: CanvasRenderingContext2D, g: Geometry, t: number) {
 
   // stage 0：接不上的，熄掉
   square(g.byStage[0], mixColor(flow, muted, prune), fade * lerp(ALPHA_ON, ALPHA_PRUNED, prune), DOT)
-  // stage 1：每段接得上、但沒選上的，變灰
-  square(g.byStage[1], mixColor(flow, muted, pick), fade * lerp(ALPHA_ON, ALPHA_FEASIBLE, pick), DOT)
+  // stage 1：每段接得上、但沒選上的，留在主色、稍微變淡、稍微放大（三層要分得出來）
+  square(g.byStage[1], flow, fade * lerp(ALPHA_ON, ALPHA_FEASIBLE, pick), lerp(DOT, FEASIBLE_DOT, pick))
   // stage 2：給你的方案，先畫光暈再畫點
   if (pick > 0) {
     ctx.fillStyle = rgba(glow, glow[3] * pick)

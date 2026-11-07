@@ -40,8 +40,8 @@ export function HomeHero() {
       const id = requestIdleCallback(go, { timeout: 1000 })
       return () => cancelIdleCallback(id)
     }
-    const id = requestAnimationFrame(go) // Safari 沒有 requestIdleCallback
-    return () => cancelAnimationFrame(id)
+    const id = setTimeout(go, 200) // Safari 沒有 requestIdleCallback；晚一點再載，不跟 LCP 搶
+    return () => clearTimeout(id)
   }, [])
 
   const when =
@@ -73,7 +73,7 @@ export function HomeHero() {
           {fmt(stats.plans)} <span className="text-base font-medium sm:text-xl">個給你</span>
         </span>
       </p>
-      <p className="mt-3 text-sm text-muted-foreground">{stats.sample ? '示範：一次真實後端規劃的數字' : `你上次排的（${when}）`}</p>
+      <p className="mt-3 text-sm text-muted-foreground">{stats.sample ? '示範：一次真實後端規劃的數字' : when ? `你上次排的（${when}）` : '你上次排的'}</p>
 
       <div className="mt-8">
         {ready ? (
