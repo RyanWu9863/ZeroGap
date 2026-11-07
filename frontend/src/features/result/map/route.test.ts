@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { mockResult } from '@/mocks/planResult'
 import { benchmarkRequest } from '@/mocks/request'
-import { hasCoords, routeNodes } from './route'
+import { canLocate, routeNodes } from './route'
 
 const req = { ...benchmarkRequest, date: '2026-10-30' }
 const [p1, , p3] = mockResult(req, false).plans
@@ -23,13 +23,18 @@ describe('routeNodes：照時間軸順序整理路線', () => {
     expect(cinema.notes.length).toBeGreaterThan(1)
     expect(cinema.from).not.toBe(cinema.to)
   })
-  it('Google 來源的餐廳沒有座標 → 畫不出真實地圖，只用示意圖（規格書 6.7）', () => {
+  it('Google 來源的餐廳沒有座標但有 place_id → 交給 Places 查，畫得出真實地圖', () => {
     expect(p1.restaurant.source).toBe('google')
-    expect(hasCoords(nodes)).toBe(false)
+    expect(nodes.some((n) => n.lat == null)).toBe(true)
+    expect(canLocate(nodes)).toBe(true)
+  })
+  it('沒有座標也沒有 place_id 的站 → 畫不出真實地圖，只用示意圖', () => {
+    const bad = nodes.map((n) => (n.lat == null ? { ...n, place: { ...n.place, place_id: null } } : n))
+    expect(canLocate(bad)).toBe(false)
   })
   it('全部地點都有後端給的座標 → 畫得出真實地圖', () => {
     expect(p3.restaurant.source).toBe('osm')
-    expect(hasCoords(routeNodes(p3, req.date))).toBe(true)
+    expect(canLocate(routeNodes(p3, req.date))).toBe(true)
   })
 })
 

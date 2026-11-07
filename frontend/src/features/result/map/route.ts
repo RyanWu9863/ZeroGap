@@ -61,8 +61,5 @@ export function routeNodes(plan: Plan, date: string): RouteNode[] {
   return nodes
 }
 
-/** 每一站都有座標才畫得出真實地圖 */
-export const hasCoords = (nodes: RouteNode[]) => nodes.every((n) => n.lat != null && n.lng != null)
-
-/** 沒座標但有 place_id 的站（Google 來源的餐廳），交給 Places 查位置 */
+/** 每一站都有座標，或有 place_id 可以交給 Places 查位置（Google 來源的餐廳）才畫得出真實地圖 */
 export const canLocate = (nodes: RouteNode[]) => nodes.every((n) => (n.lat != null && n.lng != null) || n.place.place_id)

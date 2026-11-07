@@ -2,11 +2,12 @@
 import { AdvancedMarker, APIProvider, Map, useMap, useMapsLibrary, type MapCameraChangedEvent } from '@vis.gl/react-google-maps'
 import { useEffect, useMemo, useState } from 'react'
 import { cn } from '@/lib/utils'
-import { resolveTheme, useSystemDark, useThemeStore, type Theme } from '@/shared/theme/theme'
+import { resolveTheme, useSystemDark, useThemeStore } from '@/shared/theme/theme'
 import { midpoint, routeLegs, type Leg } from './legs'
 import { useMapStore } from './mapStore'
 import type { RouteNode } from './route'
-import { placeKey, readCache, walkKey, writeCache, type LatLng } from './routeCache'
+import { findPlace, walkPath } from './lookup'
+import { walkKey, type LatLng } from './routeCache'
 
 /*
  * Google 地圖模式（使用者 10/23 選 Google Maps API）。這個檔案延遲載入，沒打開地圖模式不會下載。
@@ -23,70 +24,44 @@ const MAP_ID = (import.meta.env.VITE_GOOGLE_MAPS_MAP_ID as string | undefined) |
 /** 走路虛線：用重複的小線段當圖示 */
 const DASH = { icon: { path: 'M 0,-1 0,1', strokeOpacity: 0.9, strokeWeight: 3, scale: 3 }, offset: '0', repeat: '12px' }
 
-/** 每一站的位置：後端給的座標，沒有就用 place_id 查（先看暫存）。查不到的站是 null */
-function useLocations(nodes: RouteNode[], onUnavailable: (why: string) => void): (LatLng | null)[] | null {
-  const places = useMapsLibrary('places')
-  const [pts, setPts] = useState<(LatLng | null)[] | null>(null)
+/** 每一站的位置：後端給的座標，沒有就用 place_id 查（先看暫存）。查不到就通知上層退回示意圖 */
+function useLocations(nodes: RouteNode[], onUnavailable: (why: string) => void): LatLng[] | null {
+  const needLookup = nodes.some((n) => n.lat == null || n.lng == null)
+  const loaded = useMapsLibrary('places')
+  const places = needLookup ? loaded : null // 全部有座標時，places 載入與否都不重跑
+  const [pts, setPts] = useState<LatLng[] | null>(null)
   useEffect(() => {
-    const need = nodes.some((n) => n.lat == null || n.lng == null)
-    if (need && !places) return
+    if (needLookup && !places) return
     let stale = false
-    const find = async (n: RouteNode): Promise<LatLng | null> => {
-      if (n.lat != null && n.lng != null) return { lat: n.lat, lng: n.lng }
-      const id = n.place.place_id
-      if (!id || !places) return null
-      const hit = readCache<LatLng>(placeKey(id))
-      if (hit) return hit
-      try {
-        const { place } = await new places.Place({ id }).fetchFields({ fields: ['location'] })
-        if (!place.location) return null
-        const p = { lat: place.location.lat(), lng: place.location.lng() }
-        writeCache(placeKey(id), p)
-        return p
-      } catch {
-        return null
-      }
-    }
+    const find = (n: RouteNode): Promise<LatLng | null> =>
+      n.lat != null && n.lng != null ? Promise.resolve({ lat: n.lat, lng: n.lng }) : n.place.place_id ? findPlace(places, n.place.place_id) : Promise.resolve(null)
     void Promise.all(nodes.map(find)).then((all) => {
       if (stale) return
       if (all.some((p) => !p)) onUnavailable('這家餐廳的位置查不到，先用路線示意圖。')
-      else setPts(all)
+      else setPts(all as LatLng[])
     })
     return () => { stale = true }
-  }, [nodes, places, onUnavailable])
+  }, [nodes, needLookup, places, onUnavailable])
   return pts
 }
 
-/** 一段走路：先看暫存，再問 Routes；沒結果就回 null（呼叫的人畫直線虛線） */
-async function walkPath(routesLib: google.maps.RoutesLibrary | null, key: string, a: LatLng, b: LatLng): Promise<LatLng[] | null> {
-  const hit = readCache<LatLng[]>(key)
-  if (hit && hit.length > 1) return hit
-  if (!routesLib?.Route) return null
-  try {
-    const { routes } = await routesLib.Route.computeRoutes({ origin: a, destination: b, travelMode: 'WALKING', fields: ['path'] })
-    const path = routes?.[0]?.path?.map((p) => ({ lat: p.lat, lng: p.lng })) ?? null
-    if (!path || path.length < 2) return null
-    writeCache(key, path)
-    return path
-  } catch {
-    return null
-  }
-}
-
 /** 畫線：搭車是起訖站之間的實線；走路先畫直線虛線，查到真實步行路線再換成路線；都用青色 */
-function Lines({ legs, pts, jobId, rank, theme }: { legs: Leg[]; pts: LatLng[]; jobId: string; rank: number; theme: Theme }) {
+function Lines({ legs, pts, jobId, rank, onFallback }: { legs: Leg[]; pts: LatLng[]; jobId: string; rank: number; onFallback: (walkLegs: number) => void }) {
   const map = useMap()
   const maps = useMapsLibrary('maps')
   const routesLib = useMapsLibrary('routes')
-  const [lines, setLines] = useState<(google.maps.Polyline | null)[]>([])
 
   useEffect(() => {
     if (!map || !maps) return
-    // 主題換了地圖會整個重掛，所以這裡讀到的是新主題的顏色
-    const color = getComputedStyle(document.documentElement).getPropertyValue('--zg-flow').trim() || '#0b7285'
+    let stale = false
+    // 主題換了地圖會整個重掛，這個元件跟著重新執行，所以讀到的是新主題的顏色
+    const color = getComputedStyle(document.documentElement).getPropertyValue('--zg-flow').trim() || 'currentColor'
+    const walks = legs.filter((l) => l.mode === 'walk').length
+    let fallback = walks // 目前還畫成直線的走路段
+    onFallback(walks)
     const made = legs.map((leg) => {
       const walk = leg.mode === 'walk'
-      return new maps.Polyline({
+      const line = new maps.Polyline({
         map,
         path: [pts[leg.i], pts[leg.i + 1]],
         strokeColor: color,
@@ -94,26 +69,24 @@ function Lines({ legs, pts, jobId, rank, theme }: { legs: Leg[]; pts: LatLng[]; 
         strokeWeight: 4,
         icons: walk ? [{ ...DASH, icon: { ...DASH.icon, strokeColor: color } }] : undefined,
       })
+      if (walk && routesLib) {
+        void walkPath(routesLib, walkKey(jobId, rank, leg.i), pts[leg.i], pts[leg.i + 1]).then((path) => {
+          if (stale || !path) return
+          line.setPath(path)
+          onFallback(--fallback)
+        })
+      }
+      return line
     })
-    setLines(made)
-    return () => made.forEach((l) => l.setMap(null))
-  }, [map, maps, legs, pts, theme])
-
-  useEffect(() => {
-    if (lines.length !== legs.length) return
-    let stale = false
-    legs.forEach((leg, k) => {
-      if (leg.mode !== 'walk') return
-      void walkPath(routesLib, walkKey(jobId, rank, leg.i), pts[leg.i], pts[leg.i + 1]).then((path) => {
-        if (!stale && path) lines[k]?.setPath(path)
-      })
-    })
-    return () => { stale = true }
-  }, [lines, legs, pts, routesLib, jobId, rank])
+    return () => {
+      stale = true
+      made.forEach((l) => l.setMap(null))
+    }
+  }, [map, maps, routesLib, legs, pts, jobId, rank, onFallback])
   return null
 }
 
-export default function GoogleRoute({ nodes, rank, jobId, selected, onSelect, onError, onUnavailable }: {
+export default function GoogleRoute({ nodes, rank, jobId, selected, onSelect, onError, onUnavailable, onFallback }: {
   nodes: RouteNode[]
   rank: number
   jobId: string
@@ -121,6 +94,8 @@ export default function GoogleRoute({ nodes, rank, jobId, selected, onSelect, on
   onSelect: (n: number) => void
   onError: () => void
   onUnavailable: (why: string) => void
+  /** 目前有幾段走路還是直線虛線（查不到路線） */
+  onFallback: (walkLegs: number) => void
 }) {
   // 金鑰無效、沒開帳單時，Google 會呼叫 window.gm_authFailure，地圖本身只顯示灰色錯誤；改成我們的降級說明
   useEffect(() => {
@@ -130,18 +105,18 @@ export default function GoogleRoute({ nodes, rank, jobId, selected, onSelect, on
   }, [onError])
   return (
     <APIProvider apiKey={KEY!} language="zh-TW" region="TW" onError={onError}>
-      <Located nodes={nodes} rank={rank} jobId={jobId} selected={selected} onSelect={onSelect} onUnavailable={onUnavailable} />
+      <Located nodes={nodes} rank={rank} jobId={jobId} selected={selected} onSelect={onSelect} onUnavailable={onUnavailable} onFallback={onFallback} />
     </APIProvider>
   )
 }
 
-function Located({ nodes, rank, jobId, selected, onSelect, onUnavailable }: Omit<Parameters<typeof GoogleRoute>[0], 'onError'>) {
+function Located({ nodes, rank, jobId, selected, onSelect, onUnavailable, onFallback }: Omit<Parameters<typeof GoogleRoute>[0], 'onError'>) {
   const { camera, cameraFor, setCamera } = useMapStore()
   const theme = resolveTheme(useThemeStore((s) => s.pref), useSystemDark())
   const pts = useLocations(nodes, onUnavailable)
   const legs = useMemo(() => routeLegs(nodes), [nodes])
   if (!pts) return <div className="grid h-72 place-items-center rounded-lg bg-muted text-xs text-muted-foreground">地圖載入中…</div>
-  const all = pts as LatLng[]
+  const all = pts
   const lats = all.map((p) => p.lat)
   const lngs = all.map((p) => p.lng)
   const bounds = { north: Math.max(...lats), south: Math.min(...lats), east: Math.max(...lngs), west: Math.min(...lngs), padding: 40 }
@@ -161,7 +136,7 @@ function Located({ nodes, rank, jobId, selected, onSelect, onUnavailable }: Omit
       className="h-72 w-full overflow-hidden rounded-lg"
       onCameraChanged={(e: MapCameraChangedEvent) => setCamera(rank, { center: e.detail.center, zoom: e.detail.zoom })}
     >
-      <Lines legs={legs} pts={all} jobId={jobId} rank={rank} theme={theme} />
+      <Lines legs={legs} pts={all} jobId={jobId} rank={rank} onFallback={onFallback} />
       {legs.filter((l) => l.mode === 'train' && l.label).map((l) => (
         <AdvancedMarker key={`line-${l.i}`} position={midpoint(all[l.i], all[l.i + 1])} zIndex={1} clickable={false}>
           <span className="rounded-full bg-background/90 px-2 py-0.5 text-[11px] shadow">{l.label}</span>
