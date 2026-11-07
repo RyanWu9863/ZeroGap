@@ -994,14 +994,14 @@ gh pr create -R RyanWu9863/ZeroGap --base main --head feat/frontend-foundation \
 
 | Task | 狀態 |
 |---|---|
-| 1 integrate 追上優化版最新 | ✅ 5a355fe（私人 repo） |
-| 2 合併進團隊 frontend/ | ✅ 97ccf41 |
-| 3 刪三版、試用、簡報 | ✅ 4e1c132 |
-| 4 夜／日主題 | ✅ bc78334 |
-| 5 字體 | ✅ 941a662 |
-| 6 外框 | ✅ 9ef1b05、d8333ab |
-| 7 CI＋偶發測試 | ✅ e8e922c |
-| 8 文件、PR | 文件已完成；推分支、開 PR 待最終審查後 |
+| 1 integrate 追上優化版最新 | ✅ 私人 repo 5a355fe（團隊 repo 裡因 email 匿名化改寫成新編號） |
+| 2 合併進團隊 frontend/ | ✅ 3b4361f |
+| 3 刪三版、試用、簡報 | ✅ 8956266 |
+| 4 夜／日主題 | ✅ e157b66 |
+| 5 字體 | ✅ a48aa18 |
+| 6 外框 | ✅ 538b63a、c793d86 |
+| 7 CI＋偶發測試 | ✅ 7140626 |
+| 8 文件、PR | ✅ b5268e2、56a96c7（文件）；最終審查小修 083e0a2；推分支、開 PR（2026-11-07，等使用者同意才合併）。推之前把 8 個 commit 的作者 email 換成 GitHub 匿名 email |
 
 ## 之後的計畫（各自另寫）
 
