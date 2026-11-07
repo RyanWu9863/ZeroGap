@@ -33,7 +33,7 @@ export function PlanDial({ plan, date, stationName, onPrev, onNext }: {
 }) {
   const reduce = useReducedMotion()
   const [open, setOpen] = useState(true)
-  const down = useRef<{ x: number; y: number } | null>(null)
+  const down = useRef<{ x: number; y: number; id: number } | null>(null)
   const segments = dialSegments(plan)
   const ticks = dialTicks(plan)
   const b = bottleneck(plan)
@@ -45,14 +45,18 @@ export function PlanDial({ plan, date, stationName, onPrev, onNext }: {
   return (
     <figure
       className="w-full"
-      style={{ touchAction: 'pan-y' }}
+      data-testid="plan-dial"
+      style={{ touchAction: 'pan-y pinch-zoom' }}
       onPointerDown={(e) => {
-        down.current = { x: e.clientX, y: e.clientY }
+        down.current = e.pointerType === 'touch' ? { x: e.clientX, y: e.clientY, id: e.pointerId } : null
+      }}
+      onPointerCancel={() => {
+        down.current = null
       }}
       onPointerUp={(e) => {
         const d = down.current
+        if (!d || d.id !== e.pointerId) return
         down.current = null
-        if (!d) return
         const dx = e.clientX - d.x
         const dy = e.clientY - d.y
         if (Math.abs(dx) > 48 && Math.abs(dx) > Math.abs(dy)) {
@@ -93,7 +97,7 @@ export function PlanDial({ plan, date, stationName, onPrev, onNext }: {
             const k = kindOf(s.type)
             return (
               <motion.path
-                key={s.index}
+                key={`${plan.rank}-${s.index}`}
                 d={arcPath(C, C, R, s.a0, s.a1)}
                 fill="none"
                 stroke={k.color}

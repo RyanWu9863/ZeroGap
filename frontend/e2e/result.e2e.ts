@@ -149,14 +149,14 @@ test.describe('錶盤與方案切換', () => {
     test.skip(!isMobile, '只在 iPhone、iPad 專案跑')
     await page.goto(resultUrl())
     await expect(resultsHeading(page)).toBeVisible({ timeout: 30_000 })
-    const dial = page.locator('figure svg').first()
+    const dial = page.getByTestId('plan-dial').locator('svg').first()
     await dial.scrollIntoViewIfNeeded()
     const box = await dial.boundingBox()
     if (!box) throw new Error('找不到錶盤')
     const y = box.y + box.height / 2
-    const figure = page.locator('figure').first()
+    const figure = page.getByTestId('plan-dial')
     // page.mouse 在手機模擬下沒有送出指標事件，直接對錶盤送 pointerdown／pointerup
-    const at = (x: number) => ({ clientX: x, clientY: y, pointerType: 'touch', isPrimary: true, bubbles: true })
+    const at = (x: number) => ({ clientX: x, clientY: y, pointerType: 'touch', pointerId: 1, isPrimary: true, bubbles: true })
     await figure.dispatchEvent('pointerdown', at(box.x + box.width - 20))
     await figure.dispatchEvent('pointerup', at(box.x + box.width - 140))
     await expect(page).toHaveURL(/plan=2/)
