@@ -25,6 +25,7 @@ for (const proto of ['timetable', 'cinematic', 'linear']) {
   for (const pg of PAGES) {
     test(`無障礙：${proto}・${pg.name}`, async ({ page }, info) => {
       test.skip(info.project.name !== 'chromium', '只在桌機 Chromium 掃一次')
+      test.setTimeout(120_000) // 結果頁要先播完篩選動畫；CI 的 Windows 機器忙時預設 45 秒會不夠（同 experience.e2e.ts 的 AXE_TIMEOUT）
       const sep = pg.path.includes('?') ? '&' : '?'
       await page.goto(`${pg.path}${sep}proto=${proto}`)
       await pg.ready(page)
@@ -68,7 +69,14 @@ test('只用鍵盤就能走完四步精靈（P2-2）', async ({ page, browserNam
   test.skip(info.project.name === 'iphone', '手機沒有實體鍵盤')
   const key = browserName === 'webkit' ? 'Alt+Tab' : 'Tab'
   await page.goto('/plan/1')
-  for (let i = 0; i < 3; i++) await tabAndPress(page, '下一步', key)
+  await expect(page).toHaveTitle('① 地點｜零空檔')
+  for (let step = 2; step <= 4; step++) {
+    await tabAndPress(page, '下一步', key)
+    await expect(page).toHaveURL(new RegExp(`/plan/${step}`))
+    // 新的一步滑進來後，焦點會移到標題（P2-2）。等焦點到了標題才繼續按 Tab，
+    // 不然 Tab 到「下一步」的同時焦點剛好被移走，按下的 Enter 就落在標題上沒作用（機器忙時會遇到）
+    await expect(page.getByRole('heading', { level: 1 })).toBeFocused()
+  }
   await tabAndPress(page, '排出接得上的行程', key)
   await expect(page.getByRole('heading', { name: '這 3 個行程，每一段都接得上。' })).toBeVisible()
 })

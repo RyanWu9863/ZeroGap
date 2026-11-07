@@ -50,14 +50,14 @@ export function PlanCardBody({ plan, stationName, date, swapped, size = 'md' }: 
         {swapped ? <Est>{clockOn(fig.homeAt, date)}</Est> : clockOn(fig.homeAt, date)}
       </span>
       <PlanRibbon plan={plan} legend={lg} />
-      <span className="grid gap-1.5 text-sm">
+      <span className="grid grid-cols-[minmax(0,1fr)] gap-1.5 text-sm">
         <span className="flex items-center gap-2">
           <Clapperboard className="size-3.5 shrink-0 text-muted-foreground" aria-hidden="true" />
-          <span className="truncate">《{f.movie}》<span className="text-muted-foreground">・{f.theater}</span></span>
+          <span className="min-w-0">《{f.movie}》<span className="text-muted-foreground">・{f.theater}</span></span>
         </span>
         <span className="flex items-center gap-2">
           <UtensilsCrossed className="size-3.5 shrink-0 text-muted-foreground" aria-hidden="true" />
-          <span className="truncate">{f.restaurant}</span>
+          <span className="min-w-0">{f.restaurant}</span>
         </span>
         <span className="flex items-center gap-2">
           <Clock className="size-3.5 shrink-0 text-muted-foreground" aria-hidden="true" />

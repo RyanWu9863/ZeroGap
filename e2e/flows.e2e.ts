@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test'
+import { expectSeen, watchFor } from './seen'
 
 /**
  * 結果頁網址（基準案例條件：中壢站 id 103 → 桃園區，照規格書 6.4 存代碼和 id），可以另外加參數。
@@ -8,14 +9,25 @@ const resultUrl = (extra: string) => `/result?from=103&to=taoyuan&t=17:00-23:00&
 
 const resultsHeading = (page: Page) => page.getByRole('heading', { name: '這 3 個行程，每一段都接得上。' })
 
+/**
+ * 打開簡報模式，等快捷鍵真的接上才回來。
+ * `<html data-present>` 和快捷鍵是同一個 effect 一起裝上的；沒等它就按鍵，
+ * 機器忙的時候按鍵會在監聽器裝好之前送出而被吃掉（全套平行跑時 iPhone／iPad 偶爾發生）。
+ */
+async function openPresentMode(page: Page) {
+  await page.goto('/?present=1')
+  await expect(page.locator('html')).toHaveAttribute('data-present', '')
+}
+
 test('有解：介紹頁 → 四步精靈 → 等待畫面 → 三個方案，估計值是黃底（A8）、Google 標誌看得到', async ({ page }) => {
+  await watchFor(page, ['篩出每一段都接得上的組合'])
   await page.goto('/?proto=timetable')
   await page.getByRole('main').getByRole('link', { name: '開始規劃' }).first().click()
   for (let i = 0; i < 3; i++) await page.getByRole('button', { name: '下一步' }).click()
   await page.getByRole('button', { name: '排出接得上的行程' }).click()
 
-  await expect(page.getByText('篩出每一段都接得上的組合')).toBeVisible() // 等待畫面（SSE 進度）
-  await expect(resultsHeading(page)).toBeVisible()
+  await expect(resultsHeading(page)).toBeVisible({ timeout: 30_000 })
+  await expectSeen(page, '篩出每一段都接得上的組合') // 等待畫面（SSE 進度）出現過（只看得到幾秒，用「出現過」驗，見 seen.ts）
   await expect(page.getByRole('radiogroup', { name: '選擇方案' }).getByRole('radio')).toHaveCount(3)
   await expect(page.locator('[data-estimated="true"]').first()).toHaveCSS('background-color', 'rgb(255, 241, 184)')
   await expect(page.locator('img[alt="Google Maps"]:visible').first()).toBeVisible()
@@ -164,8 +176,7 @@ test('試用模式：計時＋小問卷，紀錄出現在系統幕後（Q79、Q8
 })
 
 test('簡報模式：按 2 直接排「週末午後，先吃再看」，按 B 到系統幕後（Q95）', async ({ page }) => {
-  await page.goto('/?present=1')
-  await expect(page.locator('html')).toHaveAttribute('data-present', '')
+  await openPresentMode(page)
   await page.keyboard.press('2')
   await expect(resultsHeading(page)).toBeVisible()
   await expect(page.getByRole('button', { name: '先吃再看' })).toBeVisible()
@@ -176,7 +187,7 @@ test('簡報模式：按 2 直接排「週末午後，先吃再看」，按 B �
 // 待辦（整合 feature/backend-v0.9 時發現）：後端格式的假資料（mocks/planResult.ts）還不會照情境卡的時段、
 // 先吃再看、預算變化，main 上對應的修正（itineraryScenarios）是舊格式、不能直接用。補好假資料後拿掉 fixme。
 test.fixme('簡報模式：情境 2、3 的行程跟條件對得上（時段、先吃再看、預算）', async ({ page }) => {
-  await page.goto('/?present=1')
+  await openPresentMode(page)
   await page.keyboard.press('2') // 週末午後：12:00–18:00、先吃再看、每人 $800
   await expect(resultsHeading(page)).toBeVisible()
   const timeline = page.getByLabel('行程時間軸')

@@ -47,7 +47,7 @@ export function PlanDetail({ plan, stationName, date, budget, swapped, swap, onS
       document.body.style.overflow = prevOverflow
       window.removeEventListener('keydown', onKey)
       // 關掉時卡片會重新出現；等它出現再把焦點還回去（找同一個方案的「看完整行程」）
-      requestAnimationFrame(() => (back?.isConnected ? back : document.querySelector<HTMLButtonElement>('[data-testid="plan-stage"] button:not([role])'))?.focus())
+      requestAnimationFrame(() => (back?.isConnected ? back : document.querySelector<HTMLButtonElement>('[data-testid="plan-stage"] [data-plan-open]'))?.focus())
     }
   }, [open, onClose, returnFocus])
 
