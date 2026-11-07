@@ -1,11 +1,11 @@
 import { ExternalLink, MapPinOff, Route } from 'lucide-react'
-import { lazy, Suspense, useState } from 'react'
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { Plan } from '@/api/schemas'
 import { cn } from '@/lib/utils'
 import { SourceCredit } from '@/shared/brand/Attribution'
 import { placeUrl, routeUrl } from '@/shared/lib/maps'
 import { HAS_MAPS_KEY, useMapStore, type MapMode } from './mapStore'
-import { hasCoords, routeNodes } from './route'
+import { canLocate, routeNodes } from './route'
 import { SketchRoute } from './SketchRoute'
 
 const GoogleRoute = lazy(() => import('./GoogleRoute'))
@@ -22,14 +22,34 @@ const MODES: { id: MapMode; label: string }[] = [
 /**
  * 行程路線（沉浸式新版 PR4；2026-11-07 起結果頁預設就用它，取代右欄的 RouteSketch）。
  * 兩種模式：Google 地圖（有金鑰時預設，可縮放、拖曳）／簡潔示意圖。切換時保留選中的站和地圖視角；換方案時跟著換。
- * 誠實標示：Google 地圖上的連線是站和站之間的直線，不是導航路線。
- * 座標只用後端給的；Google 來源的餐廳沒有座標（規格書 6.7），那種方案只能用示意圖。
+ * 誠實標示：走路畫實際步行路線；搭車只畫起訖站之間的線，照我們排的班次。
+ * 座標用後端給的；Google 來源的餐廳只有 place_id，位置交給地圖查（GoogleRoute）。
+ * 捲到離地圖 300px 以內才載入地圖，沒看到就不花查詢額度（規格 5）。
  */
-export function RouteMap({ plan, date }: { plan: Plan; date: string }) {
-  const nodes = routeNodes(plan, date)
+/** 捲到附近才回傳 true，之後一直是 true */
+function useNearViewport() {
+  const ref = useRef<HTMLDivElement>(null)
+  const [near, setNear] = useState(false)
+  useEffect(() => {
+    const el = ref.current
+    if (near || !el) return
+    if (!('IntersectionObserver' in window)) return setNear(true)
+    const io = new IntersectionObserver((es) => es.some((e) => e.isIntersecting) && setNear(true), { rootMargin: '300px' })
+    io.observe(el)
+    return () => io.disconnect()
+  }, [near])
+  return { ref, near }
+}
+
+export function RouteMap({ plan, date, jobId }: { plan: Plan; date: string; jobId: string }) {
+  const nodes = useMemo(() => routeNodes(plan, date), [plan, date])
   const { mode, setMode } = useMapStore()
   const [picked, setPicked] = useState<{ rank: number; n: number } | null>(null)
   const [failed, setFailed] = useState(false)
+  const [unavailable, setUnavailable] = useState<{ rank: number; why: string } | null>(null)
+  const { ref: mapRef, near } = useNearViewport()
+  const onError = useCallback(() => setFailed(true), [])
+  const onUnavailable = useCallback((why: string) => setUnavailable({ rank: plan.rank, why }), [plan.rank])
   const selected = picked?.rank === plan.rank ? picked.n : null // 換方案時清掉選中的站
   const select = (n: number) => setPicked({ rank: plan.rank, n })
   const node = nodes.find((x) => x.n === selected)
@@ -39,11 +59,13 @@ export function RouteMap({ plan, date }: { plan: Plan; date: string }) {
 
   const fallback = !HAS_MAPS_KEY
     ? NO_KEY_TEXT
-    : !hasCoords(nodes)
-      ? '這個方案的餐廳資料來自 Google，沒有可以畫在地圖上的座標，先用路線示意圖。'
+    : !canLocate(nodes)
+      ? '這個方案有地點查不到位置，先用路線示意圖。'
       : failed
         ? 'Google 地圖載入失敗（網路或金鑰設定），先用路線示意圖。'
-        : null
+        : unavailable?.rank === plan.rank
+          ? unavailable.why
+          : null
   const showGoogle = mode === 'google' && !fallback
 
   return (
@@ -67,7 +89,7 @@ export function RouteMap({ plan, date }: { plan: Plan; date: string }) {
 
       <p className="mt-1 text-xs text-muted-foreground">
         {showGoogle
-          ? '站和站之間是直線示意，不是導航路線'
+          ? '走路是實際步行路線；搭車畫起訖站，照我們排的班次'
           : '非實際比例・實線搭車、虛線走路'}
       </p>
 
@@ -78,10 +100,12 @@ export function RouteMap({ plan, date }: { plan: Plan; date: string }) {
         </p>
       )}
 
-      <div className="mt-3">
-        {showGoogle ? (
+      <div className="mt-3" ref={mapRef}>
+        {showGoogle && !near ? (
+          <div className="grid h-72 place-items-center rounded-lg bg-muted text-xs text-muted-foreground">地圖會在捲到這裡時載入</div>
+        ) : showGoogle ? (
           <Suspense fallback={<div className="grid h-72 place-items-center rounded-lg bg-muted text-xs text-muted-foreground">Google 地圖載入中…</div>}>
-            <GoogleRoute key={plan.rank} nodes={nodes} rank={plan.rank} selected={selected} onSelect={select} onError={() => setFailed(true)} />
+            <GoogleRoute key={plan.rank} nodes={nodes} rank={plan.rank} jobId={jobId} selected={selected} onSelect={select} onError={onError} onUnavailable={onUnavailable} />
           </Suspense>
         ) : (
           <SketchRoute nodes={nodes} selected={selected} onSelect={select} />

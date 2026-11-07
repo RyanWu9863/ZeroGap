@@ -121,7 +121,7 @@ function PlanView({ doc }: { doc: SavedPlan }) {
         <aside className="space-y-4 xl:sticky xl:top-20 xl:self-start">
           {/* 真實地圖預設就顯示（規格 D10）；地圖程式下載完前先用舊的示意圖 */}
           <Suspense fallback={<RouteSketch plan={plan} />}>
-            <RouteMap plan={plan} date={request.date} />
+            <RouteMap plan={plan} date={request.date} jobId={doc.job_id} />
           </Suspense>
           <CostPanel plan={plan} budget={request.budget_per_person} swapped={swapped} />
           <PlanActions expired={expired} doc={doc} plan={plan} swapped={swapped} stationName={labels.station} />

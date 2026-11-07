@@ -32,3 +32,10 @@ describe('routeNodes：照時間軸順序整理路線', () => {
     expect(hasCoords(routeNodes(p3, req.date))).toBe(true)
   })
 })
+
+describe('routeNodes：車種', () => {
+  it('搭車到的那一站記下車種', () => {
+    const nodes = routeNodes(mockResult(benchmarkRequest, false).plans[0], benchmarkRequest.date)
+    nodes.forEach((n) => expect(n.line != null).toBe(n.via === 'train'))
+  })
+})

@@ -110,6 +110,15 @@ test.describe('行程路線地圖', () => {
     await expect(map(page).getByRole('button', { name: /第 4 站/ })).toHaveAttribute('aria-pressed', 'true')
   })
 
+  test('地圖：沒有金鑰時說明原因、仍有完整路線連結；捲到附近才出現', async ({ page }) => {
+    await page.goto(resultUrl())
+    await expect(resultsHeading(page)).toBeVisible({ timeout: 30_000 })
+    await map(page).scrollIntoViewIfNeeded()
+    await map(page).getByRole('radio', { name: 'Google 地圖' }).click()
+    await expect(map(page).getByText('這個網站目前沒有開啟 Google 地圖，先用路線示意圖。')).toBeVisible()
+    await expect(map(page).getByRole('link', { name: '在 Google 地圖查看完整路線' })).toHaveAttribute('href', /google\.com\/maps/)
+  })
+
   test('換方案時地圖跟著換，選中的站清掉', async ({ page }) => {
     await page.goto(resultUrl())
     await expect(resultsHeading(page)).toBeVisible({ timeout: 30_000 })
