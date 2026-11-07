@@ -2,6 +2,8 @@ import { MotionConfig } from 'motion/react'
 import { Link, NavLink, Outlet, ScrollRestoration } from 'react-router'
 import { USE_MOCK } from '@/api/client'
 import { Logo } from '@/shared/brand/Logo'
+import { useApplyTheme } from '@/shared/theme/theme'
+import { ThemeToggle } from '@/shared/theme/ThemeToggle'
 import { useDemoStore } from '@/store/demoStore'
 
 const navCls = ({ isActive }: { isActive: boolean }) =>
@@ -9,6 +11,7 @@ const navCls = ({ isActive }: { isActive: boolean }) =>
 
 /** 每一頁共用的外框：導覽列（Q15b）＋內容＋頁尾。 */
 export function AppShell() {
+  useApplyTheme()
   const demo = useDemoStore((s) => s.demo)
   return (
     <MotionConfig reducedMotion="user">
@@ -34,6 +37,7 @@ export function AppShell() {
             <NavLink to="/plan/1" className={navCls}>
               開始規劃
             </NavLink>
+            <ThemeToggle />
           </div>
         </nav>
       </header>

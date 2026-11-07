@@ -43,6 +43,8 @@
   --color-zg-fail-soft: var(--zg-fail-soft);
   --color-zg-est: var(--zg-est-bg);
   --color-zg-est-ink: var(--zg-est-ink);
+  --color-zg-flow: var(--zg-flow);
+  --color-zg-glow: var(--zg-glow);
 
   --radius-sm: calc(var(--radius) * 0.6);
   --radius-md: calc(var(--radius) * 0.8);
@@ -51,28 +53,33 @@
   --radius-2xl: calc(var(--radius) * 1.8);
 }
 
-/* ── A 時刻表（淺色）：紙白底、細黑線、鐵道綠訊號 ── */
+/*
+ * 外觀（規格 4.1）：日＝:root 預設、夜＝[data-theme="night"]。
+ * 青色（--zg-flow）是唯一的主色，代表「接得上的路線」；緩衝的綠、藍、橘、紅是語意色，不是主色。
+ */
 :root {
-  --background: #f7f6f2;
-  --foreground: #14161a;
+  --background: #f4f7f9;
+  --foreground: #0f1820;
   --card: #ffffff;
-  --card-foreground: #14161a;
+  --card-foreground: #0f1820;
   --popover: #ffffff;
-  --popover-foreground: #14161a;
-  --primary: #14161a;
+  --popover-foreground: #0f1820;
+  --primary: #0b7285;
   --primary-foreground: #ffffff;
-  --secondary: #eeede8;
-  --secondary-foreground: #14161a;
-  --muted: #eeede8;
-  --muted-foreground: #5b6068;
-  --accent: #e3f1e9;
-  --accent-foreground: #14161a;
+  --secondary: #e8eef2;
+  --secondary-foreground: #0f1820;
+  --muted: #e8eef2;
+  --muted-foreground: #52606d;
+  --accent: #dcf1f4;
+  --accent-foreground: #0f1820;
   --destructive: #b42318;
-  --border: #d9d7cf;
-  --input: #d9d7cf;
-  --ring: #1e7a4c;
-  --radius: 0.5rem;
+  --border: #d6dee5;
+  --input: #d6dee5;
+  --ring: #0b7285;
+  --radius: 0.75rem;
 
+  --zg-flow: #0b7285;
+  --zg-glow: rgb(11 114 133 / 0.18);
   --zg-ok: #1e7a4c;
   --zg-ok-soft: #e3f1e9;
   --zg-snug: #2f5d8a;
@@ -88,23 +95,65 @@
   --zg-num-font: var(--font-mono);
   --zg-body-font: var(--font-sans);
 
-  /* 圖表：保留＝強調色、淘汰＝弱化灰（已用 dataviz 驗證：色盲區分、3:1 對比） */
-  --zg-chart-keep: #14583a;
-  --zg-chart-drop: #8a8880;
+  /* 圖表：保留＝主色、淘汰＝弱化灰 */
+  --zg-chart-keep: #0b7285;
+  --zg-chart-drop: #8a96a3;
 
-  /* 沉浸式新版（?exp=1）：遮罩和舞台層級，三版共用同一套名字 */
-  --zg-scrim: rgb(20 20 18 / 0.45);
-  --zg-stage-shadow: 0 24px 48px -24px rgb(20 20 18 / 0.35);
+  /* 沉浸式新版（?exp=1）：遮罩和舞台層級，日、夜共用同一套名字 */
+  --zg-scrim: rgb(15 24 32 / 0.45);
+  --zg-stage-shadow: 0 24px 48px -24px rgb(15 24 32 / 0.35);
 }
 
-/* 卡片表面：白卡細線 */
+[data-theme="night"] {
+  color-scheme: dark;
+  --background: #0b1016;
+  --foreground: #eaf1f6;
+  --card: #121a23;
+  --card-foreground: #eaf1f6;
+  --popover: #141d27;
+  --popover-foreground: #eaf1f6;
+  --primary: #62d6e8;
+  --primary-foreground: #04222a;
+  --secondary: #172230;
+  --secondary-foreground: #eaf1f6;
+  --muted: #152029;
+  --muted-foreground: #8a9aa9;
+  --accent: rgb(98 214 232 / 0.14);
+  --accent-foreground: #eaf1f6;
+  --destructive: #ff6b6b;
+  --border: #223040;
+  --input: #2a3a4c;
+  --ring: #62d6e8;
+
+  --zg-flow: #62d6e8;
+  --zg-glow: rgb(98 214 232 / 0.35);
+  --zg-ok: #7fe0a6;
+  --zg-ok-soft: rgb(127 224 166 / 0.12);
+  --zg-snug: #7cc4ff;
+  --zg-snug-soft: rgb(124 196 255 / 0.12);
+  --zg-tight: #ffb547;
+  --zg-tight-soft: rgb(255 181 71 / 0.14);
+  --zg-fail: #ff6b6b;
+  --zg-fail-soft: rgb(255 107 107 / 0.14);
+  --zg-est-bg: rgb(255 214 10 / 0.2);
+  --zg-est-ink: #ffe27a;
+  --zg-chart-keep: #62d6e8;
+  --zg-chart-drop: #5b6878;
+  --zg-scrim: rgb(0 0 0 / 0.6);
+  --zg-stage-shadow: 0 24px 48px -24px rgb(0 0 0 / 0.7);
+}
+
+/* 卡片表面：細線卡片；夜裡加一點內緣高光和深色陰影 */
 @utility zg-surface {
   background: var(--card);
   border: 1px solid var(--border);
   border-radius: var(--radius-xl);
+  [data-theme="night"] & {
+    box-shadow: 0 1px 0 rgb(255 255 255 / 0.04) inset, 0 18px 40px -24px rgb(0 0 0 / 0.7);
+  }
 }
 
-/* 時間、金額用等寬數字，上下對齊像車站時刻表 */
+/* 時間、金額用等寬數字，上下對齊上下對齊好讀 */
 @utility zg-num {
   font-family: var(--zg-num-font);
   font-variant-numeric: tabular-nums;
@@ -136,7 +185,6 @@
     font-family: var(--zg-heading-font);
   }
 }
-
 
 /* 雙頭時間滑桿：兩個 range 疊在一起，只有圓鈕能被點到 */
 .zg-range {

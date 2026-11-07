@@ -21,10 +21,11 @@ const PAGES: { name: string; path: string; ready: (p: Page) => Promise<void> }[]
   { name: '找不到頁面', path: '/no-such-page', ready: (p) => p.getByRole('heading', { name: '找不到這一頁' }).waitFor() },
 ]
 
-for (const pg of PAGES) {
-  test(`無障礙：${pg.name}`, async ({ page }, info) => {
+for (const scheme of ['light', 'dark'] as const) for (const pg of PAGES) {
+  test(`無障礙（${scheme === 'dark' ? '夜' : '日'}）：${pg.name}`, async ({ page }, info) => {
     test.skip(info.project.name !== 'chromium', '只在桌機 Chromium 掃一次')
     test.setTimeout(120_000) // 結果頁要先播完篩選動畫；CI 的 Windows 機器忙時預設 45 秒會不夠（同 experience.e2e.ts 的 AXE_TIMEOUT）
+    await page.emulateMedia({ colorScheme: scheme })
     await page.goto(pg.path)
     await pg.ready(page)
     // 等進場動畫全部跑完（淡入到一半時顏色會比較淡），顏色對比才量得準
