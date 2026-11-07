@@ -191,7 +191,7 @@ export default function DotField({ stats, theme }: { stats: DotStats; theme: The
 
   return (
     <div>
-      <div ref={boxRef} className="h-56 w-full sm:h-72">
+      <div ref={boxRef} className="h-40 w-full sm:h-72">
         <canvas ref={canvasRef} aria-hidden className="block size-full" />
       </div>
       <p className="mt-2 h-4 text-xs leading-4 text-muted-foreground">

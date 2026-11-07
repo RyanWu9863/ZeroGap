@@ -4,7 +4,7 @@ import { taipeiNow } from '@/shared/lib/time'
 import { usesLocation } from '@/shared/lib/origin'
 
 /*
- * 首頁四格快速條件（規格 3.2；2026-11-08 使用者決定四格：商圈、出發、日期、預算）。
+ * 首頁四格快速條件（規格 3.2；2026-11-07 使用者決定四格：商圈、出發、日期、預算）。
  * 其他條件沿用 planStore 目前的值；想改就按「更多條件」進四步精靈。
  */
 export type QuickField = 'area' | 'origin' | 'date' | 'budget'

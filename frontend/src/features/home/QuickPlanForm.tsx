@@ -1,6 +1,7 @@
-import { ArrowRight, CalendarClock, ChevronDown } from 'lucide-react'
+import { ArrowRight, CalendarClock, ChevronDown, RotateCw } from 'lucide-react'
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { Link, useNavigate } from 'react-router'
+import { errorText } from '@/api/errors'
 import { failure, useAreas, useCounties, useCoverage, useStations } from '@/api/queries'
 import { Button } from '@/components/ui/button'
 import { SCENARIOS } from '@/features/intro/scenarios'
@@ -51,14 +52,17 @@ function TriggerFace({ label, disabled, describedBy, onClick, onFocus, onBlur }:
 
 const errorId = (f: QuickField) => `quick-${f}-error`
 
-/** 一格：fieldset＋legend；缺的時候下方紅字（role=alert 會念出來），格子裡會拿到焦點的控制項用 aria-describedby 連到它 */
+/**
+ * 一格：fieldset＋legend；缺的時候下方紅字，格子裡會拿到焦點的控制項用 aria-describedby 連到它。
+ * 紅字本身不是 role=alert：按「排行程」時只用表單上方一個 alert 念第一個缺的格子，不會每格各念一次。
+ */
 function Cell({ field, title, error, children }: { field: QuickField; title: string; error: string | null; children: ReactNode }) {
   return (
     <fieldset id={`quick-${field}`} className="min-w-0 space-y-2">
       <legend className="mb-2 text-sm font-medium">{title}</legend>
       {children}
       {error && (
-        <p id={errorId(field)} role="alert" className="text-sm font-medium text-destructive">
+        <p id={errorId(field)} className="text-sm font-medium text-destructive">
           {error}
         </p>
       )}
@@ -75,16 +79,24 @@ export function QuickPlan() {
   const navigate = useNavigate()
   const request = usePlanStore((s) => s.request)
   const setRequest = usePlanStore((s) => s.setRequest)
+  // 縣市這一格沒用到，但商圈、車站清單要先知道縣市才查得到（useOpenCounty，同一個請求不會多打）。
+  // 縣市載入失敗時這兩份清單永遠不會開始查，所以要留著它的失敗狀態和重試，不然畫面會一直停在「載入中」
   const countiesQuery = useCounties()
   const areasQuery = useAreas()
   const stationsQuery = useStations()
-  const coverageQuery = useCoverage(request.area || undefined)
   const areas = areasQuery.data
   const stations = stationsQuery.data
-  const queries = [countiesQuery, areasQuery, stationsQuery, coverageQuery]
-  const failed = queries.map(failure).find(Boolean) ?? null
+  // 只查清單裡真的有的商圈的場次：存著的商圈代碼過期了，就不去打一個一定失敗的請求，讓使用者在第一格重選
+  const areaKnown = Boolean(areas?.some((a) => a.code === request.area))
+  const coverageArea = areaKnown ? request.area : undefined
+  const coverageQuery = useCoverage(coverageArea)
+  const listQueries = [countiesQuery, areasQuery, stationsQuery]
+  // 清單載入失敗：沒有清單哪一格都選不了，整張卡換成錯誤說明＋重試
+  const failed = listQueries.map(failure).find(Boolean) ?? null
+  // 場次日期載入失敗：只在「哪天」那一格說明＋重試，其他格照樣能改
+  const coverageFailed = failure(coverageQuery)
 
-  const ctx = useDateContext()
+  const ctx = useDateContext({ area: coverageArea })
   // 日期不能用、或今天的出發時間已過 → 換成最近可以排的日子並說明（跟精靈第 2 步同一條規則）
   const { notice, pending, pickDate } = useDateAutoFix(ctx)
 
@@ -101,12 +113,17 @@ export function QuickPlan() {
   }
 
   // 清單或場次日期還在載入、日期還沒自動換好時先按了「排行程」：記著，載入好再送，不吃掉這次點擊
-  const settling = !areas || !stations || (Boolean(request.area) && !ctx.available) || pending
+  const settling = !areas || !stations || (areaKnown && !ctx.available && !coverageFailed) || pending
   const queued = useRef(false)
 
   const submit = () => {
     if (settling) {
       queued.current = true
+      return
+    }
+    // 不知道哪幾天有場次就不送：焦點移到「哪天」那格的重試
+    if (coverageFailed) {
+      document.getElementById('quick-date-retry')?.focus()
       return
     }
     if (missing.length) {
@@ -121,7 +138,7 @@ export function QuickPlan() {
 
   useEffect(() => {
     // 載入失敗時丟掉先前記著的點擊：按「重試」後不要自己送出
-    if (failed) queued.current = false
+    if (failed || coverageFailed) queued.current = false
     if (!queued.current || settling) return
     queued.current = false
     submit()
@@ -131,6 +148,9 @@ export function QuickPlan() {
   const stationLabel = !stations ? '載入車站中…' : usesLocation(request) ? LOCATION_NAME : station ? stationDisplay(station) : '選車站'
   const dateLabel = request.date ? formatDate(request.date) : '選日期'
   const describe = (f: QuickField) => (errorOf(f) ? errorId(f) : undefined)
+  // 只念一次：第一個缺的格子＋還有幾格沒填（各格紅字不是 alert，見 Cell）
+  const firstError = missing.length ? errorOf(missing[0]) : null
+  const alertText = firstError ? (missing.length > 1 ? `${firstError}（還有 ${missing.length - 1} 格沒填）` : firstError) : ''
 
   // 小視窗程式：互動或瀏覽器有空時才載入；暫代按鈕被按、拿到焦點都記下來交給真的按鈕
   const [pickers, setPickers] = useState(pickersModule)
@@ -182,9 +202,12 @@ export function QuickPlan() {
       </h2>
       <div className="zg-surface mt-3 p-4 sm:p-6" onPointerEnter={wakePickers} onPointerDownCapture={wakePickers} onFocusCapture={wakePickers}>
         {failed ? (
-          <LoadError error={failed} onRetry={() => queries.filter((q) => q.isError).forEach((q) => void q.refetch())} compact />
+          <LoadError error={failed} onRetry={() => listQueries.filter((q) => q.isError).forEach((q) => void q.refetch())} compact />
         ) : (
           <>
+            <p role="alert" className="sr-only">
+              {alertText}
+            </p>
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
               <Cell field="area" title="去哪個商圈" error={errorOf('area')}>
                 {areas ? (
@@ -217,7 +240,7 @@ export function QuickPlan() {
                 {pickers ? (
                   <pickers.DatePopover
                     label={dateLabel}
-                    hint={request.area ? undefined : '先選商圈，才知道哪幾天有場次。'}
+                    hint={areaKnown ? undefined : '先選商圈，才知道哪幾天有場次。'}
                     available={ctx.available ? [...ctx.available] : []}
                     value={request.date}
                     today={ctx.today}
@@ -226,6 +249,20 @@ export function QuickPlan() {
                   />
                 ) : (
                   face('date', dateLabel)
+                )}
+                {coverageFailed != null && (
+                  <div role="alert" className="space-y-1.5 text-sm">
+                    <p className="font-medium text-destructive">{errorText(coverageFailed).title}</p>
+                    <p className="text-xs text-muted-foreground">查不到哪幾天有場次，所以還不能排。</p>
+                    <button
+                      id="quick-date-retry"
+                      type="button"
+                      onClick={() => void coverageQuery.refetch()}
+                      className="inline-flex h-8 items-center gap-1.5 rounded-lg border px-3 text-xs hover:bg-muted pointer-coarse:h-10"
+                    >
+                      <RotateCw className="size-3.5" aria-hidden="true" /> 重試
+                    </button>
+                  </div>
                 )}
                 {notice && (
                   <p className="flex items-start gap-1.5 text-xs text-muted-foreground" role="status">

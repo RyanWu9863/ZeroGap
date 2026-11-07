@@ -40,23 +40,26 @@ test.describe('首頁', () => {
   })
 
   test('四格填好按「排行程」直接到結果頁；之後首頁改用上次的真數字', async ({ page }) => {
+    await page.clock.setFixedTime(new Date('2026-11-08T10:00:00+08:00')) // 白天：不走晚上換日期的路
     await page.goto('/')
     await page.getByRole('group', { name: '每人預算' }).getByRole('radio', { name: /1,000/ }).click()
     await page.getByRole('button', { name: '排行程' }).click()
     await expect(page).toHaveURL(/\/result/)
     await expect(page.getByRole('heading', { name: /每一段都接得上/ })).toBeVisible({ timeout: 30_000 })
     await page.goto('/')
-    await expect(page.getByText(/你上次排的/)).toBeVisible()
+    await expect(page.getByText(/你上次排的（假資料/)).toBeVisible() // e2e 跑假後端：數字要標「假資料」
   })
 
   test('缺商圈時不送出，焦點跳到那一格並說明', async ({ page }) => {
+    await page.clock.setFixedTime(new Date('2026-11-08T10:00:00+08:00')) // 白天：不走晚上換日期的路
     await page.addInitScript((v) => localStorage.setItem('zg-plan', v), JSON.stringify(stored({ area: '' })))
     await page.goto('/')
     const area = page.getByRole('group', { name: '去哪個商圈' })
     await expect(area.getByRole('radio').first()).toBeVisible()
     await page.getByRole('button', { name: '排行程' }).click()
     await expect(page).toHaveURL(/\/$/)
-    await expect(page.getByRole('alert').filter({ hasText: '請選要去的商圈' })).toBeVisible()
+    await expect(page.getByRole('alert').filter({ hasText: '請選要去的商圈' })).toHaveCount(1) // 只念一次，不是每格各一個 alert
+    await expect(page.getByRole('radiogroup', { name: '商圈' })).not.toHaveAttribute('aria-describedby', /.+/) // 說明只掛在選項上
     // 焦點落在的那個控制項要連到錯誤說明，螢幕閱讀器才念得到
     const focused = area.getByRole('radio').first()
     await expect(focused).toBeFocused()
@@ -91,6 +94,30 @@ test.describe('首頁', () => {
     await expect(page.getByRole('group', { name: '選擇日期' })).toBeHidden()
   })
 
+  test('下面的「開始規劃」帶回四格、焦點在第一格；旁邊可改用四步精靈', async ({ page }) => {
+    await page.clock.setFixedTime(new Date('2026-11-08T10:00:00+08:00'))
+    await page.goto('/')
+    const first = page.getByRole('group', { name: '去哪個商圈' }).getByRole('radio').first()
+    await expect(first).toBeVisible()
+    await page.getByRole('link', { name: /^開始規劃/ }).click()
+    await expect(first).toBeFocused()
+    await expect(page).toHaveURL(/\/$/)
+    await page.getByRole('link', { name: '或用四步精靈規劃' }).click()
+    await expect(page).toHaveURL(/\/plan\/1/)
+  })
+
+  test('場次日期載入失敗：只在「哪天」那格說明＋重試，其他格照樣能用', async ({ page }) => {
+    await page.clock.setFixedTime(new Date('2026-11-08T10:00:00+08:00'))
+    await page.goto('/?mock=coverage_error') // 假資料情境：前 2 次失敗（含自動重試一次）
+    const date = page.getByRole('group', { name: '哪天' })
+    await expect(date.getByRole('alert')).toContainText('現在連不上排程服務')
+    await expect(page.getByRole('group', { name: '去哪個商圈' }).getByRole('radio').first()).toBeVisible() // 整張卡沒被換掉
+    await page.getByRole('button', { name: '排行程' }).click()
+    await expect(date.getByRole('button', { name: '重試' })).toBeFocused() // 不知道哪幾天有場次就不送
+    await date.getByRole('button', { name: '重試' }).click()
+    await expect(date.getByRole('alert')).toHaveCount(0)
+  })
+
   test('「更多條件」進四步精靈', async ({ page }) => {
     await page.goto('/')
     await page.getByRole('link', { name: /更多條件/ }).click()
@@ -98,6 +125,7 @@ test.describe('首頁', () => {
   })
 
   test('常見情境只改條件、不跳頁', async ({ page }) => {
+    await page.clock.setFixedTime(new Date('2026-11-08T10:00:00+08:00')) // 白天：不走晚上換日期的路
     await page.goto('/')
     await expect(page.getByRole('group', { name: '去哪個商圈' }).getByRole('radio').first()).toBeVisible() // 商圈載入好、版面不再動才點
     await page.getByRole('button', { name: /小資之夜/ }).click()
@@ -128,10 +156,18 @@ test.describe('首頁', () => {
     await expect(date.getByRole('button', { name: /11\/9（一）/ })).toBeVisible()
   })
 
-  test('原本的日期沒有場次：換成最近可以排的日子並說明', async ({ page }) => {
+  test('原本的日期已經過了：換成最近可以排的日子並說明', async ({ page }) => {
     await page.clock.setFixedTime(new Date('2026-11-08T10:00:00+08:00'))
     await page.addInitScript((v) => localStorage.setItem('zg-plan', v), JSON.stringify(stored({ date: '2026-11-02' })))
     await page.goto('/')
-    await expect(page.getByRole('group', { name: '哪天' }).getByText('原本的日期沒有場次，換成最近可以排的 11/8（日）')).toBeVisible()
+    await expect(page.getByRole('group', { name: '哪天' }).getByText('原本的日期已經過了，換成最近可以排的 11/8（日）')).toBeVisible()
+  })
+
+  test('那天沒有場次：換成最近可以排的日子並說明', async ({ page }) => {
+    await page.clock.setFixedTime(new Date('2026-11-08T10:00:00+08:00'))
+    // 假資料從今天起 14 天都有場次，只故意空掉第 4 天（今天＋3＝11/11），見 mocks/catalog.ts
+    await page.addInitScript((v) => localStorage.setItem('zg-plan', v), JSON.stringify(stored({ date: '2026-11-11' })))
+    await page.goto('/')
+    await expect(page.getByRole('group', { name: '哪天' }).getByText('那天沒有場次，換成最近可以排的 11/8（日）')).toBeVisible()
   })
 })

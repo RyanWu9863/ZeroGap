@@ -13,7 +13,7 @@
 ## Global Constraints
 
 - 工作資料夾 `~/Desktop/JEV/ZeroGap/team-redesign`，分支 `feat/home-quick`，**從 `feat/frontend-foundation`（PR #3）開**；PR 的 base 也是 `feat/frontend-foundation`。
-- 首頁快速條件是**四格**：去哪個商圈、從哪出發、哪天、每人預算（2026-11-08 使用者決定；車站沒有座標，前端算不出最近的商圈）。其他條件沿用 `planStore` 目前的值（第一次是基準案例：17:00–23:00、先看電影、走路 12 分…）。
+- 首頁快速條件是**四格**：去哪個商圈、從哪出發、哪天、每人預算（2026-11-07 使用者決定；車站沒有座標，前端算不出最近的商圈）。其他條件沿用 `planStore` 目前的值（第一次是基準案例：17:00–23:00、先看電影、走路 12 分…）。
 - 首頁數字：這台瀏覽器排過（`zg-plan-runs` 的 `lastDoneKey` 有結果）就用**上次的真數字**；沒排過就用示範數字 **73,038 → 1,201 → 3**（來自 `src/api/__fixtures__/backend-plan-result.json` 的真後端結果），畫面標「示範」。
 - 點陣：一點＝一種組合；點太多時抽樣，手機（寬度 < 640px）最多 **4,000** 點、電腦最多 **12,000** 點；畫面照實寫「每點約代表 N 種組合」。只有三層（全部組合 → 每段接得上 → 給你的方案），**不編造五道關卡各自的剔除數**（後端沒給）。
 - 每個動畫都有文字版；`prefers-reduced-motion` 時直接畫最後一格。Canvas `aria-hidden`。
@@ -31,7 +31,7 @@
 | `frontend/src/features/home/quickPlan.ts`＋`.test.ts` | Task 3：快速條件的日期、缺什麼（純函式） |
 | `frontend/src/features/home/DotField.tsx` | Task 4：Canvas 點陣動畫 |
 | `frontend/src/features/home/HomeHero.tsx` | Task 4：標題＋數字＋點陣 |
-| `frontend/src/features/home/QuickPlan.tsx` | Task 5：四格表單＋常見情境 |
+| `frontend/src/features/home/QuickPlanForm.tsx` | Task 5：四格表單＋常見情境（不叫 `QuickPlan.tsx`：會跟 `quickPlan.ts` 在不分大小寫的檔案系統撞名） |
 | `frontend/src/features/intro/IntroPage.tsx` | Task 5：換成新元件 |
 | `frontend/src/features/intro/Hero.tsx` | Task 5：刪除（情境卡搬進 QuickPlan） |
 | `frontend/e2e/home.e2e.ts` | Task 5：首頁流程測試 |
@@ -319,7 +319,7 @@ import { nearestAvailable } from '@/shared/lib/dates'
 import { usesLocation } from '@/shared/lib/origin'
 
 /*
- * 首頁四格快速條件（規格 3.2；2026-11-08 使用者決定四格：商圈、出發、日期、預算）。
+ * 首頁四格快速條件（規格 3.2；2026-11-07 使用者決定四格：商圈、出發、日期、預算）。
  * 其他條件沿用 planStore 目前的值；想改就按「更多條件」進四步精靈。
  */
 export type QuickField = 'area' | 'origin' | 'date' | 'budget'
@@ -537,7 +537,7 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 - Modify：`frontend/README.md`、`docs/superpowers/specs/2026-11-07-frontend-redesign-design.md`（第 11 節交付表第 3 批標 ✅＋第 2 節加 D13）、這份計畫的進度表
 
 - [ ] **Step 1：導讀 10**（繁體中文、比喻、短句；給組員和使用者）：1. 首頁長什麼樣（四格、按一下就排）2. 點陣剪枝在說什麼（比喻：一面燈牆，每盞燈是一種組合；照真實比例熄燈；為什麼只有三層）3. 數字從哪來（上次的真結果／示範）4. 手機和效能（抽樣上限、延遲載入、`npm run perf` 的實際數字）5. 減少動態和無障礙 6. 改了哪些檔案。
-- [ ] **Step 2：規格**：第 2 節決定表加一列 `| D13 | 首頁快速條件改成四格：商圈、出發、日期、預算（車站沒有座標，前端算不出最近商圈；2026-11-08 使用者決定） |`；3.2 第 1 步的「三格快速條件」改成「四格」並刪掉「商圈依出發點」；第 11 節第 3 批那列後面加「✅（PR 待開）」。
+- [ ] **Step 2：規格**：第 2 節決定表加一列 `| D13 | 首頁快速條件改成四格：商圈、出發、日期、預算（車站沒有座標，前端算不出最近商圈；2026-11-07 使用者決定） |`；3.2 第 1 步的「三格快速條件」改成「四格」並刪掉「商圈依出發點」；第 11 節第 3 批那列後面加「✅（PR 待開）」。
 - [ ] **Step 3：README**：首頁一節更新成新的樣子＋導讀 10 連結。
 - [ ] **Step 4：進度表**（下面）填上各 Task 的 commit。
 - [ ] **Step 5：Commit**：`docs(frontend): 導讀 10 首頁；規格 D13 四格；README、計畫進度`（結尾同樣的 Co-Authored-By）。

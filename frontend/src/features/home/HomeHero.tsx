@@ -1,14 +1,15 @@
 import { lazy, Suspense, useEffect, useState } from 'react'
+import { USE_MOCK } from '@/api/client'
 import { resolveTheme, useSystemDark, useThemeStore } from '@/shared/theme/theme'
 import { useHeroStats } from './heroStats'
 
 const DotField = lazy(() => import('./DotField'))
 
-/** 點陣載入前先佔好同樣的高度（畫布＋下面那行小字），載入後版面不跳 */
+/** 點陣載入前先佔好同樣的高度（畫布＋下面那行小字，跟 DotField 一樣：手機 h-40、sm 以上 h-72），載入後版面不跳 */
 function DotFieldPlaceholder() {
   return (
     <div aria-hidden>
-      <div className="h-56 sm:h-72" />
+      <div className="h-40 sm:h-72" />
       <div className="mt-2 h-4" />
     </div>
   )
@@ -48,6 +49,9 @@ export function HomeHero() {
     stats.finishedAt === null
       ? null
       : new Date(stats.finishedAt).toLocaleString('zh-TW', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false })
+  // 假後端排出來的數字是編的，不能當成「你上次排的」真數字（手機上看不到「假資料」徽章，這裡自己標）
+  const notes = [USE_MOCK ? '假資料' : null, when].filter(Boolean).join('，')
+  const caption = stats.sample ? '示範：一次真實後端規劃的數字' : notes ? `你上次排的（${notes}）` : '你上次排的'
 
   return (
     <section className="mx-auto max-w-6xl px-4 pt-12 sm:px-6 sm:pt-20">
@@ -73,7 +77,7 @@ export function HomeHero() {
           {fmt(stats.plans)} <span className="text-base font-medium sm:text-xl">個給你</span>
         </span>
       </p>
-      <p className="mt-3 text-sm text-muted-foreground">{stats.sample ? '示範：一次真實後端規劃的數字' : when ? `你上次排的（${when}）` : '你上次排的'}</p>
+      <p className="mt-3 text-sm text-muted-foreground">{caption}</p>
 
       <div className="mt-8">
         {ready ? (

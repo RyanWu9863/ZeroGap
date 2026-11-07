@@ -10,6 +10,7 @@ const resultUrl = (extra: string) => `/result?from=103&to=taoyuan&t=17:00-23:00&
 const resultsHeading = (page: Page) => page.getByRole('heading', { name: '這 3 個行程，每一段都接得上。' })
 
 test('有解：介紹頁 → 四步精靈 → 等待畫面 → 三個方案，估計值是黃底（A8）、Google 標誌看得到', async ({ page }) => {
+  await page.clock.setFixedTime(new Date('2026-11-08T10:00:00+08:00')) // 白天：不走晚上換日期的路
   await watchFor(page, ['篩出每一段都接得上的組合'])
   await page.goto('/')
   await page.getByRole('main').getByRole('link', { name: /更多條件/ }).click()
@@ -52,7 +53,7 @@ test('日期過期：舊網址先提示再一鍵重排；精靈把舊日期換�
   await page.goto(resultUrl('date=2026-10-30'))
   await expect(page.getByRole('heading', { name: '這組行程的日期已經過了' })).toBeVisible()
   await page.goto('/plan/2')
-  await expect(page.getByText('原本的日期沒有場次，換成最近可以排的 11/2（一）')).toBeVisible()
+  await expect(page.getByText('原本的日期已經過了，換成最近可以排的 11/2（一）')).toBeVisible()
   await expect(page.getByRole('group', { name: '選擇日期' }).getByRole('button', { name: '11/2（一）' })).toHaveAttribute('aria-pressed', 'true')
   await expect(page.getByRole('button', { name: '下一步' })).toBeEnabled()
 })

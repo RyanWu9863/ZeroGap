@@ -1,10 +1,13 @@
 import { useEffect, useState } from 'react'
 import { dateIssue, quickDate } from '@/features/home/quickPlan'
+import { isPastDate } from '@/shared/lib/dates'
 import { formatDate } from '@/shared/lib/format'
 import { usePlanStore } from '@/store/planStore'
 import type { DateContext } from './validation'
 
-type Replaced = { issue: 'past-departure' | 'unusable'; from: string; departure: string }
+/** 換掉的原因：今天出發時間已過、原本的日期已過、那天沒有場次 */
+type Reason = 'past-departure' | 'past-date' | 'no-showtimes'
+type Replaced = { reason: Reason; from: string; departure: string }
 
 /**
  * 日期自動修正（首頁四格、精靈第 2 步共用，同一條規則）：
@@ -23,18 +26,19 @@ export function useDateAutoFix(ctx: DateContext & { today: string }) {
   const next = fix ? quickDate(request.date, ctx, request.earliest_departure) : request.date
   // 換掉之前先記下原因（在畫面渲染時記，不另外跑 effect）
   if (issue && fix && request.date && next !== request.date && replaced?.from !== request.date) {
-    setReplaced({ issue, from: request.date, departure: request.earliest_departure })
+    const reason: Reason = issue === 'past-departure' ? 'past-departure' : isPastDate(request.date, ctx.today) ? 'past-date' : 'no-showtimes'
+    setReplaced({ reason, from: request.date, departure: request.earliest_departure })
   }
   useEffect(() => {
     if (next !== request.date) setRequest({ date: next })
   }, [next, request.date, setRequest])
 
-  const notice =
-    replaced && request.date
-      ? replaced.issue === 'past-departure'
-        ? `今天 ${replaced.departure} 已經過了，換成最近可以排的 ${formatDate(request.date)}`
-        : `原本的日期沒有場次，換成最近可以排的 ${formatDate(request.date)}`
-      : null
+  const why: Record<Reason, string> = {
+    'past-departure': `今天 ${replaced?.departure} 已經過了`,
+    'past-date': '原本的日期已經過了',
+    'no-showtimes': '那天沒有場次',
+  }
+  const notice = replaced && request.date ? `${why[replaced.reason]}，換成最近可以排的 ${formatDate(request.date)}` : null
 
   return {
     notice,

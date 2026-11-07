@@ -54,12 +54,12 @@ export function Chips<T extends string | number | null>({ options, value, onChan
   value: T
   onChange: (v: T) => void
   label: string
-  /** 錯誤說明的 id：掛在每個選項上，焦點落在哪個選項都念得到 */
+  /** 錯誤說明的 id：只掛在每個選項上（不掛在整組上，免得進到這一組時又多念一次），焦點落在哪個選項都念得到 */
   describedBy?: string
   invalid?: boolean
 }) {
   return (
-    <div role="radiogroup" aria-label={label} aria-invalid={invalid || undefined} aria-describedby={describedBy} className="flex flex-wrap gap-2">
+    <div role="radiogroup" aria-label={label} aria-invalid={invalid || undefined} className="flex flex-wrap gap-2">
       {options.map((o) => (
         <button
           key={String(o.value)}
