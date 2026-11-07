@@ -56,8 +56,39 @@ test.describe('首頁', () => {
     await expect(area.getByRole('radio').first()).toBeVisible()
     await page.getByRole('button', { name: '排行程' }).click()
     await expect(page).toHaveURL(/\/$/)
-    await expect(page.getByText('請選要去的商圈')).toBeVisible()
-    await expect(area.getByRole('radio').first()).toBeFocused()
+    await expect(page.getByRole('alert').filter({ hasText: '請選要去的商圈' })).toBeVisible()
+    // 焦點落在的那個控制項要連到錯誤說明，螢幕閱讀器才念得到
+    const focused = area.getByRole('radio').first()
+    await expect(focused).toBeFocused()
+    await expect(focused).toHaveAccessibleDescription('請選要去的商圈')
+    const id = await focused.getAttribute('aria-describedby')
+    await expect(page.locator(`#${id}`)).toHaveText('請選要去的商圈')
+  })
+
+  test('小視窗的程式還沒載入就按「從哪出發」：載入好直接打開', async ({ page }) => {
+    await page.route(/QuickPickers/, async (r) => {
+      await new Promise((res) => setTimeout(res, 1500))
+      await r.continue()
+    })
+    await page.goto('/')
+    const trigger = page.getByRole('group', { name: '從哪出發' }).getByRole('button')
+    await expect(trigger).not.toHaveAttribute('aria-haspopup', /.+/) // 還是暫代按鈕
+    await trigger.click()
+    await expect(page.getByRole('radiogroup', { name: '出發站' })).toBeVisible()
+  })
+
+  test('焦點在暫代按鈕上，小視窗程式載入後焦點移到真的按鈕', async ({ page }) => {
+    await page.route(/QuickPickers/, async (r) => {
+      await new Promise((res) => setTimeout(res, 1500))
+      await r.continue()
+    })
+    await page.goto('/')
+    const trigger = page.getByRole('group', { name: '哪天' }).getByRole('button')
+    await expect(trigger).not.toHaveAttribute('aria-haspopup', /.+/)
+    await trigger.focus()
+    await expect(trigger).toHaveAttribute('aria-haspopup', /.+/, { timeout: 15_000 }) // 換成真的按鈕
+    await expect(trigger).toBeFocused()
+    await expect(page.getByRole('group', { name: '選擇日期' })).toBeHidden()
   })
 
   test('「更多條件」進四步精靈', async ({ page }) => {

@@ -1,5 +1,5 @@
 import { ArrowRight, CalendarClock, ChevronDown } from 'lucide-react'
-import { lazy, Suspense, useEffect, useRef, useState, type ReactNode } from 'react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { Link, useNavigate } from 'react-router'
 import { failure, useAreas, useCounties, useCoverage, useStations } from '@/api/queries'
 import { Button } from '@/components/ui/button'
@@ -13,30 +13,52 @@ import { atStation, LOCATION_NAME, usesLocation } from '@/shared/lib/origin'
 import { LoadError } from '@/shared/ui/LoadError'
 import { usePlanStore } from '@/store/planStore'
 import { triggerClass } from './pickerTrigger'
+import type { PickerHandoff } from './QuickPickers'
 import { dateIssue, quickMissing, type QuickField } from './quickPlan'
 
-// 小視窗（Base UI Popover＋車站清單＋月曆）延遲載入，不拖慢首頁 LCP；載入前先畫一樣的按鈕
-const StationPopover = lazy(() => import('./QuickPickers').then((m) => ({ default: m.StationPopover })))
-const DatePopover = lazy(() => import('./QuickPickers').then((m) => ({ default: m.DatePopover })))
+/*
+ * 小視窗（Base UI Popover＋車站清單＋月曆）延遲載入，不拖慢首頁 LCP（P2-4）。
+ * 載入前先畫一樣的暫代按鈕；滑鼠移進卡片、焦點進卡片、按下去、或瀏覽器有空時才開始載入。
+ * 暫代按鈕被按了就記著，載入好直接打開；焦點在暫代按鈕上，載入好就移到真的按鈕。
+ * 不用 React.lazy：開始載入時不能換掉按鈕（按下去到放開之間按鈕被換掉，Safari 就收不到這次點擊），
+ * 所以等程式真的載入好才一次換成真的按鈕。
+ */
+type Pickers = typeof import('./QuickPickers')
+let pickersModule: Pickers | null = null
+let pickersLoading: Promise<Pickers> | null = null
+const loadPickers = () =>
+  (pickersLoading ??= import('./QuickPickers').then((m) => (pickersModule = m)).catch((e) => {
+    pickersLoading = null // 下次互動再試
+    throw e
+  }))
+type PickerField = 'origin' | 'date'
 
-function TriggerFace({ label }: { label: ReactNode }) {
+function TriggerFace({ label, disabled, describedBy, onClick, onFocus, onBlur }: {
+  label: ReactNode
+  disabled?: boolean
+  describedBy?: string
+  onClick: () => void
+  onFocus: () => void
+  onBlur: () => void
+}) {
   return (
-    <button type="button" className={triggerClass} aria-disabled="true">
+    <button type="button" className={triggerClass} disabled={disabled} aria-describedby={describedBy} onClick={onClick} onFocus={onFocus} onBlur={onBlur}>
       <span className="truncate">{label}</span>
       <ChevronDown className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
     </button>
   )
 }
 
-/** 一格：fieldset＋legend；缺的時候下方紅字，用 aria-describedby 連起來 */
+const errorId = (f: QuickField) => `quick-${f}-error`
+
+/** 一格：fieldset＋legend；缺的時候下方紅字（role=alert 會念出來），格子裡會拿到焦點的控制項用 aria-describedby 連到它 */
 function Cell({ field, title, error, children }: { field: QuickField; title: string; error: string | null; children: ReactNode }) {
-  const errorId = `quick-${field}-error`
   return (
-    <fieldset id={`quick-${field}`} className="min-w-0 space-y-2" aria-describedby={error ? errorId : undefined}>
+    <fieldset id={`quick-${field}`} className="min-w-0 space-y-2">
       <legend className="mb-2 text-sm font-medium">{title}</legend>
       {children}
       {error && (
-        <p id={errorId} className="text-sm font-medium text-destructive">
+        <p id={errorId(field)} role="alert" className="text-sm font-medium text-destructive">
           {error}
         </p>
       )}
@@ -98,6 +120,8 @@ export function QuickPlan() {
   }
 
   useEffect(() => {
+    // 載入失敗時丟掉先前記著的點擊：按「重試」後不要自己送出
+    if (failed) queued.current = false
     if (!queued.current || settling) return
     queued.current = false
     submit()
@@ -106,13 +130,57 @@ export function QuickPlan() {
   const station = stations?.find((s) => s.id === request.origin_station_id)
   const stationLabel = !stations ? '載入車站中…' : usesLocation(request) ? LOCATION_NAME : station ? stationDisplay(station) : '選車站'
   const dateLabel = request.date ? formatDate(request.date) : '選日期'
+  const describe = (f: QuickField) => (errorOf(f) ? errorId(f) : undefined)
+
+  // 小視窗程式：互動或瀏覽器有空時才載入；暫代按鈕被按、拿到焦點都記下來交給真的按鈕
+  const [pickers, setPickers] = useState(pickersModule)
+  const [requested, setRequested] = useState<PickerField | null>(null)
+  const [faceFocus, setFaceFocus] = useState<PickerField | null>(null)
+  const wakePickers = () => {
+    if (!pickers) loadPickers().then(setPickers, () => {}) // 載入失敗就維持暫代按鈕，下次互動再載
+  }
+  useEffect(() => {
+    if (pickersModule) return
+    const go = () => void loadPickers().then(setPickers, () => {})
+    if ('requestIdleCallback' in window) {
+      const id = requestIdleCallback(go, { timeout: 3000 })
+      return () => cancelIdleCallback(id)
+    }
+    const t = setTimeout(go, 1500) // Safari 沒有 requestIdleCallback
+    return () => clearTimeout(t)
+  }, [])
+  const handoff = (f: PickerField): PickerHandoff => ({
+    open: requested === f,
+    focus: faceFocus === f,
+    describedBy: describe(f),
+    taken: () => {
+      setRequested((cur) => (cur === f ? null : cur))
+      setFaceFocus((cur) => (cur === f ? null : cur))
+    },
+  })
+  const face = (f: PickerField, label: string, disabled?: boolean) => (
+    <TriggerFace
+      label={label}
+      disabled={disabled}
+      describedBy={describe(f)}
+      onClick={() => {
+        setRequested(f)
+        wakePickers()
+      }}
+      onFocus={() => {
+        setFaceFocus(f)
+        wakePickers()
+      }}
+      onBlur={() => setFaceFocus((cur) => (cur === f ? null : cur))}
+    />
+  )
 
   return (
     <section aria-labelledby="quick-title" className="mx-auto max-w-6xl px-4 pt-12 sm:px-6">
       <h2 id="quick-title" className="text-sm font-medium text-muted-foreground">
         排一個晚上
       </h2>
-      <div className="zg-surface mt-3 p-4 sm:p-6">
+      <div className="zg-surface mt-3 p-4 sm:p-6" onPointerEnter={wakePickers} onPointerDownCapture={wakePickers} onFocusCapture={wakePickers}>
         {failed ? (
           <LoadError error={failed} onRetry={() => queries.filter((q) => q.isError).forEach((q) => void q.refetch())} compact />
         ) : (
@@ -120,7 +188,7 @@ export function QuickPlan() {
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
               <Cell field="area" title="去哪個商圈" error={errorOf('area')}>
                 {areas ? (
-                  <Chips label="商圈" value={request.area} onChange={(area) => setRequest({ area })} options={areas.map((a) => ({ value: a.code, label: a.name }))} />
+                  <Chips label="商圈" describedBy={describe('area')} invalid={Boolean(errorOf('area'))} value={request.area} onChange={(area) => setRequest({ area })} options={areas.map((a) => ({ value: a.code, label: a.name }))} />
                 ) : (
                   // 載入中先佔好跟商圈按鈕差不多的位置，載入後下面的版面不跳
                   <div className="flex flex-wrap gap-2" role="status" aria-label="載入商圈中">
@@ -132,22 +200,33 @@ export function QuickPlan() {
               </Cell>
 
               <Cell field="origin" title="從哪出發" error={errorOf('origin')}>
-                <Suspense fallback={<TriggerFace label={stationLabel} />}>
-                  <StationPopover label={stationLabel} stations={stations} value={request.origin_station_id ?? 0} onChange={(id) => setRequest(atStation(id))} />
-                </Suspense>
+                {pickers ? (
+                  <pickers.StationPopover
+                    label={stationLabel}
+                    stations={stations}
+                    value={request.origin_station_id ?? 0}
+                    onChange={(id) => setRequest(atStation(id))}
+                    handoff={handoff('origin')}
+                  />
+                ) : (
+                  face('origin', stationLabel, !stations)
+                )}
               </Cell>
 
               <Cell field="date" title="哪天" error={errorOf('date')}>
-                <Suspense fallback={<TriggerFace label={dateLabel} />}>
-                  <DatePopover
+                {pickers ? (
+                  <pickers.DatePopover
                     label={dateLabel}
                     hint={request.area ? undefined : '先選商圈，才知道哪幾天有場次。'}
                     available={ctx.available ? [...ctx.available] : []}
                     value={request.date}
                     today={ctx.today}
                     onChange={pickDate}
+                    handoff={handoff('date')}
                   />
-                </Suspense>
+                ) : (
+                  face('date', dateLabel)
+                )}
                 {notice && (
                   <p className="flex items-start gap-1.5 text-xs text-muted-foreground" role="status">
                     <CalendarClock className="mt-px size-3.5 shrink-0 text-zg-tight" aria-hidden="true" />
@@ -159,6 +238,8 @@ export function QuickPlan() {
               <Cell field="budget" title="每人預算" error={errorOf('budget')}>
                 <Chips
                   label="每人預算"
+                  describedBy={describe('budget')}
+                  invalid={Boolean(errorOf('budget'))}
                   value={request.budget_per_person}
                   onChange={(budget_per_person) => setRequest({ budget_per_person })}
                   options={BUDGET_OPTIONS.map((v) => ({ value: v, label: formatMoney(v) }))}

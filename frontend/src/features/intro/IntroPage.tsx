@@ -14,6 +14,7 @@ export function IntroPage() {
     const prefetch = () => {
       void import('@/features/wizard/WizardPage')
       void import('@/features/result/ResultPage')
+      void import('@/features/home/QuickPickers') // 首頁四格的小視窗
     }
     if ('requestIdleCallback' in window) {
       const id = requestIdleCallback(prefetch, { timeout: 3000 })
