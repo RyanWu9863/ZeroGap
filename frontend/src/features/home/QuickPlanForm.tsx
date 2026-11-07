@@ -1,5 +1,5 @@
 import { ArrowRight, CalendarClock, ChevronDown, RotateCw } from 'lucide-react'
-import { useEffect, useState, type ReactNode } from 'react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { Link, useNavigate } from 'react-router'
 import { errorText } from '@/api/errors'
 import { failure, useAreas, useCounties, useCoverage, useStations } from '@/api/queries'
@@ -15,7 +15,7 @@ import { LoadError } from '@/shared/ui/LoadError'
 import { usePlanStore } from '@/store/planStore'
 import { triggerClass } from './pickerTrigger'
 import type { PickerHandoff } from './QuickPickers'
-import { dateIssue, quickMissing, type QuickField } from './quickPlan'
+import { AREA_NAME_LENGTHS, dateIssue, quickMissing, type QuickField } from './quickPlan'
 
 /*
  * 小視窗（Base UI Popover＋車站清單＋月曆）延遲載入，不拖慢首頁 LCP（P2-4）。
@@ -54,15 +54,6 @@ const errorId = (f: QuickField) => `quick-${f}-error`
 
 /** 先按了「排行程」、清單還沒載入好：最多等幾毫秒，超過就說明並給「再試一次」 */
 const SUBMIT_WAIT_MS = 10_000
-
-/**
- * 商圈清單載入前的佔位：跟真的商圈按鈕同樣的外框和字級，裡面放同樣字數的全形空白，
- * 寬度、換行和真的一樣，載入後下面的「排行程」不會跳。
- * 佔位比真的寬時（2026-11-08 以前），iPad、手機上佔兩行、真的只有一行，「排行程」載入後往上跳 44～48px；
- * 按下去到放開之間剛好跳，放開的位置已經不在按鈕上，這次點擊就不見了。
- * 字數照目前開放的商圈：桃園區、中壢、八德、蘆竹（南崁）。商圈改了這裡跟著改（e2e「清單載入前後「排行程」不會移動」會抓到）。
- */
-const AREA_NAME_LENGTHS = [3, 2, 2, 6]
 
 /**
  * 一格：fieldset＋legend；缺的時候下方紅字，格子裡會拿到焦點的控制項用 aria-describedby 連到它。
@@ -129,6 +120,8 @@ export function QuickPlan() {
   const settling = !areas || !stations || (areaKnown && !ctx.available && !coverageFailed) || pending
   const [waiting, setWaiting] = useState(false)
   const [slow, setSlow] = useState(false)
+  // 已經換頁了：同步擋住第二次送出（effect 和點擊在同一輪各送一次也不會換兩次頁）
+  const sent = useRef(false)
 
   const submit = () => {
     if (settling) {
@@ -148,13 +141,17 @@ export function QuickPlan() {
       document.getElementById(`quick-${missing[0]}`)?.querySelector<HTMLElement>('button:not([disabled])')?.focus()
       return
     }
+    if (sent.current) return
+    sent.current = true
     // 用目前位置出發：交給精靈最後一步，送出時重新定位（首頁不處理定位）
     if (usesLocation(request)) return navigate('/plan/4')
     navigate('/result', { state: { replay: true } })
   }
 
-  // 載入失敗時丟掉先前記著的點擊：按「重試」後不要自己送出（在畫面渲染時改，不另外跑 effect）
+  // 在畫面渲染時改，不另外跑 effect：
+  // 載入失敗時丟掉先前記著的點擊（按「重試」後不要自己送出）；等的東西好了就收起「資料還沒載入好」，之後不會再冒出來
   if (waiting && (failed || coverageFailed)) setWaiting(false)
+  if (slow && !settling) setSlow(false)
   // 等的東西都好了：送出記著的點擊
   useEffect(() => {
     if (waiting && !settling) submit() // eslint-disable-line react/set-state-in-effect -- 送出（換頁）是這個 effect 要做的事，submit 順手收起「準備中」
@@ -167,11 +164,6 @@ export function QuickPlan() {
     }, SUBMIT_WAIT_MS)
     return () => clearTimeout(t)
   }, [waiting])
-  // 再試一次：卡住的請求重新查（還沒輪到查的不動），再記著這次點擊
-  const retrySubmit = () => {
-    for (const q of [countiesQuery, areasQuery, stationsQuery, coverageQuery]) if (q.isFetching) void q.refetch()
-    submit()
-  }
 
   const station = stations?.find((s) => s.id === request.origin_station_id)
   const stationLabel = !stations ? '載入車站中…' : usesLocation(request) ? LOCATION_NAME : station ? stationDisplay(station) : '選車站'
@@ -179,7 +171,13 @@ export function QuickPlan() {
   const describe = (f: QuickField) => (errorOf(f) ? errorId(f) : undefined)
   // 只念一次：第一個缺的格子＋還有幾格沒填（各格紅字不是 alert，見 Cell）
   const firstError = missing.length ? errorOf(missing[0]) : null
-  const alertText = firstError ? (missing.length > 1 ? `${firstError}（還有 ${missing.length - 1} 格沒填）` : firstError) : ''
+  const alertText = waiting
+    ? '準備中，資料載入好就會送出' // 按鈕上的 aria-busy 很多螢幕閱讀器不念，這裡念一次
+    : firstError
+      ? missing.length > 1
+        ? `${firstError}（還有 ${missing.length - 1} 格沒填）`
+        : firstError
+      : ''
 
   // 小視窗程式：互動或瀏覽器有空時才載入；暫代按鈕被按、拿到焦點都記下來交給真的按鈕
   const [pickers, setPickers] = useState(pickersModule)
@@ -328,12 +326,17 @@ export function QuickPlan() {
               <Link to="/plan/1" className="text-sm text-muted-foreground underline-offset-4 hover:text-foreground hover:underline">
                 更多條件（時間、片型、料理…）
               </Link>
-              {slow && settling && (
+              {/*
+               * 「再試一次」只是再記著這次點擊、重新等 10 秒，不叫正在查的請求從頭來（只是慢的請求重來反而更久）。
+               * 連線卡住時請求本身 10 秒會逾時、自動再查一次；查失敗的不會走到這裡：清單失敗整張卡換成錯誤說明＋重試，
+               * 場次日期失敗在「哪天」那格自己說明＋重試。
+               */}
+              {slow && (
                 <div role="alert" className="flex basis-full flex-wrap items-center gap-x-3 gap-y-1.5 text-sm">
                   <p className="font-medium text-destructive">資料還沒載入好，所以還不能排。可能是網路比較慢。</p>
                   <button
                     type="button"
-                    onClick={retrySubmit}
+                    onClick={submit}
                     className="inline-flex h-8 items-center gap-1.5 rounded-lg border px-3 text-xs hover:bg-muted pointer-coarse:h-10"
                   >
                     <RotateCw className="size-3.5" aria-hidden="true" /> 再試一次

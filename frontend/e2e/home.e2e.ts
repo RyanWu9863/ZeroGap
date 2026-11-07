@@ -84,24 +84,33 @@ test.describe('首頁', () => {
     await page.getByRole('button', { name: '排行程' }).click()
     const busy = page.getByRole('button', { name: '準備中…' })
     await expect(busy).toHaveAttribute('aria-busy', 'true')
+    await expect(page.getByRole('alert').filter({ hasText: '準備中，資料載入好就會送出' })).toHaveCount(1) // 螢幕閱讀器念得到
     await busy.click() // 再按一次不會多送一次
     await expect(page).toHaveURL(/\/p\/[0-9a-f]{32}/, { timeout: 30_000 })
     await page.goBack() // 只送了一次：上一頁就回到首頁
     await expect(page).toHaveURL(/\/\?mock=slow_lists$/)
   })
 
-  test('清單一直載入不好：等 10 秒說明原因，可以再試一次', async ({ page }) => {
+  test('清單一直載入不好：等 10 秒說明原因，可以再試一次；再試一次不叫正在查的請求從頭來', async ({ page }) => {
     await page.clock.install({ time: new Date('2026-11-08T10:00:00+08:00') })
-    await page.goto('/?mock=lists_hang') // 假資料情境：清單一直不回
+    let sent = 0 // 假後端每送一次縣市清單記一筆
+    page.on('console', (m) => {
+      if (m.text().includes('lists_hang：送出 /api/counties')) sent++
+    })
+    await page.goto('/?mock=lists_hang') // 假資料情境：清單一直不回，跟真的連線一樣 10 秒逾時、自動再查一次
     await page.getByRole('button', { name: '排行程' }).click()
     await expect(page.getByRole('button', { name: '準備中…' })).toBeVisible()
+    expect(sent).toBe(1)
     await page.clock.fastForward(10_000)
     const alert = page.getByRole('alert').filter({ hasText: '資料還沒載入好' })
     await expect(alert).toBeVisible()
     await expect(page.getByRole('button', { name: '排行程' })).not.toHaveAttribute('aria-busy', /.+/)
+    await expect.poll(() => sent).toBe(2) // 逾時後真的又送了一次
     await alert.getByRole('button', { name: '再試一次' }).click()
     await expect(page.getByRole('button', { name: '準備中…' })).toHaveAttribute('aria-busy', 'true')
     await expect(alert).toBeHidden()
+    await page.waitForTimeout(500)
+    expect(sent).toBe(2) // 正在查的那次沒有被取消重送
   })
 
   test('缺商圈時不送出，焦點跳到那一格並說明', async ({ page }) => {
