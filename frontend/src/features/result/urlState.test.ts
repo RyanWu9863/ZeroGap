@@ -3,10 +3,12 @@ import { benchmarkRequest } from '@/mocks/request'
 import { requestKey } from '@/api/planRuns'
 import { needsOrigin, readRank, readRequest, writeRequest } from './urlState'
 
+const T = '2026-11-02'
+
 describe('條件 ↔ 網址（Q62）', () => {
   it('寫進去再讀回來，條件完全一樣（規劃的鑰匙也一樣）', () => {
     const p = writeRequest(new URLSearchParams(), benchmarkRequest, 1)
-    const back = readRequest(p)!
+    const back = readRequest(p, T)!
     expect(back).toEqual(benchmarkRequest)
     expect(requestKey(back)).toBe(requestKey(benchmarkRequest))
   })
@@ -22,7 +24,7 @@ describe('條件 ↔ 網址（Q62）', () => {
   it('指定電影、影廳、跨午夜、先吃再看、第 2 案', () => {
     const r = { ...benchmarkRequest, movie_id: 15, hall_type: 'imax', latest_home: '01:30', order: 'meal_first' as const }
     const p = writeRequest(new URLSearchParams(), r, 2)
-    expect(readRequest(p)).toEqual(r)
+    expect(readRequest(p, T)).toEqual(r)
     expect(readRank(p)).toBe(2)
   })
   it('保留 ?proto= ?mock= 這些別的參數', () => {
@@ -31,11 +33,16 @@ describe('條件 ↔ 網址（Q62）', () => {
     expect(p.get('mock')).toBe('no_solution')
   })
   it('缺必要欄位或數字不合法 → null', () => {
-    expect(readRequest(new URLSearchParams('from=中壢站'))).toBeNull()
-    expect(readRequest(new URLSearchParams('from=中壢站&to=taoyuan&date=2026-10-30&t=17:00-23:00&budget=1000&walk=12'))).toBeNull()
+    expect(readRequest(new URLSearchParams('from=中壢站'), T)).toBeNull()
+    expect(readRequest(new URLSearchParams('from=中壢站&to=taoyuan&date=2026-10-30&t=17:00-23:00&budget=1000&walk=12'), T)).toBeNull()
     const p = writeRequest(new URLSearchParams(), benchmarkRequest, 1)
     p.set('budget', 'abc')
-    expect(readRequest(p)).toBeNull()
+    expect(readRequest(p, T)).toBeNull()
+  })
+  it('網址沒寫日期 → 用今天（P0-1，書籤網址哪天都能用）', () => {
+    const p = writeRequest(new URLSearchParams(), benchmarkRequest, 1)
+    p.delete('date')
+    expect(readRequest(p, T)?.date).toBe(T)
   })
 })
 
@@ -43,7 +50,7 @@ describe('舊版網址', () => {
   it('步行上限不在 5、8、12、15、20 → 用瀏覽器暫存的條件', () => {
     const p = writeRequest(new URLSearchParams(), benchmarkRequest, 1)
     p.set('walk', '10')
-    expect(readRequest(p)).not.toBeNull() // 前端的 zod 只檢查正整數；不合法的值由後端回 VALIDATION_ERROR
+    expect(readRequest(p, T)).not.toBeNull() // 前端的 zod 只檢查正整數；不合法的值由後端回 VALIDATION_ERROR
   })
 })
 
@@ -56,13 +63,13 @@ describe('從目前位置出發（2026-10-21）', () => {
     expect(p.toString()).not.toContain('24.971')
   })
   it('這台瀏覽器有座標 → 讀回同樣的條件', () => {
-    expect(readRequest(writeRequest(new URLSearchParams(), r, 1), here)).toEqual(r)
+    expect(readRequest(writeRequest(new URLSearchParams(), r, 1), T, here)).toEqual(r)
   })
   it('別人傳來的網址、這台沒有座標 → 請使用者選出發點，其他條件照網址', () => {
     const p = writeRequest(new URLSearchParams(), r, 1)
-    expect(readRequest(p, null)).toBeNull()
-    expect(needsOrigin(p, null)).toMatchObject({ origin_station_id: 0, origin_lat: null, area: 'taoyuan', budget_per_person: 1000 })
-    expect(needsOrigin(p, here)).toBeNull()
-    expect(needsOrigin(writeRequest(new URLSearchParams(), benchmarkRequest, 1), null)).toBeNull()
+    expect(readRequest(p, T, null)).toBeNull()
+    expect(needsOrigin(p, null, T)).toMatchObject({ origin_station_id: 0, origin_lat: null, area: 'taoyuan', budget_per_person: 1000 })
+    expect(needsOrigin(p, here, T)).toBeNull()
+    expect(needsOrigin(writeRequest(new URLSearchParams(), benchmarkRequest, 1), null, T)).toBeNull()
   })
 })

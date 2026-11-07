@@ -1,6 +1,6 @@
 import { Clapperboard, Sparkles } from 'lucide-react'
 import { useEffect } from 'react'
-import { useAreas, useCoverage } from '@/api/queries'
+import { failure, useAreas, useCoverage } from '@/api/queries'
 import { formatDate } from '@/shared/lib/format'
 import { usePlanStore } from '@/store/planStore'
 import { ChoiceCard, Chips, Disclosure, Field } from '../parts/Choice'
@@ -13,7 +13,8 @@ import { StepShell } from './StepShell'
  */
 export function StepFun() {
   const { request, setRequest } = usePlanStore()
-  const { data } = useCoverage(request.area || undefined, request.date || undefined)
+  const day = useCoverage(request.area || undefined, request.date || undefined)
+  const { data } = day
   const areaName = useAreas().data?.find((a) => a.code === request.area)?.name ?? ''
   const movies = data?.movies ?? []
   const picked = request.movie_id != null
@@ -33,7 +34,12 @@ export function StepFun() {
   const any = { value: null, label: '不限' }
 
   return (
-    <StepShell title="想看什麼？" loading={!data}>
+    <StepShell
+      title="想看什麼？"
+      loading={!data}
+      error={failure(day)}
+      onRetry={() => void day.refetch()}
+    >
       {data && (
         <>
           <Field title="娛樂類型" hint="展覽、KTV 等其他娛樂陸續加入。">

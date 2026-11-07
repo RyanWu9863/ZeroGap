@@ -49,7 +49,7 @@ export function PlanSwitcher({ plans, selected, onSelect, stationName, date, swa
             className={cn(
               'zg-surface relative w-64 shrink-0 snap-start p-4 text-left transition-[border-color,box-shadow] sm:w-auto sm:[order:var(--o)]',
               p.rank === 1 && 'sm:py-6',
-              active ? 'border-foreground ring-2 ring-foreground/80 cine:border-primary cine:ring-primary' : 'opacity-80 hover:opacity-100',
+              active ? 'border-foreground ring-2 ring-foreground/80 cine:border-primary cine:ring-primary' : 'hover:border-foreground/40',
             )}
           >
             <span className="flex items-center gap-2">

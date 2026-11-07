@@ -133,5 +133,15 @@ export function describeTimeline(plan: Plan, date: string): StepView[] {
   })
 }
 
+/** 每一步的開始和結束時間（ISO），照時間軸的順序；畫時間比例（例如沉浸式新版的緞帶）用 */
+export function stepSpans(plan: Plan): { type: TimelineStep['type']; start: string; end: string }[] {
+  let prevEnd: string | null = null
+  return plan.timeline.map((s, i) => {
+    const [start, end] = startEnd(s, prevEnd, plan.timeline[i + 1])
+    prevEnd = end
+    return { type: s.type, start, end }
+  })
+}
+
 /** 每一步的地點（去掉沒有地點的） */
 export const timelinePlaces = (plan: Plan): Place[] => plan.timeline.flatMap((s) => (s.place ? [s.place] : []))

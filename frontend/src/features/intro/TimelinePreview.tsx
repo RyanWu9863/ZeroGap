@@ -21,34 +21,37 @@ export function TimelinePreview() {
             趕不趕得上開演、來不來得及點餐、回程車還有沒有——每兩步之間的餘裕都寫給你看，綠色代表寬鬆、藍色剛好、橘色偏緊。
           </p>
         </div>
-        <motion.ol
-          className="zg-surface relative min-w-0 space-y-1 p-5 sm:p-6"
-          initial="hidden"
-          whileInView="show"
-          viewport={{ once: true, amount: 0.4 }}
-          transition={{ staggerChildren: 0.18 }}
-        >
+        {/* 「範例」標籤放在清單外面：<ol> 裡只能直接放 <li>，螢幕閱讀器才讀得對（P2-2） */}
+        <div className="zg-surface relative min-w-0 p-5 sm:p-6">
           <span className="absolute right-4 top-4 rounded-full border px-2 py-0.5 text-[11px] text-muted-foreground">範例</span>
-          {steps.map((s) => (
-            <motion.li
-              key={s.key}
-              variants={{ hidden: { opacity: 0, x: -8 }, show: { opacity: 1, x: 0 } }}
-              className="flex flex-wrap items-center gap-3 py-1.5"
-            >
-              <span className="zg-num w-12 text-sm font-semibold">{s.time}</span>
-              <StepIcon type={s.type} bus={s.bus} className="size-7" />
-              <span className="min-w-0 flex-1 truncate text-sm">{s.desc}</span>
-              {s.buffer && (
-                <motion.span
-                  className="basis-full sm:pl-[5.5rem]"
-                  variants={{ hidden: { opacity: 0, scale: 0.9 }, show: { opacity: 1, scale: 1 } }}
-                >
-                  <BufferChip minutes={s.buffer.minutes} text={bufferSentence(s.buffer.gate, s.buffer.minutes, '中壢站', s.buffer.window, s.buffer.walkHome)} />
-                </motion.span>
-              )}
-            </motion.li>
-          ))}
-        </motion.ol>
+          <motion.ol
+            className="space-y-1"
+            initial="hidden"
+            whileInView="show"
+            viewport={{ once: true, amount: 0.4 }}
+            transition={{ staggerChildren: 0.18 }}
+          >
+            {steps.map((s) => (
+              <motion.li
+                key={s.key}
+                variants={{ hidden: { opacity: 0, x: -8 }, show: { opacity: 1, x: 0 } }}
+                className="flex flex-wrap items-center gap-3 py-1.5"
+              >
+                <span className="zg-num w-12 text-sm font-semibold">{s.time}</span>
+                <StepIcon type={s.type} bus={s.bus} className="size-7" />
+                <span className="min-w-0 flex-1 truncate text-sm">{s.desc}</span>
+                {s.buffer && (
+                  <motion.span
+                    className="basis-full sm:pl-[5.5rem]"
+                    variants={{ hidden: { opacity: 0, scale: 0.9 }, show: { opacity: 1, scale: 1 } }}
+                  >
+                    <BufferChip minutes={s.buffer.minutes} text={bufferSentence(s.buffer.gate, s.buffer.minutes, '中壢站', s.buffer.window, s.buffer.walkHome)} />
+                  </motion.span>
+                )}
+              </motion.li>
+            ))}
+          </motion.ol>
+        </div>
       </div>
     </section>
   )

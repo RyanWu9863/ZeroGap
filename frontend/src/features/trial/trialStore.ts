@@ -1,22 +1,26 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
+import { z } from 'zod'
 import { urlFlag } from '@/shared/lib/urlFlag'
+import { keepAsIs, pickValid, STORAGE_VERSION, validItems } from '@/store/persistSafe'
 
 /*
  * 試用模式（Q79、Q80）：找同學試用時，網址加 ?trial=1。
  * 自動記三個時間點：進介紹頁 → 進精靈（按了開始）→ 看到結果；看完結果填 3 題小問卷。
  * 紀錄存在這台電腦的瀏覽器裡，在「系統幕後」匯出。?trial=0 關閉。
  */
-export type TrialAnswers = { yellow: 'estimate' | 'discount' | 'recommend'; willing: number; faster: boolean }
+const TrialAnswers = z.object({ yellow: z.enum(['estimate', 'discount', 'recommend']), willing: z.number(), faster: z.boolean() })
+export type TrialAnswers = z.infer<typeof TrialAnswers>
 
-export type TrialSession = {
-  id: string
-  proto: string
-  startedAt: number
-  startClickAt?: number
-  resultAt?: number
-  answers?: TrialAnswers
-}
+const TrialSession = z.object({
+  id: z.string(),
+  proto: z.string(),
+  startedAt: z.number(),
+  startClickAt: z.number().optional(),
+  resultAt: z.number().optional(),
+  answers: TrialAnswers.optional(),
+})
+export type TrialSession = z.infer<typeof TrialSession>
 
 type TrialState = {
   active: boolean
@@ -26,6 +30,14 @@ type TrialState = {
   mark: (field: 'startClickAt' | 'resultAt') => void
   answer: (a: TrialAnswers) => void
   clear: () => void
+}
+
+/** 從暫存讀回時逐欄驗證（P1-3）；試用紀錄逐筆驗證，壞掉的那筆丟掉，其他紀錄一定留著 */
+export function mergeTrialState(persisted: unknown, current: TrialState): TrialState {
+  const fromUrl = urlFlag('trial')
+  const valid = pickValid<TrialState>(persisted, { active: z.boolean(), current: TrialSession.nullable() })
+  const sessions = validItems((persisted as { sessions?: unknown } | undefined)?.sessions, TrialSession)
+  return { ...current, ...valid, ...(sessions ? { sessions } : {}), ...(fromUrl === null ? {} : { active: fromUrl }) }
 }
 
 export const useTrialStore = create<TrialState>()(
@@ -43,10 +55,9 @@ export const useTrialStore = create<TrialState>()(
     }),
     {
       name: 'zg-trial',
-      merge: (persisted, current) => {
-        const fromUrl = urlFlag('trial')
-        return { ...current, ...(persisted as object), ...(fromUrl === null ? {} : { active: fromUrl }) }
-      },
+      version: STORAGE_VERSION,
+      migrate: keepAsIs,
+      merge: mergeTrialState,
     },
   ),
 )

@@ -1,17 +1,28 @@
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { useState } from 'react'
 import { cn } from '@/lib/utils'
+import { fromISODate, toISODate as iso } from '@/shared/lib/dates'
 import { formatDate } from '@/shared/lib/format'
 
-const iso = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
 const addDays = (d: Date, n: number) => new Date(d.getFullYear(), d.getMonth(), d.getDate() + n)
 
 /**
  * 日期（Q47）：「今天／明天／本週六」快捷鈕＋月曆。
  * 只有「有場次資料」的日子可以選，其他灰掉，避免選了才發現無解。
  */
-export function DateCalendar({ available, value, onChange }: { available: string[]; value: string; onChange: (iso: string) => void }) {
-  const today = new Date()
+export function DateCalendar({
+  available,
+  value,
+  today: todayIso,
+  onChange,
+}: {
+  available: string[]
+  value: string
+  /** 今天（YYYY-MM-DD），由外面傳入，元件本身不讀時鐘 */
+  today: string
+  onChange: (iso: string) => void
+}) {
+  const today = fromISODate(todayIso)
   const ok = new Set(available)
   const saturday = addDays(today, (6 - today.getDay() + 7) % 7)
   const quick = [
@@ -19,8 +30,14 @@ export function DateCalendar({ available, value, onChange }: { available: string
     { label: '明天', d: iso(addDays(today, 1)) },
     { label: '本週六', d: iso(saturday) },
   ]
-  const start = value ? new Date(value) : today
+  const start = value ? fromISODate(value) : today
   const [month, setMonth] = useState(new Date(start.getFullYear(), start.getMonth(), 1))
+  // 日期被外面改掉（例如過期日自動換成最近可選日）時，月曆跟著翻到那個月
+  const [shown, setShown] = useState(value)
+  if (value !== shown) {
+    setShown(value)
+    if (value) setMonth(new Date(fromISODate(value).getFullYear(), fromISODate(value).getMonth(), 1))
+  }
   const lead = month.getDay()
   const days = new Date(month.getFullYear(), month.getMonth() + 1, 0).getDate()
   const cells = [...Array(lead).fill(null), ...Array.from({ length: days }, (_, i) => new Date(month.getFullYear(), month.getMonth(), i + 1))]
@@ -37,7 +54,7 @@ export function DateCalendar({ available, value, onChange }: { available: string
             onClick={() => onChange(q.d)}
             className="rounded-full border bg-card px-3.5 py-1.5 text-sm hover:border-foreground/40 pointer-coarse:min-h-10 disabled:cursor-not-allowed disabled:opacity-40 aria-pressed:border-primary aria-pressed:bg-primary aria-pressed:text-primary-foreground lin:rounded-md"
           >
-            {q.label} <span className="zg-num text-xs opacity-70">{formatDate(q.d)}</span>
+            {q.label} <span className="zg-num text-xs">{formatDate(q.d)}</span>
           </button>
         ))}
       </div>
@@ -54,7 +71,7 @@ export function DateCalendar({ available, value, onChange }: { available: string
         <div className="grid grid-cols-7 gap-1 text-center text-xs text-muted-foreground">
           {['日', '一', '二', '三', '四', '五', '六'].map((w) => <span key={w}>{w}</span>)}
         </div>
-        <div className="mt-1 grid grid-cols-7 gap-1" role="grid" aria-label="選擇日期">
+        <div className="mt-1 grid grid-cols-7 gap-1" role="group" aria-label="選擇日期">
           {cells.map((d, i) =>
             d ? (
               <button

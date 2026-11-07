@@ -81,9 +81,11 @@ describe('maps（Q28b）', () => {
 })
 
 describe('itineraryToText（Q61）', () => {
-  const plan = mockResult(benchmarkRequest, false).plans[0]
+  // 基準案例的日期跟著今天走（P0-1），這裡固定一天，標題才比得出來
+  const req = { ...benchmarkRequest, date: '2026-10-30' }
+  const plan = mockResult(req, false).plans[0]
   const names = { area: '桃園區', station: '中壢站' }
-  const text = itineraryToText(benchmarkRequest, plan, names)
+  const text = itineraryToText(req, plan, names)
   it('第一行是日期標題', () => expect(text.split('\n')[0]).toBe('📅 10/30（五） 桃園區行程'))
   it('每個時刻都在，電影和餐廳帶名稱', () => {
     for (const t of ['17:05', '17:55', '20:07', '21:25']) expect(text).toContain(t)
@@ -100,7 +102,7 @@ describe('itineraryToText（Q61）', () => {
     expect(text.trim().endsWith('由 ZeroGap 零空檔排程')).toBe(true)
   })
   it('換過餐廳時多一行估計', () => {
-    const t = itineraryToText(benchmarkRequest, plan, names, { name: '福勝亭', alsoRestaurant: null, homeAt: '2026-10-30T21:40:00+08:00', total: 750 })
+    const t = itineraryToText(req, plan, names, { name: '福勝亭', alsoRestaurant: null, homeAt: '2026-10-30T21:40:00+08:00', total: 750 })
     expect(t).toContain('※ 改選福勝亭：約 21:40 回到站、每人約 $750')
   })
   it('OSM 來源標 OpenStreetMap', () => {

@@ -4,7 +4,8 @@ import { benchmarkRequest } from '@/mocks/request'
 import { planFigures, swapNotice, swappable, swapView } from './swap'
 
 const label = (code: string | null | undefined) => ({ japanese: '日式', western: '西式' })[code ?? ''] ?? null
-const low = mockResult(benchmarkRequest, true)
+// 基準案例的日期跟著今天走（P0-1）；這裡比對的是 10/30 的時刻，所以固定一天
+const low = mockResult({ ...benchmarkRequest, date: '2026-10-30' }, true)
 const p1 = low.plans[0]
 
 describe('換一部／換一家（D2）', () => {

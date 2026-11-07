@@ -1,10 +1,13 @@
 import { ArrowRight, Info, LocateFixed } from 'lucide-react'
-import { useCallback, useEffect, useState } from 'react'
+import { lazy, Suspense, useCallback, useEffect, useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router'
 import { useCuisineLabel, useRequestLabels } from '@/api/labels'
 import { cancelPlan, requestKey, usePlanRun } from '@/api/planRuns'
 import type { PlanRequest } from '@/api/schemas'
 import { TrialSurvey } from '@/features/trial/TrialSurvey'
+import { isPastDate } from '@/shared/lib/dates'
+import { usePageTitle } from '@/shared/lib/usePageTitle'
+import { useExperiment } from '@/shared/theme/experiment'
 import { useTrialStore } from '@/features/trial/trialStore'
 import { ConditionBar } from './ConditionBar'
 import { CopyButton } from './CopyButton'
@@ -15,10 +18,16 @@ import { PlanProgress } from './PlanProgress'
 import { PlanSwitcher } from './PlanSwitcher'
 import { ResultError } from './ResultStates'
 import { RouteSketch } from './RouteSketch'
+import { StaleDate } from './StaleDate'
 import { swapNotice, swapView, type Swap } from './swap'
 import { Timeline } from './Timeline'
 import { useResultState } from './useResultState'
 import { usePlanStore } from '@/store/planStore'
+
+// 沉浸式新版（?exp=1）的元件：有打開開關才下載，預設畫面不多載任何東西
+const FunnelRun = lazy(() => import('./funnel/FunnelRun').then((m) => ({ default: m.FunnelRun })))
+const PlanStage = lazy(() => import('./stage/PlanStage').then((m) => ({ default: m.PlanStage })))
+const RouteMap = lazy(() => import('./map/RouteMap').then((m) => ({ default: m.RouteMap })))
 
 const NO_PLAN = ['NO_FEASIBLE', 'NO_SHOWTIMES']
 
@@ -28,11 +37,16 @@ const NO_PLAN = ['NO_FEASIBLE', 'NO_SHOWTIMES']
  * - 從精靈按「排出行程」進來（replay）一定重新規劃；重新整理直接用瀏覽器存的結果、不重播（Q62）
  * - 無解（NO_FEASIBLE、NO_SHOWTIMES）→ 放寬建議（Q23）；其他錯誤 → 白話說明＋重試
  * - 系統拿不定時不另外插一頁：結果頁時間軸上直接「換一部／換一家」（D2）
+ * - 日期已經過了（舊的分享網址、舊的暫存）先不規劃，改問要換哪天（P0-1）
  * 條件同步在網址上（Q62）。
  */
 export function ResultPage() {
   const state = useResultState()
-  return state.pickOrigin ? <PickOrigin request={state.pickOrigin} /> : <ResultView state={state} />
+  const stale = !state.pickOrigin && isPastDate(state.request.date, state.today)
+  usePageTitle(state.pickOrigin ? '選出發點' : stale ? '日期已經過了' : '你的行程')
+  if (state.pickOrigin) return <PickOrigin request={state.pickOrigin} />
+  if (stale) return <StaleDate request={state.request} today={state.today} onFix={state.update} />
+  return <ResultView state={state} />
 }
 
 /**
@@ -70,6 +84,7 @@ function ResultView({ state }: { state: ReturnType<typeof useResultState> }) {
   const labels = useRequestLabels(request)
   const cuisineLabel = useCuisineLabel()
   const finished = run?.status === 'done' || run?.status === 'failed'
+  const exp = useExperiment()
 
   // 看著跑完的那組條件，等待畫面停一下再換頁；重新整理直接拿到結果的，不用等（React「依前一次的值調整 state」寫法）
   const [watching, setWatching] = useState<string | null>(null)
@@ -102,7 +117,14 @@ function ResultView({ state }: { state: ReturnType<typeof useResultState> }) {
   // 無解的一鍵放寬、結果頁的小視窗改條件，都會用新條件重新規劃
   const rerun = (patch: Partial<PlanRequest>) => update(patch)
 
-  if (showProgress) return <PlanProgress key={key} request={request} run={run} onDone={done} onCancel={cancel} />
+  if (showProgress) {
+    if (!exp) return <PlanProgress key={key} request={request} run={run} onDone={done} onCancel={cancel} />
+    return (
+      <Suspense fallback={<PlanProgress key={key} request={request} run={run} onDone={done} onCancel={cancel} />}>
+        <FunnelRun key={key} request={request} run={run} onDone={done} onCancel={cancel} />
+      </Suspense>
+    )
+  }
   if (run?.status === 'failed') {
     if (run.error && NO_PLAN.includes(run.error.code)) return <NoSolution request={request} error={run.error} onRelax={rerun} />
     return <ResultError error={run.error} onRetry={retry} />
@@ -127,7 +149,23 @@ function ResultView({ state }: { state: ReturnType<typeof useResultState> }) {
       </p>
 
       <div className="mt-6">
-        <PlanSwitcher plans={plans} selected={plan.rank} onSelect={choosePlan} stationName={labels.station} date={request.date} swapOf={swapOf} />
+        {exp ? (
+          <Suspense fallback={<PlanSwitcher plans={plans} selected={plan.rank} onSelect={choosePlan} stationName={labels.station} date={request.date} swapOf={swapOf} />}>
+            <PlanStage
+              plans={plans}
+              selected={plan.rank}
+              onSelect={choosePlan}
+              stationName={labels.station}
+              date={request.date}
+              budget={request.budget_per_person}
+              swapOf={swapOf}
+              swapOn={(r) => swapsHere[r] ?? null}
+              onSwap={setSwap}
+            />
+          </Suspense>
+        ) : (
+          <PlanSwitcher plans={plans} selected={plan.rank} onSelect={choosePlan} stationName={labels.station} date={request.date} swapOf={swapOf} />
+        )}
       </div>
 
       <div className="mt-8 grid gap-8 lg:grid-cols-[1fr_20rem]">
@@ -142,7 +180,13 @@ function ResultView({ state }: { state: ReturnType<typeof useResultState> }) {
           <Timeline plan={plan} date={request.date} stationName={labels.station} swap={swapsHere[plan.rank] ?? null} onSwap={(s) => setSwap(plan.rank, s)} />
         </section>
         <aside className="space-y-4 lg:sticky lg:top-20 lg:self-start">
-          <RouteSketch plan={plan} />
+          {exp ? (
+            <Suspense fallback={<RouteSketch plan={plan} />}>
+              <RouteMap plan={plan} date={request.date} />
+            </Suspense>
+          ) : (
+            <RouteSketch plan={plan} />
+          )}
           <CostPanel plan={plan} budget={request.budget_per_person} swapped={swapped} />
           <CopyButton request={request} plan={plan} swapped={swapped} className="hidden lg:block" />
           <Link to="/behind" className="flex items-center justify-center gap-1 py-2 text-sm text-muted-foreground hover:text-foreground">

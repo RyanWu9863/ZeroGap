@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Link, useNavigate } from 'react-router'
 import { cn } from '@/lib/utils'
 import { usePlanStore } from '@/store/planStore'
+import { useDateContext } from './useDateContext'
 import { STEPS, stepComplete } from './validation'
 
 /**
@@ -10,13 +11,14 @@ import { STEPS, stepComplete } from './validation'
 export function WizardProgress({ current }: { current: number }) {
   const request = usePlanStore((s) => s.request)
   const resetRequest = usePlanStore((s) => s.resetRequest)
+  const dateCtx = useDateContext()
   const [confirming, setConfirming] = useState(false)
   const navigate = useNavigate()
   return (
     <div>
       <ol className="grid grid-cols-4 gap-2" aria-label="規劃進度">
         {STEPS.map((s) => {
-          const done = stepComplete(s.n, request)
+          const done = stepComplete(s.n, request, dateCtx)
           const active = s.n === current
           const reachable = active || done || s.n < current
           const body = (

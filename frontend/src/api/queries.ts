@@ -4,10 +4,14 @@ import { getAreas, getCategories, getCounties, getCoverage, getStations, getStat
 /*
  * 「出餐口」：下拉選單和狀態列的資料交給 TanStack Query（決策 Q73），載入中、失敗、重試、快取都不用自己管。
  * 規劃本身不在這裡：它要讀 2～3 分鐘的串流，另外由 planRuns.ts 管。
+ * signal：離開頁面時取消請求（計畫 P1-2）。
  */
 const LONG = 10 * 60_000
 
-export const useCounties = () => useQuery({ queryKey: ['counties'], queryFn: getCounties, staleTime: LONG })
+/** 給畫面用：真的失敗了（不是正在重試）才回傳錯誤，重試中照樣顯示載入中（計畫 P1-1） */
+export const failure = (q: { isError: boolean; isFetching: boolean; error: unknown }) => (q.isError && !q.isFetching ? q.error : null)
+
+export const useCounties = () => useQuery({ queryKey: ['counties'], queryFn: ({ signal }) => getCounties(signal), staleTime: LONG })
 
 /**
  * 約會商圈所在的縣市。目前只開放桃園市（2026-10-20 決定出發站也只開放桃園市）。
@@ -23,7 +27,7 @@ export function useAreas() {
   const { county } = useOpenCounty()
   return useQuery({
     queryKey: ['areas', county],
-    queryFn: async () => (await getAreas(county!)).filter((a) => a.is_open !== false),
+    queryFn: async ({ signal }) => (await getAreas(county!, signal)).filter((a) => a.is_open !== false),
     enabled: Boolean(county),
     staleTime: LONG,
   })
@@ -31,19 +35,19 @@ export function useAreas() {
 
 export function useStations() {
   const { county } = useOpenCounty()
-  return useQuery({ queryKey: ['stations', county], queryFn: () => getStations(county!), enabled: Boolean(county), staleTime: LONG })
+  return useQuery({ queryKey: ['stations', county], queryFn: ({ signal }) => getStations(county!, signal), enabled: Boolean(county), staleTime: LONG })
 }
 
 export const useCategories = (kind: 'movie_genre' | 'cuisine') =>
-  useQuery({ queryKey: ['categories', kind], queryFn: () => getCategories(kind), staleTime: LONG })
+  useQuery({ queryKey: ['categories', kind], queryFn: ({ signal }) => getCategories(kind, signal), staleTime: LONG })
 
 /** 有場次的日期；帶日期時另外有當天的電影、片型、影廳、語言 */
 export const useCoverage = (area: string | undefined, date?: string) =>
   useQuery({
     queryKey: ['coverage', area ?? null, date ?? null],
-    queryFn: () => getCoverage(area!, date),
+    queryFn: ({ signal }) => getCoverage(area!, date, signal),
     enabled: Boolean(area),
     staleTime: 5 * 60_000,
   })
 
-export const useStatus = () => useQuery({ queryKey: ['status'], queryFn: getStatus, staleTime: 60_000 })
+export const useStatus = () => useQuery({ queryKey: ['status'], queryFn: ({ signal }) => getStatus(signal), staleTime: 60_000 })
