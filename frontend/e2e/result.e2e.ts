@@ -162,3 +162,44 @@ test.describe('錶盤與方案切換', () => {
     await expect(page).toHaveURL(/plan=2/)
   })
 })
+
+test.describe('分享、行事曆、改條件', () => {
+  test('分享：電腦複製出 /p/編號 的完整網址', async ({ page, context, browserName, isMobile }) => {
+    test.skip(browserName !== 'chromium' || isMobile, '剪貼簿權限只在 chromium 電腦版測')
+    await context.grantPermissions(['clipboard-read', 'clipboard-write'])
+    await page.goto(resultUrl())
+    await expect(resultsHeading(page)).toBeVisible({ timeout: 30_000 })
+    await page.getByRole('button', { name: '分享連結' }).click()
+    await expect(page.getByText('已複製連結')).toBeVisible()
+    expect(await page.evaluate(() => navigator.clipboard.readText())).toMatch(/\/p\/[0-9a-f]{32}$/)
+  })
+
+  test('加到行事曆：下載 .ics', async ({ page }) => {
+    await page.goto(resultUrl())
+    await expect(resultsHeading(page)).toBeVisible({ timeout: 30_000 })
+    const dl = page.waitForEvent('download')
+    await page.getByRole('button', { name: '加到行事曆' }).click()
+    expect((await dl).suggestedFilename()).toMatch(/\.ics$/)
+  })
+
+  test('改條件重排：帶著這份行程的條件回到精靈', async ({ page }) => {
+    await page.goto(resultUrl())
+    await expect(resultsHeading(page)).toBeVisible({ timeout: 30_000 })
+    await page.getByRole('button', { name: '改條件重排' }).click()
+    await expect(page).toHaveURL(/\/plan\/1/)
+  })
+
+  test.describe('從目前位置出發', () => {
+    test.use({ permissions: ['geolocation'], geolocation: { latitude: 24.9705, longitude: 121.2105 } })
+    test('分享旁邊提醒位置', async ({ page }) => {
+      await page.clock.setFixedTime(new Date('2026-11-08T10:00:00+08:00'))
+      await page.goto('/plan/1')
+      await page.getByRole('button', { name: /使用目前位置/ }).click()
+      await expect.poll(() => page.evaluate(() => JSON.parse(localStorage.getItem('zg-plan') ?? '{}').state?.request?.origin_lat ?? null)).not.toBeNull()
+      for (let i = 0; i < 3; i++) await page.getByRole('button', { name: '下一步' }).click()
+      await page.getByRole('button', { name: '排出接得上的行程' }).click()
+      await expect(page).toHaveURL(PLAN_URL, { timeout: 30_000 })
+      await expect(page.getByText(/含有你出發的大概位置/)).toBeVisible()
+    })
+  })
+})

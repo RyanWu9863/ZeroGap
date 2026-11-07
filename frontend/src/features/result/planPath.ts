@@ -20,3 +20,8 @@ export function planPath(id: string, rank: number, search: string): string {
 export function rerunPath(request: PlanRequest, search: string): string {
   return `/result?${keepMock(search, writeRequest(new URLSearchParams(), request, 1)).toString()}`
 }
+
+/** 分享用的完整網址：base 是 import.meta.env.BASE_URL（結尾有 /）；不帶 mock 情境 */
+export function shareUrl(origin: string, base: string, id: string, rank: number): string {
+  return `${origin}${base}p/${id}${rank !== 1 ? `?plan=${rank}` : ''}`
+}

@@ -8,10 +8,10 @@ import { PageLoading } from '@/app/PageLoading'
 import { usePageTitle } from '@/shared/lib/usePageTitle'
 import { usePlanStore } from '@/store/planStore'
 import { ConditionBar } from './ConditionBar'
-import { CopyButton } from './CopyButton'
 import { CostPanel } from './CostPanel'
 import { FreshnessNote } from './FreshnessNote'
 import { rerunPath } from './planPath'
+import { PlanActions } from './PlanActions'
 import { PlanDial } from './dial/PlanDial'
 import { PlanSwitcher } from './PlanSwitcher'
 import { ResultError } from './ResultStates'
@@ -132,7 +132,7 @@ function PlanView({ doc }: { doc: SavedPlan }) {
             <RouteMap plan={plan} date={request.date} />
           </Suspense>
           <CostPanel plan={plan} budget={request.budget_per_person} swapped={swapped} />
-          <CopyButton request={request} plan={plan} swapped={swapped} className="hidden lg:block" />
+          <PlanActions doc={doc} plan={plan} swapped={swapped} stationName={labels.station} />
           <Link to="/behind" className="flex items-center justify-center gap-1 py-2 text-sm text-muted-foreground hover:text-foreground">
             看系統怎麼挑的 <ArrowRight className="size-3.5" />
           </Link>
@@ -144,11 +144,11 @@ function PlanView({ doc }: { doc: SavedPlan }) {
         <FreshnessNote />
       </div>
 
-      {/* 手機：「複製行程」固定在底部（Q64） */}
+      {/* 手機：「分享連結」固定在底部（Q64） */}
       <div
         className="fixed inset-x-0 bottom-[calc(3.5rem+env(safe-area-inset-bottom,0px))] z-30 border-t bg-background/90 p-3 backdrop-blur sm:bottom-0 sm:pb-[calc(0.75rem+env(safe-area-inset-bottom,0px))] lg:hidden"
       >
-        <CopyButton request={request} plan={plan} swapped={swapped} className="w-full" />
+        <PlanActions compact doc={doc} plan={plan} swapped={swapped} stationName={labels.station} />
       </div>
     </div>
   )

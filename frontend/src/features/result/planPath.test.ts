@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { benchmarkRequest } from '@/mocks/request'
-import { planPath, rerunPath } from './planPath'
+import { planPath, rerunPath, shareUrl } from './planPath'
 
 const ID = 'b'.repeat(32)
 describe('結果頁網址', () => {
@@ -16,5 +16,12 @@ describe('用同樣條件重排的網址', () => {
     expect(url.searchParams.get('to')).toBe(benchmarkRequest.area)
     expect(url.searchParams.get('plan')).toBeNull()
     expect(url.searchParams.get('mock')).toBe('no_solution')
+  })
+})
+
+describe('分享網址', () => {
+  it('完整網址、不帶 mock', () => {
+    expect(shareUrl('https://x.github.io', '/ZeroGap/', 'd'.repeat(32), 1)).toBe(`https://x.github.io/ZeroGap/p/${'d'.repeat(32)}`)
+    expect(shareUrl('http://localhost:5173', '/', 'd'.repeat(32), 2)).toBe(`http://localhost:5173/p/${'d'.repeat(32)}?plan=2`)
   })
 })
