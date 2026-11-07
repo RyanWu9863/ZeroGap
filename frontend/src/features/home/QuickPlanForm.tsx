@@ -1,5 +1,5 @@
 import { ArrowRight, CalendarClock, ChevronDown, RotateCw } from 'lucide-react'
-import { useEffect, useRef, useState, type ReactNode } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
 import { Link, useNavigate } from 'react-router'
 import { errorText } from '@/api/errors'
 import { failure, useAreas, useCounties, useCoverage, useStations } from '@/api/queries'
@@ -51,6 +51,18 @@ function TriggerFace({ label, disabled, describedBy, onClick, onFocus, onBlur }:
 }
 
 const errorId = (f: QuickField) => `quick-${f}-error`
+
+/** 先按了「排行程」、清單還沒載入好：最多等幾毫秒，超過就說明並給「再試一次」 */
+const SUBMIT_WAIT_MS = 10_000
+
+/**
+ * 商圈清單載入前的佔位：跟真的商圈按鈕同樣的外框和字級，裡面放同樣字數的全形空白，
+ * 寬度、換行和真的一樣，載入後下面的「排行程」不會跳。
+ * 佔位比真的寬時（2026-11-08 以前），iPad、手機上佔兩行、真的只有一行，「排行程」載入後往上跳 44～48px；
+ * 按下去到放開之間剛好跳，放開的位置已經不在按鈕上，這次點擊就不見了。
+ * 字數照目前開放的商圈：桃園區、中壢、八德、蘆竹（南崁）。商圈改了這裡跟著改（e2e「清單載入前後「排行程」不會移動」會抓到）。
+ */
+const AREA_NAME_LENGTHS = [3, 2, 2, 6]
 
 /**
  * 一格：fieldset＋legend；缺的時候下方紅字，格子裡會拿到焦點的控制項用 aria-describedby 連到它。
@@ -112,15 +124,20 @@ export function QuickPlan() {
     return dateIssue(request, ctx) === 'past-departure' ? `今天 ${request.earliest_departure} 已經過了，請改選別天` : '請選日期'
   }
 
-  // 清單或場次日期還在載入、日期還沒自動換好時先按了「排行程」：記著，載入好再送，不吃掉這次點擊
+  // 清單或場次日期還在載入、日期還沒自動換好時先按了「排行程」：記著（waiting），載入好再送，不吃掉這次點擊。
+  // 等的時候按鈕顯示「準備中…」、再按不會多送；等超過 SUBMIT_WAIT_MS 就停下來說明（slow），讓使用者再試一次
   const settling = !areas || !stations || (areaKnown && !ctx.available && !coverageFailed) || pending
-  const queued = useRef(false)
+  const [waiting, setWaiting] = useState(false)
+  const [slow, setSlow] = useState(false)
 
   const submit = () => {
     if (settling) {
-      queued.current = true
+      setSlow(false)
+      setWaiting(true)
       return
     }
+    if (waiting) setWaiting(false)
+    if (slow) setSlow(false)
     // 不知道哪幾天有場次就不送：焦點移到「哪天」那格的重試
     if (coverageFailed) {
       document.getElementById('quick-date-retry')?.focus()
@@ -136,13 +153,25 @@ export function QuickPlan() {
     navigate('/result', { state: { replay: true } })
   }
 
+  // 載入失敗時丟掉先前記著的點擊：按「重試」後不要自己送出（在畫面渲染時改，不另外跑 effect）
+  if (waiting && (failed || coverageFailed)) setWaiting(false)
+  // 等的東西都好了：送出記著的點擊
   useEffect(() => {
-    // 載入失敗時丟掉先前記著的點擊：按「重試」後不要自己送出
-    if (failed || coverageFailed) queued.current = false
-    if (!queued.current || settling) return
-    queued.current = false
-    submit()
+    if (waiting && !settling) submit() // eslint-disable-line react/set-state-in-effect -- 送出（換頁）是這個 effect 要做的事，submit 順手收起「準備中」
   })
+  useEffect(() => {
+    if (!waiting) return
+    const t = setTimeout(() => {
+      setWaiting(false)
+      setSlow(true)
+    }, SUBMIT_WAIT_MS)
+    return () => clearTimeout(t)
+  }, [waiting])
+  // 再試一次：卡住的請求重新查（還沒輪到查的不動），再記著這次點擊
+  const retrySubmit = () => {
+    for (const q of [countiesQuery, areasQuery, stationsQuery, coverageQuery]) if (q.isFetching) void q.refetch()
+    submit()
+  }
 
   const station = stations?.find((s) => s.id === request.origin_station_id)
   const stationLabel = !stations ? '載入車站中…' : usesLocation(request) ? LOCATION_NAME : station ? stationDisplay(station) : '選車站'
@@ -213,10 +242,12 @@ export function QuickPlan() {
                 {areas ? (
                   <Chips label="商圈" describedBy={describe('area')} invalid={Boolean(errorOf('area'))} value={request.area} onChange={(area) => setRequest({ area })} options={areas.map((a) => ({ value: a.code, label: a.name }))} />
                 ) : (
-                  // 載入中先佔好跟商圈按鈕差不多的位置，載入後下面的版面不跳
+                  // 載入中先佔好跟商圈按鈕一樣大的位置，載入後下面的版面不跳（見 AREA_NAME_LENGTHS）
                   <div className="flex flex-wrap gap-2" role="status" aria-label="載入商圈中">
-                    {[4, 3, 3, 6].map((w, i) => (
-                      <span key={i} className="h-[34px] rounded-full bg-muted pointer-coarse:h-10" style={{ width: `${w + 2}em` }} />
+                    {AREA_NAME_LENGTHS.map((n, i) => (
+                      <span key={i} aria-hidden="true" className="zg-num rounded-full border border-transparent bg-muted px-3.5 py-1.5 text-sm whitespace-pre text-transparent select-none pointer-coarse:min-h-10">
+                        {'\u3000'.repeat(n)}
+                      </span>
                     ))}
                   </div>
                 )}
@@ -285,12 +316,30 @@ export function QuickPlan() {
             </div>
 
             <div className="mt-6 flex flex-wrap items-center gap-x-6 gap-y-3">
-              <Button size="lg" className="h-12 gap-2 rounded-full px-7 text-base" onClick={submit}>
-                排行程 <ArrowRight className="size-4" aria-hidden="true" />
+              <Button size="lg" className="h-12 gap-2 rounded-full px-7 text-base" aria-busy={waiting || undefined} onClick={waiting ? undefined : submit}>
+                {waiting ? (
+                  '準備中…'
+                ) : (
+                  <>
+                    排行程 <ArrowRight className="size-4" aria-hidden="true" />
+                  </>
+                )}
               </Button>
               <Link to="/plan/1" className="text-sm text-muted-foreground underline-offset-4 hover:text-foreground hover:underline">
                 更多條件（時間、片型、料理…）
               </Link>
+              {slow && settling && (
+                <div role="alert" className="flex basis-full flex-wrap items-center gap-x-3 gap-y-1.5 text-sm">
+                  <p className="font-medium text-destructive">資料還沒載入好，所以還不能排。可能是網路比較慢。</p>
+                  <button
+                    type="button"
+                    onClick={retrySubmit}
+                    className="inline-flex h-8 items-center gap-1.5 rounded-lg border px-3 text-xs hover:bg-muted pointer-coarse:h-10"
+                  >
+                    <RotateCw className="size-3.5" aria-hidden="true" /> 再試一次
+                  </button>
+                </div>
+              )}
             </div>
           </>
         )}

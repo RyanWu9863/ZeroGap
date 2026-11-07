@@ -50,6 +50,60 @@ test.describe('首頁', () => {
     await expect(page.getByText(/你上次排的（假資料/)).toBeVisible() // e2e 跑假後端：數字要標「假資料」
   })
 
+  /*
+   * 2026-11-08 查到「排行程」在整套測試時偶爾沒反應的原因：商圈清單載入前的灰色佔位比真的商圈按鈕寬，
+   * iPad、手機上佔兩行、真的商圈只要一行，載入好時「排行程」往上跳 44～48px。
+   * 按下去到放開之間剛好跳，放開的位置已經不在按鈕上，瀏覽器就不算點到按鈕，這次點擊不見了。
+   */
+  test('清單載入前後「排行程」不會移動', async ({ page }) => {
+    await page.clock.setFixedTime(new Date('2026-11-08T10:00:00+08:00')) // 白天：日期格不會多出換日期的說明
+    await page.goto('/?mock=slow_lists') // 假資料情境：清單和場次日期都晚 2 秒才回
+    const button = page.getByRole('button', { name: '排行程' })
+    const before = (await button.boundingBox())!
+    await expect(page.getByRole('group', { name: '去哪個商圈' }).getByRole('radio').first()).toBeVisible({ timeout: 15_000 })
+    const after = (await button.boundingBox())!
+    expect(Math.abs(after.y - before.y)).toBeLessThan(1)
+  })
+
+  test('清單還在載入時按住「排行程」、載入好才放開：照樣送出', async ({ page }) => {
+    await page.clock.setFixedTime(new Date('2026-11-08T10:00:00+08:00')) // 白天：不走晚上換日期的路
+    await page.goto('/?mock=slow_lists')
+    const button = page.getByRole('button', { name: '排行程' })
+    await button.scrollIntoViewIfNeeded()
+    const box = (await button.boundingBox())!
+    await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2)
+    await page.mouse.down()
+    await expect(page.getByRole('group', { name: '去哪個商圈' }).getByRole('radio').first()).toBeVisible({ timeout: 15_000 })
+    await page.mouse.up()
+    await expect(page).toHaveURL(/\/p\/[0-9a-f]{32}/, { timeout: 30_000 })
+  })
+
+  test('清單還在載入時按「排行程」：按鈕顯示準備中、不能重複送，載入好自動送出', async ({ page }) => {
+    await page.clock.setFixedTime(new Date('2026-11-08T10:00:00+08:00'))
+    await page.goto('/?mock=slow_lists')
+    await page.getByRole('button', { name: '排行程' }).click()
+    const busy = page.getByRole('button', { name: '準備中…' })
+    await expect(busy).toHaveAttribute('aria-busy', 'true')
+    await busy.click() // 再按一次不會多送一次
+    await expect(page).toHaveURL(/\/p\/[0-9a-f]{32}/, { timeout: 30_000 })
+    await page.goBack() // 只送了一次：上一頁就回到首頁
+    await expect(page).toHaveURL(/\/\?mock=slow_lists$/)
+  })
+
+  test('清單一直載入不好：等 10 秒說明原因，可以再試一次', async ({ page }) => {
+    await page.clock.install({ time: new Date('2026-11-08T10:00:00+08:00') })
+    await page.goto('/?mock=lists_hang') // 假資料情境：清單一直不回
+    await page.getByRole('button', { name: '排行程' }).click()
+    await expect(page.getByRole('button', { name: '準備中…' })).toBeVisible()
+    await page.clock.fastForward(10_000)
+    const alert = page.getByRole('alert').filter({ hasText: '資料還沒載入好' })
+    await expect(alert).toBeVisible()
+    await expect(page.getByRole('button', { name: '排行程' })).not.toHaveAttribute('aria-busy', /.+/)
+    await alert.getByRole('button', { name: '再試一次' }).click()
+    await expect(page.getByRole('button', { name: '準備中…' })).toHaveAttribute('aria-busy', 'true')
+    await expect(alert).toBeHidden()
+  })
+
   test('缺商圈時不送出，焦點跳到那一格並說明', async ({ page }) => {
     await page.clock.setFixedTime(new Date('2026-11-08T10:00:00+08:00')) // 白天：不走晚上換日期的路
     await page.addInitScript((v) => localStorage.setItem('zg-plan', v), JSON.stringify(stored({ area: '' })))
