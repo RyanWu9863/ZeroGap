@@ -86,3 +86,19 @@ test.describe('AI 助理頁', () => {
     expect(await page.locator('main').innerText()).not.toMatch(/Jev|LLM|機率/)
   })
 })
+
+test.describe('關於頁', () => {
+  test('資料來源四項、隱私清單、成員連到 GitHub', async ({ page }) => {
+    await page.goto('/about')
+    for (const s of ['交通部 TDX', '開眼電影網', 'OpenStreetMap', 'Google']) await expect(page.getByRole('table').getByText(s).first()).toBeVisible()
+    await expect(page.getByText('zg-plan-runs')).toBeVisible()
+    await expect(page.getByRole('link', { name: /成員/ })).toHaveAttribute('href', 'https://github.com/RyanWu9863/ZeroGap/graphs/contributors')
+    expect(await page.locator('main').innerText()).not.toMatch(/@|\bAI\b|Jev|LLM|機率/)
+  })
+  test('手機寬度整頁不會左右捲動', async ({ page }) => {
+    await page.setViewportSize({ width: 375, height: 800 })
+    await page.goto('/about')
+    await expect(page.getByRole('table')).toBeVisible()
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
+  })
+})
