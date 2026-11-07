@@ -23,7 +23,7 @@ export type Run = {
   /** 目前階段；waiting_quota 不算階段，另外用 waitingQuota 表示 */
   stage: Exclude<Stage, 'waiting_quota'> | null
   waitingQuota: boolean
-  /** waiting_quota 事件給的等待秒數（Task 3 接上 SSE） */
+  /** waiting_quota 事件給的等待秒數 */
   waitSeconds: number | null
   combinations: number | null
   feasible: number | null
@@ -100,9 +100,9 @@ async function execute(key: string, req: PlanRequest, ctrl: AbortController) {
         signal: ctrl.signal,
         onEvent: (e) => {
           if (e.type === 'queued') patch(key, { status: 'queued', position: e.data.position })
-          else if (e.data.stage === 'waiting_quota') patch(key, { status: 'running', waitingQuota: true })
+          else if (e.data.stage === 'waiting_quota') patch(key, { status: 'running', waitingQuota: true, waitSeconds: e.data.wait_seconds ?? null })
           else {
-            const p: Partial<Run> = { status: 'running', stage: e.data.stage, waitingQuota: false, position: null }
+            const p: Partial<Run> = { status: 'running', stage: e.data.stage, waitingQuota: false, waitSeconds: null, position: null }
             if (e.data.combinations != null) p.combinations = e.data.combinations
             if (e.data.feasible != null) p.feasible = e.data.feasible
             patch(key, p)

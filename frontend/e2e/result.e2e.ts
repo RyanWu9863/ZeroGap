@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test'
+import { expectSeen, watchFor } from './seen'
 
 /*
  * 結果頁流程：/result 只送出、等待；排好換成 /p/編號（重新整理不重排）。
@@ -56,6 +57,32 @@ test('換方案只改 ?plan=，第 1 個方案不帶；重新整理停在同一�
   await expect(page.getByRole('radio', { name: /^最穩/ })).toBeChecked()
   await page.getByRole('radio', { name: /^最推薦/ }).click()
   await expect(page).toHaveURL(/\/p\/[0-9a-f]{32}$/)
+})
+
+test('漏斗：排隊人數、階段一道道亮、念目前階段', async ({ page }) => {
+  const texts = ['排隊中，前面還有 1 個人', '排隊中，下一個就輪到你', '篩出每一段都接得上的組合…']
+  await watchFor(page, texts)
+  await page.goto(resultUrl())
+  await expect(page).toHaveURL(PLAN_URL, { timeout: 30_000 })
+  for (const t of texts) await expectSeen(page, t)
+})
+
+test('漏斗：只有最上面那一行會被念出來，跑完是「每一段都檢查完了」', async ({ page }) => {
+  await watchFor(page, ['每一段都檢查完了'], ['[role="status"]'])
+  await page.goto(resultUrl())
+  const status = page.getByRole('status')
+  await expect(status).toHaveCount(1)
+  await expect(status).toHaveAttribute('aria-live', 'polite')
+  await expect(page.getByRole('list', { name: '規劃進度' })).toBeVisible()
+  await expect(page).toHaveURL(PLAN_URL, { timeout: 30_000 })
+  await expectSeen(page, '每一段都檢查完了')
+})
+
+test('減少動態：跑完直接到結果頁，沒有轉場動畫也不會卡住', async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: 'reduce' })
+  await page.goto(resultUrl())
+  await expect(page).toHaveURL(PLAN_URL, { timeout: 30_000 })
+  await expect(page.getByRole('radiogroup', { name: '選擇方案' })).toBeVisible()
 })
 
 test.describe('行程路線地圖', () => {

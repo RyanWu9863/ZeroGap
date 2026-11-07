@@ -229,3 +229,16 @@
   outline: 3px solid var(--ring);
   outline-offset: 2px;
 }
+
+/* 漏斗的三個亮點飛成三張方案卡（規格 4.2，React Router viewTransition） */
+::view-transition-group(*) {
+  animation-duration: 0.6s;
+  animation-timing-function: cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-group(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*) {
+    animation: none;
+  }
+}

@@ -7,7 +7,7 @@ import { PageLoading } from '@/app/PageLoading'
 import { isPastDate } from '@/shared/lib/dates'
 import { usePageTitle } from '@/shared/lib/usePageTitle'
 import { NoSolution } from './NoSolution'
-import { PlanProgress } from './PlanProgress'
+import { PlanFunnel } from './PlanFunnel'
 import { planPath } from './planPath'
 import { ResultError } from './ResultStates'
 import { StaleDate } from './StaleDate'
@@ -92,7 +92,7 @@ function SubmitView({ state }: { state: ReturnType<typeof useResultState> }) {
   // 無解的一鍵放寬會用新條件重新規劃
   const rerun = (patch: Partial<PlanRequest>) => update(patch)
 
-  if (showProgress) return <PlanProgress key={key} request={request} run={run} onDone={done} onCancel={cancel} />
+  if (showProgress) return <PlanFunnel key={key} request={request} run={run} onDone={done} onCancel={cancel} />
   if (run?.status === 'failed') {
     if (run.error && NO_PLAN.includes(run.error.code)) return <NoSolution request={request} error={run.error} onRelax={rerun} />
     return <ResultError error={run.error} onRetry={retry} />
