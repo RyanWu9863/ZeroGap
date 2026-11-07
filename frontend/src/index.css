@@ -97,7 +97,6 @@
   --zg-chart-keep: #0b7285;
   --zg-chart-drop: #8a96a3;
 
-  /* 遮罩和舞台層級，日、夜共用同一套名字 */
 }
 
 [data-theme="night"] {

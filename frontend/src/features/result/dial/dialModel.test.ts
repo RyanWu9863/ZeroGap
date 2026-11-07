@@ -6,6 +6,7 @@ import { angleAt, arcPath, bottleneck, bottleneckCopy, DIAL_SPAN, DIAL_START, di
 
 const base = mockResult(benchmarkRequest, false).plans[0]
 const T = (hm: string) => `2026-11-08T${hm}:00+08:00`
+const DATE = '2026-11-08'
 /** 手做的簡單方案：17:00 出門、22:00 到家，五個小時剛好 300 度＝每小時 60 度 */
 const simple: Plan = {
   ...base,
@@ -90,13 +91,17 @@ describe('瓶頸', () => {
 
 describe('瓶頸的後果文案', () => {
   const b = (gate: Bottleneck['gate'], extra: Partial<Bottleneck> = {}): Bottleneck => ({ index: 0, minutes: 8, gate, window: null, walkHome: false, angle: 0, ...extra })
-  it('開演', () => expect(bottleneckCopy(b('showtime'), '中壢站')).toEqual({ title: '開演前只剩 8 分', consequence: '這一段只要再慢超過 8 分鐘，就趕不上電影開演。' }))
-  it('點餐', () => expect(bottleneckCopy(b('last_order'), '中壢站').consequence).toBe('這一段只要再慢超過 8 分鐘，餐廳就不能點餐了。'))
+  it('開演', () => expect(bottleneckCopy(b('showtime'), '中壢站', DATE)).toEqual({ title: '開演前只剩 8 分', consequence: '這一段只要再慢超過 8 分鐘，就趕不上電影開演。' }))
+  it('點餐', () => expect(bottleneckCopy(b('last_order'), '中壢站', DATE).consequence).toBe('這一段只要再慢超過 8 分鐘，餐廳就不能點餐了。'))
   it('回程車：有備案時說幾點前還有車', () =>
-    expect(bottleneckCopy(b('return_trip', { window: { planned_depart_at: T('21:00'), minutes_to_planned: 8, latest_depart_at: T('21:40'), minutes_to_latest: 48 } }), '中壢站').consequence).toBe(
+    expect(bottleneckCopy(b('return_trip', { window: { planned_depart_at: T('21:00'), minutes_to_planned: 8, latest_depart_at: T('21:40'), minutes_to_latest: 48 } }), '中壢站', DATE).consequence).toBe(
       '趕不上預定那班車的話，21:40 前還有車，只是會比較晚到家。',
     ))
-  it('回程車：沒有備案', () => expect(bottleneckCopy(b('return_trip'), '中壢站').consequence).toBe('這一段只要再慢超過 8 分鐘，就趕不上預定那班回程車。'))
-  it('回程整段走路', () => expect(bottleneckCopy(b('return_trip', { walkHome: true }), '中壢站').consequence).toBe('這一段只要再慢超過 8 分鐘，就沒辦法在你設的時間前走回中壢站。'))
-  it('最晚到家', () => expect(bottleneckCopy(b('latest_return'), '中壢站')).toEqual({ title: '比最晚回到中壢站只早 8 分', consequence: '再慢超過 8 分鐘，就可能趕不上末班車、超過你設的最晚到家時間。' }))
+  it('還有車的時間過了午夜：寫「隔天」', () => {
+    const w = { planned_depart_at: T('23:50'), minutes_to_planned: 8, latest_depart_at: '2026-11-09T00:20:00+08:00', minutes_to_latest: 38 }
+    expect(bottleneckCopy(b('return_trip', { window: w }), '中壢站', DATE).consequence).toContain('隔天 00:20 前還有車')
+  })
+  it('回程車：沒有備案', () => expect(bottleneckCopy(b('return_trip'), '中壢站', DATE).consequence).toBe('這一段只要再慢超過 8 分鐘，就趕不上預定那班回程車。'))
+  it('回程整段走路', () => expect(bottleneckCopy(b('return_trip', { walkHome: true }), '中壢站', DATE).consequence).toBe('這一段只要再慢超過 8 分鐘，就沒辦法在你設的時間前走回中壢站。'))
+  it('最晚到家', () => expect(bottleneckCopy(b('latest_return'), '中壢站', DATE)).toEqual({ title: '比最晚回到中壢站只早 8 分', consequence: '再慢超過 8 分鐘，就可能趕不上末班車、超過你設的最晚到家時間。' }))
 })

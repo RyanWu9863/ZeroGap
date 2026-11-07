@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { useMemo } from 'react'
 import { getSavedPlan, PlanError } from './client'
+import { ApiError } from './errors'
 import { usePlanRunStore, type Run } from './planRuns'
 import type { PlanRequest, SavedPlan } from './schemas'
 
@@ -49,7 +50,8 @@ export function useSavedPlan(id: string) {
     enabled: valid && !local,
     staleTime: Infinity,
     // 404 不重試；連不上、等太久照 TanStack Query 預設重試
-    retry: (n, e) => !(e instanceof PlanError && e.code === 'NOT_FOUND') && n < 2,
+    // 格式不對再試也一樣，不重試
+    retry: (n, e) => !(e instanceof PlanError && e.code === 'NOT_FOUND') && !(e instanceof ApiError && e.kind === 'format') && n < 2,
   })
   const notFound = !valid || (q.error instanceof PlanError && q.error.code === 'NOT_FOUND')
   const doc = local ?? q.data ?? null

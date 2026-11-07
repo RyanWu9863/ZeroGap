@@ -1,14 +1,13 @@
 import { ArrowRight, TriangleAlert } from 'lucide-react'
-import { Link, useLocation, useNavigate } from 'react-router'
+import { Link } from 'react-router'
 import type { SavedPlan } from '@/api/schemas'
 import { Button } from '@/components/ui/button'
 import { stamp } from '@/shared/lib/time'
-import { rerunPath } from './planPath'
+import { USE_MOCK } from '@/api/client'
+import { useDemoStore } from '@/store/demoStore'
 
 /** 一行說明排好的時間；過期了多一條橫幅，可以用同樣條件重排（行程照樣顯示） */
-export function PlanHeader({ doc, expired }: { doc: SavedPlan; expired: boolean }) {
-  const navigate = useNavigate()
-  const location = useLocation()
+export function PlanHeader({ doc, expired, onRerun }: { doc: SavedPlan; expired: boolean; onRerun: () => void }) {
   return (
     <div className="mt-6 space-y-3">
       <p className="text-sm text-muted-foreground">
@@ -23,7 +22,7 @@ export function PlanHeader({ doc, expired }: { doc: SavedPlan; expired: boolean 
               <p>每個方案的出發時間都過了，或是超過 7 天。下面還看得到當初排的內容，要出門請重排。</p>
             </div>
           </div>
-          <Button onClick={() => navigate(rerunPath(doc.request, location.search), { state: { replay: true } })} className="h-11">
+          <Button onClick={onRerun} className="h-11">
             用同樣條件重排
           </Button>
         </div>
@@ -34,10 +33,12 @@ export function PlanHeader({ doc, expired }: { doc: SavedPlan; expired: boolean 
 
 /** 找不到這份行程：網址亂打、沒排過，或超過 7 天 */
 export function PlanMissing() {
+  const demo = useDemoStore((s) => s.demo)
   return (
     <div className="mx-auto max-w-md px-4 py-24 text-center">
       <h1 className="text-xl font-semibold">找不到這份行程，可能已經超過 7 天</h1>
       <p className="mt-2 text-sm text-muted-foreground">分享連結保留 7 天。可以用自己的條件重新排一次。</p>
+      {(USE_MOCK || demo) && <p className="mt-2 text-sm text-muted-foreground">展示版的連結只在排行程的那台瀏覽器打得開。</p>}
       <Link to="/" className="mt-6 inline-flex h-11 items-center gap-2 rounded-lg border px-5 text-sm hover:bg-muted">
         回首頁排行程 <ArrowRight className="size-4" />
       </Link>

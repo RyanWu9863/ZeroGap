@@ -1,7 +1,7 @@
 import type { BufferGate, Plan, ReturnWindow, TimelineStep } from '@/api/schemas'
 import { bufferSentence } from '@/shared/lib/buffer'
 import { stepSpans } from '@/shared/lib/steps'
-import { clock } from '@/shared/lib/time'
+import { clock, clockOn } from '@/shared/lib/time'
 
 /*
  * 結果頁的錶盤（規格 4.4）：出門到到家畫成一段 300 度的弧，從左下（-150 度）順時針到右下（+150 度），底下留缺口。
@@ -69,7 +69,7 @@ export function bottleneck(plan: Plan): Bottleneck | null {
 
 const later = (m: number) => `這一段只要再慢超過 ${m} 分鐘，`
 
-export function bottleneckCopy(b: Bottleneck, stationName: string): { title: string; consequence: string } {
+export function bottleneckCopy(b: Bottleneck, stationName: string, date: string): { title: string; consequence: string } {
   const m = b.minutes
   switch (b.gate) {
     case 'showtime':
@@ -80,7 +80,7 @@ export function bottleneckCopy(b: Bottleneck, stationName: string): { title: str
       return {
         title: bufferSentence('return_trip', m, stationName, b.window, b.walkHome),
         consequence: b.window
-          ? `趕不上預定那班車的話，${clock(b.window.latest_depart_at)} 前還有車，只是會比較晚到家。`
+          ? `趕不上預定那班車的話，${clockOn(b.window.latest_depart_at, date)} 前還有車，只是會比較晚到家。`
           : b.walkHome
             ? `${later(m)}就沒辦法在你設的時間前走回${stationName}。`
             : `${later(m)}就趕不上預定那班回程車。`,

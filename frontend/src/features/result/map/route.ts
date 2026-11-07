@@ -2,7 +2,7 @@ import type { Place, Plan, TimelineStep } from '@/api/schemas'
 import { describeTimeline, placeName } from '@/shared/lib/steps'
 
 /*
- * 路線資料（沉浸式新版 PR4）：照時間軸的順序，把地點整理成「第幾站、怎麼到、什麼時候在那裡」。
+ * 路線資料：照時間軸的順序，把地點整理成「第幾站、怎麼到、什麼時候在那裡」。
  * 只用後端回傳的時間軸，不另外算時間（Q41）。
  *
  * 座標用後端給的（規格書 6.5 的 place.lat／lng）。Google 來源的餐廳只有 place_id，

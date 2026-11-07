@@ -22,5 +22,6 @@ describe('漏斗上方那一行（也是螢幕閱讀器念的）', () => {
   it('一般階段念階段名稱', () => expect(funnelHeadline(run({ stage: 'filtering' }))).toBe('篩出每一段都接得上的組合…'))
   it('多想一下的階段併進「挑出最適合你的 3 個」', () => expect(funnelHeadline(run({ stage: 'llm_fallback' }))).toBe('挑出最適合你的 3 個…'))
   it('完成', () => expect(funnelHeadline(run({ status: 'done' }))).toBe('每一段都檢查完了'))
-  it('排不出來', () => expect(funnelHeadline(run({ status: 'failed' }))).toBe('這組條件排不出來'))
+  it('排不出來', () => expect(funnelHeadline(run({ status: 'failed', error: { code: 'NO_FEASIBLE', message: '', reasons: null, retryAfter: null, status: null } }))).toBe('這組條件排不出來'))
+  it('系統或網路的問題不說成條件排不出來', () => expect(funnelHeadline(run({ status: 'failed', error: { code: 'QUEUE_FULL', message: '', reasons: null, retryAfter: null, status: 503 } }))).toBe('這次沒排成'))
 })

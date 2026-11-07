@@ -41,6 +41,8 @@ test('亂打的編號顯示找不到、不打後端', async ({ page }) => {
   await page.goto('/p/not-a-real-id')
   await expect(page.getByRole('heading', { name: /找不到這份行程/ })).toBeVisible()
   expect(calls).toEqual([])
+  // 假資料模式：連結只在排行程的那台瀏覽器打得開，不能只說「超過 7 天」
+  await expect(page.getByText('展示版的連結只在排行程的那台瀏覽器打得開')).toBeVisible()
 })
 
 test('格式對但沒排過的編號顯示找不到', async ({ page }) => {
@@ -76,6 +78,32 @@ test('漏斗：只有最上面那一行會被念出來，跑完是「每一段�
   await expect(page.getByRole('list', { name: '規劃進度' })).toBeVisible()
   await expect(page).toHaveURL(PLAN_URL, { timeout: 30_000 })
   await expectSeen(page, '每一段都檢查完了')
+})
+
+test('換頁的那一刻，漏斗的三個亮點還在畫面上（才有飛進方案卡的轉場）', async ({ page }) => {
+  await page.addInitScript(() => {
+    const w = window as unknown as { __dotsAtNav?: number }
+    const orig = history.replaceState.bind(history)
+    history.replaceState = (data: unknown, unused: string, url?: string | URL | null) => {
+      if (String(url ?? '').includes('/p/')) w.__dotsAtNav = document.querySelectorAll('[style*="zg-plan-"]').length
+      return orig(data, unused, url)
+    }
+  })
+  await page.goto(resultUrl())
+  await expect(page).toHaveURL(PLAN_URL, { timeout: 30_000 })
+  expect(await page.evaluate(() => (window as unknown as { __dotsAtNav?: number }).__dotsAtNav)).toBe(3)
+})
+
+test('舊版假資料存的 mock-job 結果：打開 /result 重新排，不會跳到找不到', async ({ page }) => {
+  await page.goto(resultUrl())
+  await expect(page).toHaveURL(PLAN_URL, { timeout: 30_000 })
+  await page.evaluate(() => {
+    const raw = localStorage.getItem('zg-plan-runs') ?? ''
+    localStorage.setItem('zg-plan-runs', raw.replace(/"job_id":"[0-9a-f]{32}"/g, '"job_id":"mock-job"'))
+  })
+  await page.goto(resultUrl())
+  await expect(page).toHaveURL(PLAN_URL, { timeout: 30_000 })
+  await expect(page.getByRole('heading', { name: /找不到這份行程/ })).toHaveCount(0)
 })
 
 test('減少動態：跑完直接到結果頁，沒有轉場動畫也不會卡住', async ({ page }) => {
@@ -230,8 +258,37 @@ test.describe('分享頁狀態列', () => {
     await expect(page.getByRole('alert')).toContainText('這份行程已經過期')
     await expect(page.getByRole('button', { name: '加到行事曆' })).toBeDisabled()
     await expect(page.getByRole('button', { name: '分享連結' }).first()).toBeDisabled()
+    await expect(page.getByText('行程過期了，先重排再分享。').locator('visible=true')).toHaveCount(1)
+    await expect(page.getByText(/展示版：這個連結只在這台瀏覽器打得開/)).toHaveCount(0)
     await page.getByRole('button', { name: '用同樣條件重排' }).click()
     await expect(page).toHaveURL(/\/result\?/)
+  })
+
+  test.describe('從目前位置出發的過期行程', () => {
+    test.use({ permissions: ['geolocation'], geolocation: { latitude: 24.9705, longitude: 121.2105 } })
+    test('用同樣條件重排：座標跟著帶回去，不會要你重選出發點', async ({ page }) => {
+      await page.clock.setFixedTime(new Date('2026-11-08T10:00:00+08:00'))
+      await page.goto('/plan/1')
+      await page.getByRole('button', { name: /使用目前位置/ }).click()
+      await expect.poll(() => page.evaluate(() => JSON.parse(localStorage.getItem('zg-plan') ?? '{}').state?.request?.origin_lat ?? null)).not.toBeNull()
+      for (let i = 0; i < 3; i++) await page.getByRole('button', { name: '下一步' }).click()
+      await page.getByRole('button', { name: '排出接得上的行程' }).click()
+      await expect(page).toHaveURL(PLAN_URL, { timeout: 30_000 })
+      // 這台瀏覽器暫存的位置換掉（模擬收到別人的連結、或之後從車站排過）
+      await page.evaluate(() => {
+        const o = JSON.parse(localStorage.getItem('zg-plan') ?? '{}')
+        o.state.request.origin_lat = null
+        o.state.request.origin_lng = null
+        localStorage.setItem('zg-plan', JSON.stringify(o))
+      })
+      await page.clock.setFixedTime(new Date('2026-11-09T10:00:00+08:00'))
+      await page.reload()
+      await expect(page.getByRole('alert')).toContainText('這份行程已經過期')
+      await page.getByRole('button', { name: '用同樣條件重排' }).click()
+      await expect(page).toHaveURL(/\/result\?.*from=here/)
+      await expect(page.getByRole('heading', { name: /從「目前位置」出發/ })).toHaveCount(0)
+      expect(await page.evaluate(() => JSON.parse(localStorage.getItem('zg-plan') ?? '{}').state?.request?.origin_lat ?? null)).not.toBeNull()
+    })
   })
 
   test('這個方案怎麼來的：展開看得到真數字和備選', async ({ page }) => {

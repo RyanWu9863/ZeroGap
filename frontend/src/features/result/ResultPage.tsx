@@ -3,8 +3,8 @@ import { useReducedMotion } from 'motion/react'
 import { useCallback, useEffect, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router'
 import { cancelPlan, requestKey, usePlanRun } from '@/api/planRuns'
+import { JOB_ID_RE } from '@/api/savedPlans'
 import type { PlanRequest } from '@/api/schemas'
-import { PageLoading } from '@/app/PageLoading'
 import { isPastDate } from '@/shared/lib/dates'
 import { usePageTitle } from '@/shared/lib/usePageTitle'
 import { NoSolution } from './NoSolution'
@@ -86,20 +86,25 @@ function SubmitView({ state }: { state: ReturnType<typeof useResultState> }) {
   }
 
   const jobId = run?.status === 'done' ? run.result?.job_id : undefined
+  // 編號不是後端給的格式（舊版假資料存的 mock-job）：換頁只會到「找不到」，改成重新規劃
+  const validId = jobId && JOB_ID_RE.test(jobId) ? jobId : undefined
   useEffect(() => {
     if (showProgress || !jobId) return
-    navigate(planPath(jobId, rank, location.search), { replace: true, viewTransition: !reduceMotion })
-  }, [showProgress, jobId, rank, location.search, navigate, reduceMotion])
+    if (!validId) {
+      retry()
+      return
+    }
+    navigate(planPath(validId, rank, location.search), { replace: true, viewTransition: !reduceMotion })
+  }, [showProgress, jobId, validId, rank, location.search, navigate, reduceMotion]) // eslint-disable-line react-hooks/exhaustive-deps -- retry 每次 render 都是新函式，只在上面這些值變時才需要重跑
 
   // 無解的一鍵放寬會用新條件重新規劃
   const rerun = (patch: Partial<PlanRequest>) => update(patch)
 
-  if (showProgress) return <PlanFunnel key={key} request={request} run={run} onDone={done} onCancel={cancel} />
+  // 換頁時漏斗還要留著：三個亮點（zg-plan-1～3）要在畫面上，viewTransition 才拍得到「舊畫面」
+  if (showProgress || jobId) return <PlanFunnel key={key} request={request} run={run} onDone={done} onCancel={cancel} />
   if (run?.status === 'failed') {
     if (run.error && NO_PLAN.includes(run.error.code)) return <NoSolution request={request} error={run.error} onRelax={rerun} />
     return <ResultError error={run.error} onRetry={retry} />
   }
-  // 已經在換頁（或沒有結果）：換頁前先顯示等待畫面，免得閃一下錯誤
-  if (jobId) return <PageLoading />
   return <ResultError error={null} onRetry={retry} />
 }

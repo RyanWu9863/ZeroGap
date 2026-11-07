@@ -101,9 +101,11 @@ export function PlanActions({
   const located = doc.request.origin_lat != null
   const mockNote = USE_MOCK || demo
   // 提醒文字每個寬度只顯示一份：手機在底部固定列的分享按鈕旁，電腦在右欄（max-lg:hidden）
-  const notes = (
+  // 過期時分享鈕按不了，位置和展示版的提醒都用不到，只留過期那一行
+  const notes = expired ? (
+    <p className="text-xs text-muted-foreground">行程過期了，先重排再分享。</p>
+  ) : (
     <>
-      {expired && <p className="text-xs text-muted-foreground">行程過期了，先重排再分享。</p>}
       {located && <p className="text-xs text-muted-foreground">這個連結含有你出發的大概位置（約 100 公尺內），只傳給信任的人。</p>}
       {mockNote && <p className="text-xs text-muted-foreground">展示版：這個連結只在這台瀏覽器打得開。</p>}
     </>

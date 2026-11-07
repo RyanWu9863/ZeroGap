@@ -138,7 +138,7 @@ export function describeTimeline(plan: Plan, date: string): StepView[] {
   })
 }
 
-/** 每一步的開始和結束時間（ISO），照時間軸的順序；畫時間比例（例如沉浸式新版的緞帶）用 */
+/** 每一步的開始和結束時間（ISO），照時間軸的順序；畫時間比例（例如錶盤）用 */
 export function stepSpans(plan: Plan): { type: TimelineStep['type']; start: string; end: string; buffer: StepView['buffer'] }[] {
   let prevEnd: string | null = null
   return plan.timeline.map((s, i) => {

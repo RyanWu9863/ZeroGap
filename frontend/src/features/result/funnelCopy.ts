@@ -11,7 +11,7 @@ export function funnelHeadline(run: Run | undefined): string {
   if (!run || run.status === 'connecting') return '正在送出條件…'
   if (run.status === 'queued') return `排隊中，${queueText(run.position ?? 1)}`
   if (run.status === 'done') return '每一段都檢查完了'
-  if (run.status === 'failed') return '這組條件排不出來'
+  if (run.status === 'failed') return ['NO_FEASIBLE', 'NO_SHOWTIMES'].includes(run.error?.code ?? '') ? '這組條件排不出來' : '這次沒排成'
   if (run.waitingQuota) return quotaText(run.waitSeconds)
   return `${STAGES[stageIndex(run.stage)]?.label ?? '處理中'}…`
 }

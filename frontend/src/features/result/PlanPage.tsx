@@ -30,7 +30,7 @@ const RouteMap = lazy(() => import('./map/RouteMap').then((m) => ({ default: m.R
 export function PlanPage() {
   const { id = '' } = useParams()
   const { state, doc, retry } = useSavedPlan(id)
-  usePageTitle('你的行程')
+  usePageTitle(state === 'loading' ? '讀取行程' : !doc && state === 'not_found' ? '找不到行程' : '你的行程')
   if (state === 'loading') return <PageLoading />
   if (state === 'error') return <ResultError error={null} onRetry={retry} />
   if (!doc) return <PlanMissing />
@@ -86,9 +86,9 @@ function PlanView({ doc }: { doc: SavedPlan }) {
   const step = (d: 1 | -1) => choosePlan(plans[(plans.findIndex((p) => p.rank === plan.rank) + d + n) % n].rank)
 
   return (
-    <div className="mx-auto max-w-6xl px-4 pt-8 sm:px-6">
+    <div className="mx-auto max-w-6xl px-4 pb-52 pt-8 sm:px-6 sm:pb-40 lg:pb-12">
       <ConditionBar req={request} onApply={rerun} />
-      <PlanHeader doc={doc} expired={expired} />
+      <PlanHeader doc={doc} expired={expired} onRerun={() => rerun({})} />
       <h1 className="mt-4 text-2xl font-bold sm:text-3xl">{n === 1 ? '這個行程' : `這 ${n} 個行程`}，每一段都接得上。</h1>
       <p className="mt-1.5 text-sm text-muted-foreground">
         從 <span className="zg-num">{result.stats.combinations.toLocaleString()}</span> 種組合中，找到{' '}

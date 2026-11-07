@@ -50,8 +50,9 @@ type Store = { runs: Record<string, Run>; lastDoneKey: string | null }
 export const usePlanRunStore = create<Store>()(
   persist((): Store => ({ runs: {}, lastDoneKey: null }), {
     name: 'zg-plan-runs',
-    // version 2：結果格式改成 v0.13（餐廳多了 hours_verified 等欄位），舊版存的結果直接丟掉
-    version: 2,
+    // version 3：結果編號改成後端格式（舊版假資料存的是 mock-job，換頁會到「找不到」），舊版存的結果直接丟掉
+    // （version 2：結果格式改成 v0.13，餐廳多了 hours_verified 等欄位）
+    version: 3,
     migrate: () => ({ runs: {}, lastDoneKey: null }),
     // 只存跑完的；最多留最近 6 組
     partialize: (s) => ({

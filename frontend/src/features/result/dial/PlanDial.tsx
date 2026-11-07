@@ -37,7 +37,7 @@ export function PlanDial({ plan, date, stationName, onPrev, onNext }: {
   const segments = dialSegments(plan)
   const ticks = dialTicks(plan)
   const b = bottleneck(plan)
-  const copy = b ? bottleneckCopy(b, stationName) : null
+  const copy = b ? bottleneckCopy(b, stationName, date) : null
   const level = b ? bufferLevel(b.minutes) : null
   const spot = b ? polar(C, C, R, b.angle) : null
   const present = KINDS.filter((k) => segments.some((s) => s.type === k.type))
