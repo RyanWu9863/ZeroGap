@@ -22,6 +22,7 @@ from app.decision_trace import DecisionRecord, record_decision, summarize
 from app.jev.base import ChoiceAnswer, Jev, JevResult
 from app.labels import HALL_TYPE_LABELS
 from app.llm import Llm, LlmPick
+from app.models import DecisionRecordRow
 from app.places import PlaceDetails, Places, PlacesError
 from app.planning import choose
 from app.planning.alternatives import movie_alternatives, restaurant_alternatives
@@ -251,6 +252,29 @@ class Planner:
             log.info("decision_trace %s", json.dumps(trace, ensure_ascii=False))
         except Exception:  # noqa: BLE001
             log.warning("規劃工作 %s：決策紀錄寫不出來", self.job_id, exc_info=True)
+        self._save_decisions()
+
+    def _save_decisions(self) -> None:
+        """把決策紀錄寫進 decision_records，用規劃同一個 session。一樣只是記錄，失敗只記警告。"""
+        session = None
+        try:
+            if not self.s.decision_trace_db:
+                return
+            session = self.d.session
+            # 規劃只讀資料庫，先結束讀取的交易：規劃途中資料庫出錯時交易是失敗狀態，不先
+            # rollback 寫不進去
+            session.rollback()
+            session.add_all(
+                DecisionRecordRow(job_id=self.job_id, **d.to_dict()) for d in self.decisions
+            )
+            session.commit()
+        except Exception:  # noqa: BLE001
+            log.warning("規劃工作 %s：決策紀錄寫不進資料庫", self.job_id, exc_info=True)
+            if session is not None:
+                try:
+                    session.rollback()
+                except Exception:  # noqa: BLE001
+                    log.warning("規劃工作 %s：rollback 失敗", self.job_id, exc_info=True)
 
     # ── 主流程 ───────────────────────────────────────────────
 
