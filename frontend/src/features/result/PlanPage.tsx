@@ -12,6 +12,7 @@ import { CopyButton } from './CopyButton'
 import { CostPanel } from './CostPanel'
 import { FreshnessNote } from './FreshnessNote'
 import { rerunPath } from './planPath'
+import { PlanDial } from './dial/PlanDial'
 import { PlanSwitcher } from './PlanSwitcher'
 import { ResultError } from './ResultStates'
 import { RouteSketch } from './RouteSketch'
@@ -104,7 +105,17 @@ function PlanView({ doc }: { doc: SavedPlan }) {
         <PlanSwitcher plans={plans} selected={plan.rank} onSelect={choosePlan} stationName={labels.station} date={request.date} swapOf={swapOf} />
       </div>
 
-      <div className="mt-8 grid gap-8 lg:grid-cols-[1fr_20rem]">
+      <div className="mt-8 grid gap-8 lg:grid-cols-[20rem_1fr]">
+        <div className="lg:sticky lg:top-20 lg:self-start">
+          <PlanDial
+            plan={plan}
+            date={request.date}
+            stationName={labels.station}
+            onPrev={() => choosePlan(plans[(plans.findIndex((p) => p.rank === plan.rank) - 1 + n) % n].rank)}
+            onNext={() => choosePlan(plans[(plans.findIndex((p) => p.rank === plan.rank) + 1) % n].rank)}
+          />
+        </div>
+        <div className="grid min-w-0 items-start gap-8 xl:grid-cols-[1fr_20rem]">
         <section className="zg-surface min-w-0 p-5 sm:p-8">
           {plan.highlight && <p className="mb-6 text-sm text-muted-foreground">{plan.highlight.reason}</p>}
           {swapped && (
@@ -115,7 +126,7 @@ function PlanView({ doc }: { doc: SavedPlan }) {
           )}
           <Timeline plan={plan} date={request.date} stationName={labels.station} swap={swaps[plan.rank] ?? null} onSwap={(s) => setSwap(plan.rank, s)} />
         </section>
-        <aside className="space-y-4 lg:sticky lg:top-20 lg:self-start">
+        <aside className="space-y-4 xl:sticky xl:top-20 xl:self-start">
           {/* 真實地圖預設就顯示（規格 D10）；地圖程式下載完前先用舊的示意圖 */}
           <Suspense fallback={<RouteSketch plan={plan} />}>
             <RouteMap plan={plan} date={request.date} />
@@ -126,6 +137,7 @@ function PlanView({ doc }: { doc: SavedPlan }) {
             看系統怎麼挑的 <ArrowRight className="size-3.5" />
           </Link>
         </aside>
+        </div>
       </div>
 
       <div className="mt-10">

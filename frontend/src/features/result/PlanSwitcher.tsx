@@ -1,4 +1,5 @@
 import type React from 'react'
+import { useEffect, useRef } from 'react'
 import { motion } from 'motion/react'
 import type { Plan } from '@/api/schemas'
 import { cn } from '@/lib/utils'
@@ -31,8 +32,28 @@ export function PlanSwitcher({ plans, selected, onSelect, stationName, date, swa
   swapOf: (rank: number) => SwapView | null
 }) {
   const desktop = desktopOrder(plans)
+  const refs = useRef(new Map<number, HTMLButtonElement>())
+  const focusAfterKey = useRef(false)
+  useEffect(() => {
+    const el = refs.current.get(selected)
+    if (!el) return
+    el.scrollIntoView({ inline: 'nearest', block: 'nearest' })
+    if (focusAfterKey.current) {
+      focusAfterKey.current = false
+      el.focus()
+    }
+  }, [selected])
+  const onKeyDown = (e: React.KeyboardEvent) => {
+    const step = e.key === 'ArrowRight' || e.key === 'ArrowDown' ? 1 : e.key === 'ArrowLeft' || e.key === 'ArrowUp' ? -1 : 0
+    if (!step) return
+    e.preventDefault()
+    const i = plans.findIndex((p) => p.rank === selected)
+    const next = plans[(i + step + plans.length) % plans.length]
+    focusAfterKey.current = true
+    onSelect(next.rank)
+  }
   return (
-    <div role="radiogroup" aria-label="選擇方案" className="-mx-4 flex snap-x scroll-px-4 gap-3 overflow-x-auto px-4 pb-2 sm:mx-0 sm:grid sm:grid-cols-3 sm:items-center sm:overflow-visible sm:px-0">
+    <div role="radiogroup" aria-label="選擇方案" onKeyDown={onKeyDown} className="-mx-4 flex snap-x scroll-px-4 gap-3 overflow-x-auto px-4 pb-2 sm:mx-0 sm:grid sm:grid-cols-3 sm:items-center sm:overflow-visible sm:px-0">
       {plans.map((p) => {
         const level = bufferLevel(p.min_buffer_minutes)
         const active = p.rank === selected
@@ -42,10 +63,15 @@ export function PlanSwitcher({ plans, selected, onSelect, stationName, date, swa
           <motion.button
             key={p.rank}
             role="radio"
+            ref={(el) => {
+              if (el) refs.current.set(p.rank, el)
+              else refs.current.delete(p.rank)
+            }}
             aria-checked={active}
+            tabIndex={active ? 0 : -1}
             onClick={() => onSelect(p.rank)}
             layout
-            style={{ '--o': desktop.indexOf(p) } as React.CSSProperties}
+            style={{ '--o': desktop.indexOf(p), viewTransitionName: `zg-plan-${p.rank}` } as React.CSSProperties}
             className={cn(
               'zg-surface relative w-64 shrink-0 snap-start p-4 text-left transition-[border-color,box-shadow] sm:w-auto sm:[order:var(--o)]',
               p.rank === 1 && 'sm:py-6',

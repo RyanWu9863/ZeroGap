@@ -119,3 +119,46 @@ test.describe('行程路線地圖', () => {
     await expect(map(page).getByText('點站點看那一站的時間和要做的事')).toBeVisible()
   })
 })
+
+test.describe('錶盤與方案切換', () => {
+  test('錶盤：一打開就看到最緊的一段和後果，按聚光燈可以收起', async ({ page }) => {
+    await page.goto(resultUrl())
+    await expect(resultsHeading(page)).toBeVisible({ timeout: 30_000 })
+    const spot = page.getByRole('button', { name: /最緊的一段/ })
+    await expect(spot).toHaveAttribute('aria-expanded', 'true')
+    await expect(page.locator('#dial-bottleneck')).toContainText(/只要再慢超過|還有車/)
+    await spot.click()
+    await expect(spot).toHaveAttribute('aria-expanded', 'false')
+    await expect(page.locator('#dial-bottleneck')).toBeHidden()
+  })
+
+  test('方案用鍵盤 ←／→ 切換，網址跟著換', async ({ page, isMobile }) => {
+    test.skip(isMobile, '手機沒有實體鍵盤')
+    await page.goto(resultUrl())
+    await expect(resultsHeading(page)).toBeVisible({ timeout: 30_000 })
+    const plans = page.getByRole('radiogroup', { name: '選擇方案' }).getByRole('radio', { checked: true })
+    await plans.focus()
+    await page.keyboard.press('ArrowRight')
+    await expect(page).toHaveURL(/plan=2/)
+    await expect(plans).toBeFocused()
+    await page.keyboard.press('ArrowLeft')
+    await expect(page).toHaveURL(/\/p\/[0-9a-f]{32}$/)
+  })
+
+  test('手機在錶盤上左滑換到下一個方案', async ({ page, isMobile }) => {
+    test.skip(!isMobile, '只在 iPhone、iPad 專案跑')
+    await page.goto(resultUrl())
+    await expect(resultsHeading(page)).toBeVisible({ timeout: 30_000 })
+    const dial = page.locator('figure svg').first()
+    await dial.scrollIntoViewIfNeeded()
+    const box = await dial.boundingBox()
+    if (!box) throw new Error('找不到錶盤')
+    const y = box.y + box.height / 2
+    const figure = page.locator('figure').first()
+    // page.mouse 在手機模擬下沒有送出指標事件，直接對錶盤送 pointerdown／pointerup
+    const at = (x: number) => ({ clientX: x, clientY: y, pointerType: 'touch', isPrimary: true, bubbles: true })
+    await figure.dispatchEvent('pointerdown', at(box.x + box.width - 20))
+    await figure.dispatchEvent('pointerup', at(box.x + box.width - 140))
+    await expect(page).toHaveURL(/plan=2/)
+  })
+})
