@@ -59,7 +59,7 @@ test('日期過期：舊網址先提示再一鍵重排；精靈把舊日期換�
 test('找不到頁面：亂打網址顯示中文說明，導覽列還在，可以回首頁（P0-2）', async ({ page }) => {
   await page.goto('/no-such-page')
   await expect(page.getByRole('heading', { name: '找不到這一頁' })).toBeVisible()
-  await expect(page.getByRole('banner').getByRole('link', { name: '開始規劃' })).toBeVisible()
+  await expect(page.getByRole('link', { name: '排行程' }).locator('visible=true')).toBeVisible()
   await page.getByRole('main').getByRole('link', { name: '回首頁' }).click()
   await expect(page).toHaveURL(/\/$/)
 })
@@ -81,7 +81,7 @@ test('頁面出錯：頁面檔案下載失敗時顯示中文錯誤頁，導覽�
   await page.goto('/behind')
   await expect(page.getByRole('heading', { name: '這一頁出了點問題' })).toBeVisible()
   await expect(page.getByRole('button', { name: '重新整理' })).toBeVisible()
-  await expect(page.getByRole('banner').getByRole('link', { name: '開始規劃' })).toBeVisible()
+  await expect(page.getByRole('link', { name: '排行程' }).locator('visible=true')).toBeVisible()
 })
 
 test('選項載入失敗：精靈顯示白話說明和重試，按了就恢復（P1-1）', async ({ page }) => {

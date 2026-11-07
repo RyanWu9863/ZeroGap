@@ -102,8 +102,7 @@ export function WizardPage() {
       </AnimatePresence>
 
       <div
-        className="fixed inset-x-0 bottom-0 z-30 border-t bg-background/90 p-3 backdrop-blur sm:static sm:mt-10 sm:border-0 sm:bg-transparent sm:p-0 sm:backdrop-blur-none"
-        style={{ paddingBottom: 'max(0.75rem, env(safe-area-inset-bottom, 0px))' }}
+        className="fixed inset-x-0 bottom-[calc(3.5rem+env(safe-area-inset-bottom,0px))] z-30 border-t bg-background/90 p-3 backdrop-blur sm:static sm:mt-10 sm:border-0 sm:bg-transparent sm:p-0 sm:backdrop-blur-none"
       >
         {n < 4 ? (
           <div className="flex justify-end">

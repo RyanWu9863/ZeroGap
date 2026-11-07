@@ -194,8 +194,7 @@ function ResultView({ state }: { state: ReturnType<typeof useResultState> }) {
 
       {/* 手機：「複製行程」固定在底部（Q64） */}
       <div
-        className="fixed inset-x-0 bottom-0 z-30 border-t bg-background/90 p-3 backdrop-blur lg:hidden"
-        style={{ paddingBottom: 'calc(0.75rem + env(safe-area-inset-bottom, 0px))' }}
+        className="fixed inset-x-0 bottom-[calc(3.5rem+env(safe-area-inset-bottom,0px))] z-30 border-t bg-background/90 p-3 backdrop-blur sm:bottom-0 sm:pb-[calc(0.75rem+env(safe-area-inset-bottom,0px))] lg:hidden"
       >
         <CopyButton request={request} plan={plan} swapped={swapped} className="w-full" />
       </div>
