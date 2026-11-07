@@ -133,6 +133,9 @@ class LlmPicker:
         self._failures = 0
         self._open_until: float | None = None
         self.breaker_store = breaker_store if breaker_failures else None
+        # 同一個 LlmPicker 的請求共用連線，不用每題重新建立 client 和 TCP 連線。
+        # 逾時照樣每次請求各自帶，和以前的 httpx.post 相同
+        self._http = httpx.Client()
 
     def pick(self, question: ChoiceQuestion, probs: dict[str, float]) -> LlmPick:
         ranked = _ranked(probs)
@@ -208,7 +211,7 @@ class LlmPicker:
     def _call(self, body: dict[str, Any]) -> tuple[LlmStatus, Any, Exception | None]:
         """回傳 (狀態, 回答, 錯誤)。攔下的錯誤和原本一樣，只是分開記錄是哪一種。"""
         try:
-            resp = httpx.post(f"{self.base_url}/api/generate", json=body, timeout=self.timeout)
+            resp = self._http.post(f"{self.base_url}/api/generate", json=body, timeout=self.timeout)
             resp.raise_for_status()
             return "ok", json.loads(resp.json()["response"])["choice"], None
         except httpx.TimeoutException as exc:  # 含連線逾時
@@ -225,9 +228,12 @@ class LlmPicker:
     def is_connected(self) -> bool:
         """狀態列用的快速檢查；結果由呼叫端快取 30 秒（5.2）。"""
         try:
-            return httpx.get(f"{self.base_url}/api/tags", timeout=2.0).status_code == 200
+            return self._http.get(f"{self.base_url}/api/tags", timeout=2.0).status_code == 200
         except httpx.HTTPError:
             return False
+
+    def close(self) -> None:
+        self._http.close()
 
 
 class MockLlm:
