@@ -18,6 +18,7 @@ test('有解：介紹頁 → 四步精靈 → 等待畫面 → 三個方案，�
   await page.getByRole('button', { name: '排出接得上的行程' }).click()
 
   await expect(resultsHeading(page)).toBeVisible({ timeout: 30_000 })
+  await expect(page).toHaveURL(/\/p\/[0-9a-f]{32}/)
   await expectSeen(page, '篩出每一段都接得上的組合') // 等待畫面（SSE 進度）出現過（只看得到幾秒，用「出現過」驗，見 seen.ts）
   await expect(page.getByRole('radiogroup', { name: '選擇方案' }).getByRole('radio')).toHaveCount(3)
   await expect(page.locator('[data-estimated="true"]').first()).toHaveCSS('background-color', 'rgb(255, 241, 184)')
@@ -47,7 +48,8 @@ test('日期過期：舊網址先提示再一鍵重排；精靈把舊日期換�
   await expect(page.getByRole('heading', { name: '這組行程的日期已經過了' })).toBeVisible()
   await page.getByRole('button', { name: /改成 11\/2（一）/ }).click()
   await expect(resultsHeading(page)).toBeVisible()
-  await expect(page).toHaveURL(/date=2026-11-02/)
+  await expect(page).toHaveURL(/\/p\/[0-9a-f]{32}/)
+  await expect(page.getByRole('button', { name: '11/2（一）' })).toBeVisible()
 
   // 舊網址又把 10/30 寫回瀏覽器暫存；這時打開精靈第 2 步，要自動換掉並說明
   await page.goto(resultUrl('date=2026-10-30'))
@@ -115,7 +117,8 @@ test('無解：列出卡住的條件，一鍵放寬預算後有解（Q23）', as
   await expect(page.getByText('每人不超過 $500').first()).toBeVisible()
   await page.getByRole('button', { name: /每人預算改成 \$800/ }).click()
   await expect(resultsHeading(page)).toBeVisible()
-  await expect(page).toHaveURL(/budget=800/)
+  await expect(page).toHaveURL(/\/p\/[0-9a-f]{32}/)
+  await expect(page.getByRole('button', { name: '每人 $800' })).toBeVisible()
 })
 
 test('沒有場次、排隊已滿：白話說明', async ({ page }) => {
@@ -148,8 +151,9 @@ test('改條件小視窗：預算改 $1,500 重算，網址和花費區同步（
   await page.getByRole('button', { name: '每人 $1,000' }).click()
   await page.getByRole('radio', { name: '$1,500' }).click()
   await page.getByRole('button', { name: '重算' }).click()
-  await expect(page).toHaveURL(/budget=1500/)
   await expect(resultsHeading(page)).toBeVisible()
+  await expect(page).toHaveURL(/\/p\/[0-9a-f]{32}/)
+  await expect(page.getByRole('button', { name: '每人 $1,500' })).toBeVisible()
   await expect(page.getByText(/未超過預算 \$1,500/)).toBeVisible()
 })
 
@@ -184,7 +188,7 @@ test.describe('從目前位置出發（2026-10-21）', () => {
     for (let i = 0; i < 3; i++) await page.getByRole('button', { name: '下一步' }).click()
     await page.getByRole('button', { name: '排出接得上的行程' }).click()
     await expect(resultsHeading(page)).toBeVisible()
-    await expect(page).toHaveURL(/from=here/)
+    await expect(page).toHaveURL(/\/p\/[0-9a-f]{32}/)
     expect(page.url()).not.toContain('24.97')
     await expect(page.getByLabel('行程時間軸').locator('li').first()).toContainText('目前位置')
     await expect(page.getByLabel('行程時間軸').locator('li').last()).toContainText('回到目前位置')

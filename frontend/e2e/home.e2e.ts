@@ -44,8 +44,8 @@ test.describe('首頁', () => {
     await page.goto('/')
     await page.getByRole('group', { name: '每人預算' }).getByRole('radio', { name: /1,000/ }).click()
     await page.getByRole('button', { name: '排行程' }).click()
-    await expect(page).toHaveURL(/\/result/)
-    await expect(page.getByRole('heading', { name: /每一段都接得上/ })).toBeVisible({ timeout: 30_000 })
+    await expect(page).toHaveURL(/\/p\/[0-9a-f]{32}/, { timeout: 30_000 })
+    await expect(page.getByRole('heading', { name: /每一段都接得上/ })).toBeVisible()
     await page.goto('/')
     await expect(page.getByText(/你上次排的（假資料/)).toBeVisible() // e2e 跑假後端：數字要標「假資料」
   })
