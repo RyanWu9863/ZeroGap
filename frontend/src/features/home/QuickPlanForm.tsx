@@ -120,10 +120,14 @@ export function QuickPlan() {
   const settling = !areas || !stations || (areaKnown && !ctx.available && !coverageFailed) || pending
   const [waiting, setWaiting] = useState(false)
   const [slow, setSlow] = useState(false)
+  // 說了「資料還沒載入好」之後資料才到、而且沒有東西被送出：用 sr-only 提醒可以按了（否則提示無聲消失）
+  const [ready, setReady] = useState(false)
+  const mainButton = useRef<HTMLButtonElement>(null)
   // 已經換頁了：同步擋住第二次送出（effect 和點擊在同一輪各送一次也不會換兩次頁）
   const sent = useRef(false)
 
   const submit = () => {
+    if (ready) setReady(false)
     if (settling) {
       setSlow(false)
       setWaiting(true)
@@ -151,7 +155,10 @@ export function QuickPlan() {
   // 在畫面渲染時改，不另外跑 effect：
   // 載入失敗時丟掉先前記著的點擊（按「重試」後不要自己送出）；等的東西好了就收起「資料還沒載入好」，之後不會再冒出來
   if (waiting && (failed || coverageFailed)) setWaiting(false)
-  if (slow && !settling) setSlow(false)
+  if (slow && !settling) {
+    setSlow(false)
+    setReady(true)
+  }
   // 等的東西都好了：送出記著的點擊
   useEffect(() => {
     if (waiting && !settling) submit() // eslint-disable-line react/set-state-in-effect -- 送出（換頁）是這個 effect 要做的事，submit 順手收起「準備中」
@@ -173,7 +180,9 @@ export function QuickPlan() {
   const firstError = missing.length ? errorOf(missing[0]) : null
   const alertText = waiting
     ? '準備中，資料載入好就會送出' // 按鈕上的 aria-busy 很多螢幕閱讀器不念，這裡念一次
-    : firstError
+    : ready
+      ? '資料好了，可以按排行程'
+      : firstError
       ? missing.length > 1
         ? `${firstError}（還有 ${missing.length - 1} 格沒填）`
         : firstError
@@ -314,7 +323,7 @@ export function QuickPlan() {
             </div>
 
             <div className="mt-6 flex flex-wrap items-center gap-x-6 gap-y-3">
-              <Button size="lg" className="h-12 gap-2 rounded-full px-7 text-base" aria-busy={waiting || undefined} onClick={waiting ? undefined : submit}>
+              <Button ref={mainButton} size="lg" className="h-12 gap-2 rounded-full px-7 text-base" aria-busy={waiting || undefined} onClick={waiting ? undefined : submit}>
                 {waiting ? (
                   '準備中…'
                 ) : (
@@ -336,7 +345,11 @@ export function QuickPlan() {
                   <p className="font-medium text-destructive">資料還沒載入好，所以還不能排。可能是網路比較慢。</p>
                   <button
                     type="button"
-                    onClick={submit}
+                    onClick={() => {
+                      submit()
+                      // 這顆按鈕馬上消失：焦點交給主按鈕（它會顯示「準備中…」），不掉到 <body>
+                      mainButton.current?.focus()
+                    }}
                     className="inline-flex h-8 items-center gap-1.5 rounded-lg border px-3 text-xs hover:bg-muted pointer-coarse:h-10"
                   >
                     <RotateCw className="size-3.5" aria-hidden="true" /> 再試一次

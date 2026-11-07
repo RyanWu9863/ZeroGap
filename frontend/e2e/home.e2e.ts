@@ -109,6 +109,7 @@ test.describe('首頁', () => {
     await alert.getByRole('button', { name: '再試一次' }).click()
     await expect(page.getByRole('button', { name: '準備中…' })).toHaveAttribute('aria-busy', 'true')
     await expect(alert).toBeHidden()
+    await expect(page.getByRole('button', { name: '準備中…' })).toBeFocused() // 「再試一次」消失後，焦點交給主按鈕
     await page.waitForTimeout(500)
     expect(sent).toBe(2) // 正在查的那次沒有被取消重送
   })

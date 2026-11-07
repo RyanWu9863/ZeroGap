@@ -1,6 +1,6 @@
 import { ArrowRight } from 'lucide-react'
 
-const PIPELINE = ['你的條件', 'SQL 粗篩候選', '五道關卡（Python）', 'Jev 排序（最高機率低於 0.60 時 LLM 代選）', 'TDX 查精確班次', '三個方案＋分享連結']
+const PIPELINE = ['你的條件', 'SQL 粗篩候選', '五道關卡（Python）', 'Jev 排序（最高機率低於 0.60 時 LLM 代選）', 'TDX 查精確班次', '三個方案（通常附分享連結）']
 
 const PILLARS = [
   { n: '01', title: 'Python 算時間與金額', body: '開演、點餐、走路、回程車、預算，全部由確定性程式計算。同樣的輸入永遠得到同樣的答案，不會「幻覺」。' },

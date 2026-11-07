@@ -50,6 +50,7 @@ export function BehindPage() {
   return (
     <div data-theme="night" className="dark min-h-screen bg-background text-foreground">
       <div className="mx-auto max-w-6xl space-y-16 px-4 pb-16 pt-10 sm:px-6">
+        <h1 className="sr-only">系統幕後</h1>
         <MethodSection />
 
         <section>
@@ -72,7 +73,7 @@ export function BehindPage() {
             <div className="zg-surface min-w-0 p-5">
               <h3 className="font-semibold">從全部組合到 {result.plans.length} 個方案</h3>
               <p className="mb-4 text-xs text-muted-foreground">
-                {combinations.toLocaleString()} 種組合，{feasible.toLocaleString()} 種每段都接得上。後端不提供每道關卡各剔除幾組。
+                {combinations.toLocaleString()} 種組合，{feasible.toLocaleString()} 種每段都接得上。成功時不提供每道關卡各剔除幾組。
               </p>
               <Suspense fallback={<FunnelText combinations={combinations} feasible={feasible} shown={result.plans.length} />}>
                 <FunnelCharts total={combinations} stages={funnelStages(result)} />

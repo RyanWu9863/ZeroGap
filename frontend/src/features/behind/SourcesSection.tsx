@@ -52,7 +52,7 @@ export function SourcesSection() {
           </dl>
         )}
         {/* 說明放在 <dl> 外面：<dl> 裡只能放 <dt>／<dd> 組（P2-2） */}
-        {data && <p className="pt-3 text-xs text-muted-foreground">班次不預先匯入：每次規劃時向 TDX 即時查詢。</p>}
+        {data && <p className="pt-3 text-xs text-muted-foreground">班次不預先匯入：規劃時向 TDX 查詢，同一時段的結果最多暫存 6 小時。</p>}
       </div>
       <div id="demo" className="zg-surface scroll-mt-20 p-5">
         <h3 className="font-semibold">展示模式（Demo 現場的保險）</h3>

@@ -17,7 +17,7 @@ const TOOLS: [string, string][] = [
   ['list_stations', '某個縣市有哪些車站。'],
   ['list_categories', '電影片型、料理類別的代碼。'],
   ['data_coverage', '某個商圈某一天有哪些電影、影廳、語言和可以吃的料理。'],
-  ['plan_date', '真的排出行程（約 1～3 分鐘，過程中會回報進度），回傳最多 3 個方案和網站連結。'],
+  ['plan_date', '真的排出行程（約 1～3 分鐘，過程中會回報進度），回傳最多 3 個方案，通常會附上網站連結。'],
 ]
 
 const LIMITS = [
@@ -67,7 +67,7 @@ export function AiPage() {
     <div className="mx-auto max-w-3xl px-4 pt-10 pb-16 sm:px-6">
       <h1 className="text-2xl font-semibold tracking-tight">在 AI 助理裡使用 ZeroGap</h1>
       <p className="mt-3 leading-relaxed">
-        如果你平常用支援 MCP 的 AI 助理（例如 Claude），可以把 ZeroGap 接進去，直接用說的排行程。助理排好會給你一個連結，打開就是網站上同一份行程，可以看錶盤、地圖、加到行事曆。
+        如果你平常用支援 MCP 的 AI 助理（例如 Claude），可以把 ZeroGap 接進去，直接用說的排行程。助理排好通常會給你一個連結，打開就是網站上同一份行程，可以看錶盤、地圖、加到行事曆。
       </p>
 
       <h2 className="mt-10 text-xl font-semibold">可以這樣說</h2>

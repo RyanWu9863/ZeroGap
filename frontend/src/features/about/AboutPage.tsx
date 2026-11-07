@@ -5,7 +5,7 @@ const REPO = 'https://github.com/RyanWu9863/ZeroGap'
 const linkClass = 'underline underline-offset-2 hover:text-foreground'
 
 const SOURCES = [
-  { what: '車站、公車和火車班次', from: '交通部 TDX 運輸資料流通服務', terms: '政府資料開放授權條款第 1 版；班次每次排行程時即時查詢。' },
+  { what: '車站、公車和火車班次', from: '交通部 TDX 運輸資料流通服務', terms: '政府資料開放授權條款第 1 版；排行程時向交通部查班次，同一時段的結果最多暫存 6 小時。' },
   { what: '電影場次', from: '開眼電影網', terms: '僅供學術展示，場次以影城公告為準。' },
   { what: '餐廳（一部分）', from: 'OpenStreetMap', terms: <>© OpenStreetMap 貢獻者，<a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer" className={linkClass}>ODbL 授權</a>。</> },
   { what: '餐廳（一部分）、地圖', from: 'Google 地圖、Google Places', terms: '依 Google 地圖服務條款使用，畫面上會標示來源；Google 地點的座標只短期暫存，不長期保存。' },

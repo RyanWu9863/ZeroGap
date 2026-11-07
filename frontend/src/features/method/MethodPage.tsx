@@ -76,7 +76,7 @@ export function MethodPage() {
           title="先把所有可能都列出來"
           fact={<><Num>{fmt(facts.combinations)}</Num> <Unit>種組合</Unit><Demo /></>}
         >
-          那天每一場電影 × 每一家餐廳 × 去回的每一班車，先全部列出來，再一關一關刪。
+          那天每一個場次 × 每一家餐廳，先全部配成組合，再一關一關刪。
         </MethodStep>
 
         <MethodStep
@@ -90,18 +90,18 @@ export function MethodPage() {
 
         <MethodStep
           n={2}
-          title="第二關：趕得上點餐"
-          fact={facts.lastOrderBuffer !== null && <><Unit>離最後點餐還有</Unit> <Num>{fmt(facts.lastOrderBuffer)}</Num> <Unit>分</Unit><Demo /></>}
+          title="第二關：走路不超過上限"
+          fact={facts.walkMinutes !== null && <><Unit>影城到餐廳走</Unit> <Num>{fmt(facts.walkMinutes)}</Num> <Unit>分</Unit><Demo /></>}
         >
-          散場後走到餐廳，要在最後點餐時間之前（先吃飯再看電影時，吃完也要趕得上開演）。
+          影城和餐廳之間的走路時間，不能超過你設定的上限。
         </MethodStep>
 
         <MethodStep
           n={3}
-          title="第三關：走路不超過上限"
-          fact={facts.walkMinutes !== null && <><Unit>影城到餐廳走</Unit> <Num>{fmt(facts.walkMinutes)}</Num> <Unit>分</Unit><Demo /></>}
+          title="第三關：趕得上點餐（包括有沒有營業）"
+          fact={facts.lastOrderBuffer !== null && <><Unit>離最後點餐還有</Unit> <Num>{fmt(facts.lastOrderBuffer)}</Num> <Unit>分</Unit><Demo /></>}
         >
-          影城和餐廳之間的走路時間，不能超過你設定的上限。
+          散場後走到餐廳，要正在營業、而且趕在最後點餐時間之前（先吃飯再看電影時，吃完也要趕得上開演）。
         </MethodStep>
 
         <MethodStep
@@ -147,7 +147,7 @@ export function MethodPage() {
             </>
           }
         >
-          每一道關卡都只刪掉接不上的組合，所以留下來的每一個都保證接得上。我們不列每一關各刪了幾組，因為系統只記錄最後的結果。
+          每一道關卡都只刪掉接不上的組合，所以留下來的每一個都保證接得上。排成功時後端只回最後的結果，所以我們不列每一關各刪了幾組。
         </MethodStep>
 
         <MethodStep
@@ -159,7 +159,7 @@ export function MethodPage() {
         </MethodStep>
 
         <MethodStep n={8} title="為什麼要查最早到、最晚走的車" fact={<Timeline />}>
-          去程只要最早到的那班趕得上就好；回程要知道最晚哪一班還回得去，才知道能玩多久。班次每次排行程時都即時查交通部的資料，不是用舊時刻表。
+          去程只要最早到的那班趕得上就好；回程要知道最晚哪一班還回得去，才知道能玩多久。排行程時我們向交通部查班次，同一時段的結果最多暫存 6 小時，不是用舊時刻表。
         </MethodStep>
 
         <MethodStep
@@ -176,7 +176,7 @@ export function MethodPage() {
             )
           }
         >
-          電影場次：開眼電影網，每天更新；餐廳：OpenStreetMap 和 Google 地圖；車站和班次：交通部 TDX，班次每次即時查。
+          電影場次：開眼電影網，每天更新；餐廳：OpenStreetMap 和 Google 地圖；車站和班次：交通部 TDX，排行程時查詢，同一時段的結果最多暫存 6 小時。
         </MethodStep>
 
         <div className="py-8">

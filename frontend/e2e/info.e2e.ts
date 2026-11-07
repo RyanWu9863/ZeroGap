@@ -1,7 +1,13 @@
-import { expect, test } from '@playwright/test'
+import { expect, test, type Page } from '@playwright/test'
 
 // 底部導覽在 sm（640px）以下才出現；iPad 寬度超過它，會看到頂部導覽，所以用寬度判斷而不是 isMobile
 const SM = 640
+
+/** 整頁（含導覽列、頁尾）的文字，只放行兩個已核准的字串：導覽列「AI 助理」、頁尾「在 AI 助理裡使用」 */
+async function bodyTextWithoutAccepted(page: Page) {
+  const text = await page.locator('body').innerText()
+  return text.replaceAll('在 AI 助理裡使用', '').replaceAll('AI 助理', '')
+}
 
 test.describe('導覽四顆', () => {
   test('寬螢幕：頂部四顆，點了換頁、目前那顆有標示；沒有幕後', async ({ page }) => {
@@ -60,8 +66,7 @@ test.describe('方法頁', () => {
   })
   test('不出現 AI、Jev、LLM、機率', async ({ page }) => {
     await page.goto('/method')
-    const text = await page.locator('main').innerText()
-    expect(text).not.toMatch(/\bAI\b|Jev|LLM|機率/)
+    expect(await bodyTextWithoutAccepted(page)).not.toMatch(/\bAI\b|Jev|LLM|機率/)
   })
 })
 
@@ -93,7 +98,8 @@ test.describe('關於頁', () => {
     for (const s of ['交通部 TDX', '開眼電影網', 'OpenStreetMap', 'Google']) await expect(page.getByRole('table').getByText(s).first()).toBeVisible()
     await expect(page.getByText('zg-plan-runs')).toBeVisible()
     await expect(page.getByRole('link', { name: /成員/ })).toHaveAttribute('href', 'https://github.com/RyanWu9863/ZeroGap/graphs/contributors')
-    expect(await page.locator('main').innerText()).not.toMatch(/@|\bAI\b|Jev|LLM|機率/)
+    expect(await page.locator('main').innerText()).not.toMatch(/@/)
+    expect(await bodyTextWithoutAccepted(page)).not.toMatch(/\bAI\b|Jev|LLM|機率/)
   })
   test('手機寬度整頁不會左右捲動', async ({ page }) => {
     await page.setViewportSize({ width: 375, height: 800 })
