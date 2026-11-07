@@ -78,3 +78,65 @@ def test_summary():
         "llm_status": {"ok": 1, "timeout": 1, "circuit_open": 1},
         "llm_latency_ms_total": 31000.0,
     }
+
+
+# ── 第三條出口：Jev 沒有結果、LLM 失敗或棄權時的紀錄 ─────────────────────────
+
+UNIFORM = ChoiceAnswer({"r1": 1 / 3, "r2": 1 / 3, "r3": 1 / 3})
+
+
+def test_jev_unavailable_and_llm_failed_is_not_decided_by_jev():
+    # Jev 每月額度用完：planner 給均等機率，LLM 又逾時，pick.code 只是排序最前面的代碼
+    pick = LlmPick("r1", False, status="timeout", latency_ms=30000.0, model="m")
+    r = record_decision(QUESTION, UNIFORM, POLICY, pick, None, jev_unavailable=True)
+    assert (r.chosen, r.decided_by, r.fallback_reason) == ("r1", "fallback", "jev_unavailable")
+
+
+def test_jev_unavailable_but_llm_answered_is_decided_by_llm():
+    pick = LlmPick("r2", True, status="ok", latency_ms=900.0, model="m")
+    r = record_decision(QUESTION, UNIFORM, POLICY, pick, None, jev_unavailable=True)
+    assert (r.chosen, r.decided_by, r.fallback_reason) == ("r2", "llm", None)
+
+
+def test_jev_unavailable_without_asking_llm_is_fallback():
+    # 例如 margin 0 的判斷方式：均等機率也算有把握，沒有問 LLM
+    r = record_decision(QUESTION, UNIFORM, RouterPolicy("margin", 0.0), None, None,
+                        jev_unavailable=True)  # fmt: skip
+    assert (r.chosen, r.decided_by, r.fallback_reason) == ("r1", "fallback", "jev_unavailable")
+
+
+def test_llm_failure_with_jev_records_reason_and_keeps_jev():
+    for status in ("timeout", "circuit_open", "abstain", "not_candidate"):
+        pick = LlmPick("r1", False, status=status, latency_ms=None, model="m")
+        r = record_decision(QUESTION, UNSURE, POLICY, pick, JEV)
+        assert (r.chosen, r.decided_by, r.fallback_reason) == ("r1", "jev", f"llm_{status}")
+
+
+def test_llm_failure_without_status_records_unknown():
+    r = record_decision(QUESTION, UNSURE, POLICY, LlmPick("r1", False), JEV)
+    assert (r.decided_by, r.fallback_reason) == ("jev", "llm_unknown")
+
+
+def test_normal_paths_have_no_fallback_reason():
+    assert record_decision(QUESTION, SURE, POLICY, None, JEV).fallback_reason is None
+    ok = LlmPick("r2", True, status="ok", latency_ms=1.0, model="m")
+    assert record_decision(QUESTION, UNSURE, POLICY, ok, JEV).fallback_reason is None
+    assert record_decision(QUESTION, ChoiceAnswer({}), POLICY, None).fallback_reason is None
+
+
+def test_disabled_llm_with_jev_is_recorded_as_llm_disabled():
+    # LLM_MODE=mock：沒有呼叫 LLM，採用 Jev 第一名
+    r = record_decision(QUESTION, UNSURE, POLICY, LlmPick("r1", False, "disabled"), JEV)
+    assert (r.decided_by, r.fallback_reason) == ("jev", "llm_disabled")
+
+
+def test_summary_counts_fallback_only_when_present():
+    records = [
+        record_decision(QUESTION, SURE, POLICY, None, JEV),
+        record_decision(
+            QUESTION, UNIFORM, POLICY, LlmPick("r1", False, "timeout"), None, jev_unavailable=True
+        ),  # fmt: skip
+    ]
+    assert summarize(records)["decided_by_fallback"] == 1
+    assert "decided_by_fallback" not in summarize(records[:1])
+
