@@ -4,6 +4,7 @@ import type { Plan } from '@/api/schemas'
 import { cn } from '@/lib/utils'
 import { SourceCredit } from '@/shared/brand/Attribution'
 import { placeUrl, routeUrl } from '@/shared/lib/maps'
+import type { WalkLookups } from './GoogleRoute'
 import { HAS_MAPS_KEY, useMapStore, type MapMode } from './mapStore'
 import { canLocate, routeNodes } from './route'
 import { SketchRoute } from './SketchRoute'
@@ -48,7 +49,9 @@ export function RouteMap({ plan, date, jobId }: { plan: Plan; date: string; jobI
   const [failed, setFailed] = useState(false)
   const [unavailable, setUnavailable] = useState<{ rank: number; why: string } | null>(null)
   const { ref: mapRef, near } = useNearViewport()
-  const [straightWalks, setStraightWalks] = useState(0)
+  const [walks, setWalks] = useState<WalkLookups & { rank: number }>({ rank: plan.rank, pending: 0, missing: 0 })
+  const onFallback = useCallback((w: WalkLookups) => setWalks({ ...w, rank: plan.rank }), [plan.rank])
+  const walkNow = walks.rank === plan.rank ? walks : { pending: 0, missing: 0 } // 換方案後舊數字不算
   const onError = useCallback(() => setFailed(true), [])
   const onUnavailable = useCallback((why: string) => setUnavailable({ rank: plan.rank, why }), [plan.rank])
   const selected = picked?.rank === plan.rank ? picked.n : null // 換方案時清掉選中的站
@@ -90,9 +93,11 @@ export function RouteMap({ plan, date, jobId }: { plan: Plan; date: string; jobI
 
       <p className="mt-1 text-xs text-muted-foreground">
         {showGoogle
-          ? straightWalks > 0
-            ? `有 ${straightWalks} 段走路查不到路線，先用直線虛線示意；搭車畫起訖站，照我們排的班次`
-            : '走路是實際步行路線；搭車畫起訖站，照我們排的班次'
+          ? walkNow.pending > 0
+            ? '正在查走路路線…搭車畫起訖站，照我們排的班次'
+            : walkNow.missing > 0
+              ? `有 ${walkNow.missing} 段走路查不到路線，先用直線虛線示意；搭車畫起訖站，照我們排的班次`
+              : '走路是實際步行路線；搭車畫起訖站，照我們排的班次'
           : '非實際比例・實線搭車、虛線走路'}
       </p>
 
@@ -108,7 +113,7 @@ export function RouteMap({ plan, date, jobId }: { plan: Plan; date: string; jobI
           <div className="grid h-72 place-items-center rounded-lg bg-muted text-xs text-muted-foreground">地圖會在捲到這裡時載入</div>
         ) : showGoogle ? (
           <Suspense fallback={<div className="grid h-72 place-items-center rounded-lg bg-muted text-xs text-muted-foreground">Google 地圖載入中…</div>}>
-            <GoogleRoute key={plan.rank} nodes={nodes} rank={plan.rank} jobId={jobId} selected={selected} onSelect={select} onError={onError} onUnavailable={onUnavailable} onFallback={setStraightWalks} />
+            <GoogleRoute key={plan.rank} nodes={nodes} rank={plan.rank} jobId={jobId} selected={selected} onSelect={select} onError={onError} onUnavailable={onUnavailable} onFallback={onFallback} />
           </Suspense>
         ) : (
           <SketchRoute nodes={nodes} selected={selected} onSelect={select} />

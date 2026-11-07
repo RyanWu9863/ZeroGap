@@ -18,6 +18,8 @@ import { walkKey, type LatLng } from './routeCache'
  * - 餐廳只有 place_id 時：Places 函式庫 Place.fetchFields 查位置
  * - 查到的路線和位置都存在這台瀏覽器 7 天（routeCache.ts）
  */
+export type WalkLookups = { pending: number; missing: number }
+
 const KEY = import.meta.env.VITE_GOOGLE_MAPS_KEY as string | undefined
 const MAP_ID = (import.meta.env.VITE_GOOGLE_MAPS_MAP_ID as string | undefined) || 'DEMO_MAP_ID'
 
@@ -46,7 +48,7 @@ function useLocations(nodes: RouteNode[], onUnavailable: (why: string) => void):
 }
 
 /** 畫線：搭車是起訖站之間的實線；走路先畫直線虛線，查到真實步行路線再換成路線；都用青色 */
-function Lines({ legs, pts, jobId, rank, onFallback }: { legs: Leg[]; pts: LatLng[]; jobId: string; rank: number; onFallback: (walkLegs: number) => void }) {
+function Lines({ legs, pts, jobId, rank, onFallback }: { legs: Leg[]; pts: LatLng[]; jobId: string; rank: number; onFallback: (w: WalkLookups) => void }) {
   const map = useMap()
   const maps = useMapsLibrary('maps')
   const routesLib = useMapsLibrary('routes')
@@ -55,10 +57,12 @@ function Lines({ legs, pts, jobId, rank, onFallback }: { legs: Leg[]; pts: LatLn
     if (!map || !maps) return
     let stale = false
     // 主題換了地圖會整個重掛，這個元件跟著重新執行，所以讀到的是新主題的顏色
-    const color = getComputedStyle(document.documentElement).getPropertyValue('--zg-flow').trim() || 'currentColor'
+    const root = getComputedStyle(document.documentElement)
+    // Google 地圖認不得 currentColor；--zg-flow 讀不到時改用文字顏色（rgb() 字串）
+    const color = root.getPropertyValue('--zg-flow').trim() || root.color
     const walks = legs.filter((l) => l.mode === 'walk').length
-    let fallback = walks // 目前還畫成直線的走路段
-    onFallback(walks)
+    const count = { pending: walks, missing: 0 } // pending＝還在查；missing＝查完了卻沒有路線
+    onFallback({ ...count })
     const made = legs.map((leg) => {
       const walk = leg.mode === 'walk'
       const line = new maps.Polyline({
@@ -71,9 +75,11 @@ function Lines({ legs, pts, jobId, rank, onFallback }: { legs: Leg[]; pts: LatLn
       })
       if (walk && routesLib) {
         void walkPath(routesLib, walkKey(jobId, rank, leg.i), pts[leg.i], pts[leg.i + 1]).then((path) => {
-          if (stale || !path) return
-          line.setPath(path)
-          onFallback(--fallback)
+          if (stale) return
+          count.pending--
+          if (path) line.setPath(path)
+          else count.missing++
+          onFallback({ ...count })
         })
       }
       return line
@@ -81,6 +87,7 @@ function Lines({ legs, pts, jobId, rank, onFallback }: { legs: Leg[]; pts: LatLn
     return () => {
       stale = true
       made.forEach((l) => l.setMap(null))
+      onFallback({ pending: 0, missing: 0 }) // 換方案或地圖拿掉時，舊的數字不留著
     }
   }, [map, maps, routesLib, legs, pts, jobId, rank, onFallback])
   return null
@@ -94,8 +101,8 @@ export default function GoogleRoute({ nodes, rank, jobId, selected, onSelect, on
   onSelect: (n: number) => void
   onError: () => void
   onUnavailable: (why: string) => void
-  /** 目前有幾段走路還是直線虛線（查不到路線） */
-  onFallback: (walkLegs: number) => void
+  /** 走路路線的查詢進度：還在查幾段、查完卻沒有路線幾段 */
+  onFallback: (w: WalkLookups) => void
 }) {
   // 金鑰無效、沒開帳單時，Google 會呼叫 window.gm_authFailure，地圖本身只顯示灰色錯誤；改成我們的降級說明
   useEffect(() => {

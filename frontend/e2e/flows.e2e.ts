@@ -187,6 +187,10 @@ test.describe('從目前位置出發（2026-10-21）', () => {
     await expect(page.getByRole('button', { name: /已使用目前位置/ })).toHaveAttribute('aria-pressed', 'true')
     for (let i = 0; i < 3; i++) await page.getByRole('button', { name: '下一步' }).click()
     await page.getByRole('button', { name: '排出接得上的行程' }).click()
+    // 還在 /result（等待畫面）時，網址就不能帶座標；排好後換成 /p/編號，同樣不帶
+    await expect(page).toHaveURL(/\/result\?/)
+    expect(page.url()).toContain('from=here')
+    expect(page.url()).not.toContain('24.97')
     await expect(resultsHeading(page)).toBeVisible()
     await expect(page).toHaveURL(/\/p\/[0-9a-f]{32}/)
     expect(page.url()).not.toContain('24.97')

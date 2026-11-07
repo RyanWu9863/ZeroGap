@@ -84,8 +84,8 @@ export function PlanFunnel({ request, run, onDone, onCancel }: Props) {
           return (
             <li
               key={s.key}
-              style={{ width: `calc(100% - ${i * 8}%)` }}
-              className={cn('zg-surface mx-auto px-4 py-3', done && 'bg-[var(--zg-glow)]', active && 'border-[var(--zg-flow)]', bad && 'border-zg-fail', !done && !active && !bad && 'opacity-60')}
+              style={{ width: `calc(100% - ${i * 5}%)` }}
+              className={cn('zg-surface mx-auto min-w-[16rem] px-4 py-3', done && 'bg-[var(--zg-glow)]', active && 'border-[var(--zg-flow)]', bad && 'border-zg-fail', !done && !active && !bad && 'opacity-60')}
             >
               <div className="flex items-center gap-3">
                 <span className={cn('grid size-6 shrink-0 place-items-center rounded-full border', done && 'border-transparent text-[var(--zg-flow)]', bad && 'border-transparent bg-zg-fail-soft text-zg-fail')}>
@@ -93,6 +93,7 @@ export function PlanFunnel({ request, run, onDone, onCancel }: Props) {
                 </span>
                 <span className={cn('flex-1 text-sm', !done && !active && 'text-muted-foreground')}>{s.label}</span>
               </div>
+              {active && run?.waitingQuota && <p className="mt-1 pl-9 text-xs text-muted-foreground">交通查詢有次數限制，需要稍等</p>}
               {s.key === 'filtering' && (
                 <ul className="mt-2 flex flex-wrap gap-1.5 pl-9" aria-label="五道關卡">
                   {gateLabels(request).map((g) => (

@@ -229,6 +229,7 @@ test.describe('分享頁狀態列', () => {
     await page.reload()
     await expect(page.getByRole('alert')).toContainText('這份行程已經過期')
     await expect(page.getByRole('button', { name: '加到行事曆' })).toBeDisabled()
+    await expect(page.getByRole('button', { name: '分享連結' }).first()).toBeDisabled()
     await page.getByRole('button', { name: '用同樣條件重排' }).click()
     await expect(page).toHaveURL(/\/result\?/)
   })

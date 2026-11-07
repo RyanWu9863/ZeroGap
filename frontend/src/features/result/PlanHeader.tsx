@@ -1,16 +1,14 @@
 import { ArrowRight, TriangleAlert } from 'lucide-react'
 import { Link, useLocation, useNavigate } from 'react-router'
-import { shareStatus } from '@/api/savedPlans'
 import type { SavedPlan } from '@/api/schemas'
 import { Button } from '@/components/ui/button'
 import { stamp } from '@/shared/lib/time'
 import { rerunPath } from './planPath'
 
 /** 一行說明排好的時間；過期了多一條橫幅，可以用同樣條件重排（行程照樣顯示） */
-export function PlanHeader({ doc, now }: { doc: SavedPlan; now: Date }) {
+export function PlanHeader({ doc, expired }: { doc: SavedPlan; expired: boolean }) {
   const navigate = useNavigate()
   const location = useLocation()
-  const expired = shareStatus(doc, now) === 'expired'
   return (
     <div className="mt-6 space-y-3">
       <p className="text-sm text-muted-foreground">

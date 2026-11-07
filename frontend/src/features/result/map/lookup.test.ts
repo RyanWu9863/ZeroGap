@@ -41,6 +41,12 @@ describe('walkPath', () => {
     expect(await walkPath(routesWith(() => Promise.resolve({ routes: [{ path: [] }] })), K, A, B)).toBeNull()
     expect(readCache(K)).toBeNull()
   })
+  it('失敗的查詢清掉等待中的紀錄，之後再問會重試', async () => {
+    const fn = vi.fn().mockRejectedValueOnce(new Error('x')).mockImplementationOnce(okRoute)
+    expect(await walkPath(routesWith(fn), K, A, B)).toBeNull()
+    expect(await walkPath(routesWith(fn), K, A, B)).toHaveLength(3)
+    expect(fn).toHaveBeenCalledTimes(2)
+  })
   it('函式庫還沒載入 → null', async () => {
     expect(await walkPath(null, K, A, B)).toBeNull()
   })

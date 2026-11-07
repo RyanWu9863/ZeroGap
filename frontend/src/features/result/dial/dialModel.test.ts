@@ -78,6 +78,12 @@ describe('瓶頸', () => {
     expect(b).toMatchObject({ index: 1, minutes: 8, gate: 'showtime' })
     expect(b.angle).toBe(-60) // 那一步結束在 18:30：出門後 1.5 小時＝-150＋90
   })
+  it('兩步緩衝一樣小：取時間軸上靠前的那一步', () => {
+    const tl = simple.timeline.map((x, i) => (i === 1 ? { ...x, buffer_minutes: 5 } : i === 4 ? { ...x, buffer_minutes: 5 } : x)) as Plan['timeline']
+    expect(bottleneck({ ...simple, timeline: tl })).toMatchObject({ index: 1, minutes: 5 })
+    const later = simple.timeline.map((x, i) => (i === 1 ? { ...x, buffer_minutes: 9 } : i === 4 ? { ...x, buffer_minutes: 5 } : i === 3 ? { ...x, buffer_minutes: 5 } : x)) as Plan['timeline']
+    expect(bottleneck({ ...simple, timeline: later })).toMatchObject({ index: 3, minutes: 5 })
+  })
   it('沒有任何緩衝資料就回 null', () => expect(bottleneck({ ...simple, timeline: simple.timeline.map(({ buffer_minutes: _b, buffer_gate: _g, ...s }) => s) as Plan['timeline'] })).toBeNull())
   it('假資料的方案：瓶頸分鐘數就是 min_buffer_minutes', () => expect(bottleneck(base)?.minutes).toBe(base.min_buffer_minutes))
 })

@@ -1,5 +1,5 @@
 import { CalendarPlus, Check, RefreshCw, Share2 } from 'lucide-react'
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router'
 import { USE_MOCK } from '@/api/client'
 import type { Plan, SavedPlan } from '@/api/schemas'
@@ -39,6 +39,8 @@ export function PlanActions({
   const navigate = useNavigate()
   const demo = useDemoStore((s) => s.demo)
   const [share, setShare] = useState<'idle' | 'done' | 'manual'>('idle')
+  const copiedTimer = useRef<ReturnType<typeof setTimeout>>(undefined)
+  useEffect(() => () => clearTimeout(copiedTimer.current), []) // 離開頁面時不要讓計時器去改已經不在的元件
   const url = shareUrl(window.location.origin, import.meta.env.BASE_URL, doc.job_id, plan.rank)
 
   const onShare = async () => {
@@ -54,7 +56,10 @@ export function PlanActions({
     }
     const ok = await writeClipboard(url)
     setShare(ok ? 'done' : 'manual')
-    if (ok) setTimeout(() => setShare('idle'), 2000)
+    if (ok) {
+      clearTimeout(copiedTimer.current)
+      copiedTimer.current = setTimeout(() => setShare('idle'), 2000)
+    }
   }
 
   const onCalendar = () => {
@@ -62,7 +67,7 @@ export function PlanActions({
     const href = URL.createObjectURL(new Blob([text], { type: 'text/calendar;charset=utf-8' }))
     const a = document.createElement('a')
     a.href = href
-    a.download = 'zerogap-行程.ics'
+    a.download = `zerogap-${doc.request.date}-方案${plan.rank}.ics`
     document.body.appendChild(a)
     a.click()
     a.remove()

@@ -1,4 +1,5 @@
 import { ArrowRight, LocateFixed } from 'lucide-react'
+import { useReducedMotion } from 'motion/react'
 import { useCallback, useEffect, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router'
 import { cancelPlan, requestKey, usePlanRun } from '@/api/planRuns'
@@ -66,6 +67,7 @@ function SubmitView({ state }: { state: ReturnType<typeof useResultState> }) {
   const replay = Boolean((location.state as { replay?: boolean } | null)?.replay)
   const { run, retry } = usePlanRun(request, replay)
   const key = requestKey(request)
+  const reduceMotion = useReducedMotion()
   const finished = run?.status === 'done' || run?.status === 'failed'
 
   // 排程中就先下載結果頁的程式，排好換頁時不用再等
@@ -86,8 +88,8 @@ function SubmitView({ state }: { state: ReturnType<typeof useResultState> }) {
   const jobId = run?.status === 'done' ? run.result?.job_id : undefined
   useEffect(() => {
     if (showProgress || !jobId) return
-    navigate(planPath(jobId, rank, location.search), { replace: true, viewTransition: true })
-  }, [showProgress, jobId, rank, location.search, navigate])
+    navigate(planPath(jobId, rank, location.search), { replace: true, viewTransition: !reduceMotion })
+  }, [showProgress, jobId, rank, location.search, navigate, reduceMotion])
 
   // 無解的一鍵放寬會用新條件重新規劃
   const rerun = (patch: Partial<PlanRequest>) => update(patch)

@@ -59,17 +59,10 @@ export type Bottleneck = { index: number; minutes: number; gate: BufferGate; win
 export function bottleneck(plan: Plan): Bottleneck | null {
   const spans = stepSpans(plan)
   let best: Bottleneck | null = null
-  for (const [index, s] of plan.timeline.entries()) {
-    if (s.buffer_minutes == null || !s.buffer_gate) continue
-    if (best && s.buffer_minutes >= best.minutes) continue
-    best = {
-      index,
-      minutes: s.buffer_minutes,
-      gate: s.buffer_gate,
-      window: s.return_window ?? null,
-      walkHome: !plan.timeline.slice(index + 1).some((x) => x.type === 'transit'),
-      angle: angleAt(spans[index].end, plan.depart_at, plan.home_at),
-    }
+  for (const [index, span] of spans.entries()) {
+    const buf = span.buffer
+    if (!buf || (best && buf.minutes >= best.minutes)) continue
+    best = { index, ...buf, angle: angleAt(span.end, plan.depart_at, plan.home_at) }
   }
   return best
 }

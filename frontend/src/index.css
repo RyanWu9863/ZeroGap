@@ -98,8 +98,6 @@
   --zg-chart-drop: #8a96a3;
 
   /* 遮罩和舞台層級，日、夜共用同一套名字 */
-  --zg-scrim: rgb(15 24 32 / 0.45);
-  --zg-stage-shadow: 0 24px 48px -24px rgb(15 24 32 / 0.35);
 }
 
 [data-theme="night"] {
@@ -137,8 +135,6 @@
   --zg-est-ink: #ffe27a;
   --zg-chart-keep: #62d6e8;
   --zg-chart-drop: #5b6878;
-  --zg-scrim: rgb(0 0 0 / 0.6);
-  --zg-stage-shadow: 0 24px 48px -24px rgb(0 0 0 / 0.7);
 }
 
 /* 卡片表面：細線卡片；夜裡加一點內緣高光和深色陰影 */

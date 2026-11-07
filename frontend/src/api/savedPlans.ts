@@ -15,9 +15,15 @@ const TTL_MS = 7 * 86_400_000
 export function localSavedPlan(runs: Record<string, Run>, id: string): SavedPlan | null {
   for (const [key, run] of Object.entries(runs)) {
     if (run.status !== 'done' || run.result?.job_id !== id || run.finishedAt == null) continue
+    let request: PlanRequest
+    try {
+      request = JSON.parse(key) as PlanRequest
+    } catch {
+      continue // 壞掉的紀錄跳過，不要讓整頁掛掉
+    }
     return {
       job_id: id,
-      request: JSON.parse(key) as PlanRequest,
+      request,
       result: run.result,
       created_at: new Date(run.finishedAt).toISOString(),
       expires_at: new Date(run.finishedAt + TTL_MS).toISOString(),

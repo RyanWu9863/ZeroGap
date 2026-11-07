@@ -82,11 +82,13 @@ function PlanView({ doc }: { doc: SavedPlan }) {
   }
   const swapped = swapOf(plan.rank)
   const n = plans.length
+  /** 往前（-1）或往後（+1）換方案，頭尾接起來 */
+  const step = (d: 1 | -1) => choosePlan(plans[(plans.findIndex((p) => p.rank === plan.rank) + d + n) % n].rank)
 
   return (
     <div className="mx-auto max-w-6xl px-4 pt-8 sm:px-6">
       <ConditionBar req={request} onApply={rerun} />
-      <PlanHeader doc={doc} now={now} />
+      <PlanHeader doc={doc} expired={expired} />
       <h1 className="mt-4 text-2xl font-bold sm:text-3xl">{n === 1 ? '這個行程' : `這 ${n} 個行程`}，每一段都接得上。</h1>
       <p className="mt-1.5 text-sm text-muted-foreground">
         從 <span className="zg-num">{result.stats.combinations.toLocaleString()}</span> 種組合中，找到{' '}
@@ -103,8 +105,8 @@ function PlanView({ doc }: { doc: SavedPlan }) {
             plan={plan}
             date={request.date}
             stationName={labels.station}
-            onPrev={() => choosePlan(plans[(plans.findIndex((p) => p.rank === plan.rank) - 1 + n) % n].rank)}
-            onNext={() => choosePlan(plans[(plans.findIndex((p) => p.rank === plan.rank) + 1) % n].rank)}
+            onPrev={() => step(-1)}
+            onNext={() => step(1)}
           />
         </div>
         <div className="grid min-w-0 items-start gap-8 xl:grid-cols-[1fr_20rem]">

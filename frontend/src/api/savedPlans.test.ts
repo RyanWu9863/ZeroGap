@@ -29,6 +29,12 @@ describe('這台瀏覽器排過的結果先拿來用', () => {
     expect(doc.created_at).toBe(new Date(t).toISOString())
     expect(Date.parse(doc.expires_at) - t).toBe(7 * 86_400_000)
   })
+  it('網址那把鑰匙壞掉就跳過，不丟錯', () => {
+    const t = Date.parse('2026-11-08T10:00:00+08:00')
+    const runs = { '{壞掉': done(t), [requestKey(benchmarkRequest)]: done(t) }
+    expect(localSavedPlan(runs, ID)?.request).toEqual(benchmarkRequest)
+    expect(localSavedPlan({ '{壞掉': done(t) }, ID)).toBeNull()
+  })
   it('沒有這個編號、或還沒跑完，回 null', () => {
     expect(localSavedPlan({}, ID)).toBeNull()
     expect(localSavedPlan({ [requestKey(benchmarkRequest)]: { ...done(1), status: 'running', result: null } }, ID)).toBeNull()
@@ -36,19 +42,31 @@ describe('這台瀏覽器排過的結果先拿來用', () => {
 })
 
 describe('分享頁過期了沒', () => {
-  const doc = { job_id: ID, request: benchmarkRequest, result, created_at: '2026-11-08T10:00:00+08:00', expires_at: '2026-11-15T10:00:00+08:00' }
-  const firstDepart = Math.min(...result.plans.map((p) => Date.parse(p.depart_at)))
-  const lastDepart = Math.max(...result.plans.map((p) => Date.parse(p.depart_at)))
+  // 兩個方案：一個 17:00 出發、一個 18:00 出發；到期時間從出發時間算出來，不寫死日期
+  const early = Date.parse('2026-11-08T17:00:00+08:00')
+  const late = Date.parse('2026-11-08T18:00:00+08:00')
+  const plans = [
+    { ...result.plans[0], depart_at: new Date(early).toISOString() },
+    { ...result.plans[1], depart_at: new Date(late).toISOString() },
+  ]
+  const doc = {
+    job_id: ID, request: benchmarkRequest, result: { ...result, plans },
+    created_at: new Date(early - 3_600_000).toISOString(), expires_at: new Date(early + 7 * 86_400_000).toISOString(),
+  }
+  const firstDepart = early
+  const lastDepart = late
   it('還沒出發、也還沒到期：ok', () => {
     expect(shareStatus(doc, new Date(firstDepart - 60_000))).toBe('ok')
   })
   it('還有方案沒出發：ok', () => {
-    if (lastDepart > firstDepart) expect(shareStatus(doc, new Date(firstDepart + 1))).toBe('ok')
+    expect(lastDepart).toBeGreaterThan(firstDepart)
+    expect(shareStatus(doc, new Date(firstDepart + 1))).toBe('ok')
   })
   it('每個方案都出發過了：過期', () => {
     expect(shareStatus(doc, new Date(lastDepart))).toBe('expired')
   })
   it('超過 expires_at：過期', () => {
-    expect(shareStatus({ ...doc, expires_at: '2026-11-08T09:00:00+08:00' }, new Date('2026-11-08T09:00:00+08:00'))).toBe('expired')
+    const expires = new Date(firstDepart - 3_600_000)
+    expect(shareStatus({ ...doc, expires_at: expires.toISOString() }, expires)).toBe('expired')
   })
 })
