@@ -2,8 +2,8 @@
 
 | 項目 | 內容 |
 |---|---|
-| 版本 | v0.18（MCP 工具介面改良［組員的 mcp-eval v3］：每個參數加說明、`plan_date` 新增 `origin_station_name`、走路上限在 MCP 可省略［預設 12］、新增 MCP 專用的錯誤代碼 `AMBIGUOUS`；`/api/coverage` 新增 `cuisines`，見 6.1、6.3、6.6。v0.17：Google 座標更新失敗時，404 才馬上停用，暫時的錯誤隔天再試，見 4.5。v0.16：出發點的交通接不上時，`NO_FEASIBLE` 的 `reasons` 只放 `transit_window`、`message` 寫出時間；TDX 的 `arrival` 查不到時往前重查、`depart` 改取最早抵達；路線快取換成 `v3`，見 3.2、5.3、6.4、7.1。v0.15：AI 推論：Ollama 連續連不上就熔斷；LLM 可選擇棄權［預設關閉］；Router 判斷方式可由設定切換［預設不變］；每次規劃寫一行決策紀錄日誌，見 3、3.1、7.1。v0.14：規劃和抓取拆成兩個 worker：`worker` 只聽 `plans`、新增 `worker-crawl` 只聽 `crawl`，抓取時規劃不用再排隊等，見 5.6、8.1。v0.13：第二階段實作：真的 TDX［頭尾步行 20 分鐘、車資沒給時自己估］、TDX 車站、OSM 餐廳、開眼爬蟲、`rq cron`、MCP；新增蘆竹（南崁）商圈、青埔先不開放；八德只用廣豐新天地。v0.12：逐項確認實作時新增的預設值：早到 30 分鐘內等開門、餐廳備選補滿 2 家、沒判斷屬性的店不排、Jev 沒把握就附備選、新增 `restaurant.hours_verified`。v0.11：實作中的補充列在 10.1；`restaurants.source` 新增 `demo`；修正 5.3 路線快取的取整範例；7.3 補上價位區間的代碼；實作時的小調整：`areas.sort_order`、`area_hubs.geom` 可以是 null、migration 一併寫入類別和票價。v0.10：補上前端對照時發現的缺口：下拉選單的回應範例、跨午夜的判斷、`reasons` 的 key、排隊順位的意思、備選欄位、OSM 出處。v0.9：備選只附估計值、第一名固定「最推薦」、回程緩衝加 `return_window`。v0.8 起前端 ZeroGap 照這份規格串接、飲食限制延後；架構與 v0.4 相同） |
-| 日期 | 2026-10-29 |
+| 版本 | v0.19（AI 推論：Ollama 熔斷狀態改放 Redis，所有 worker 和規劃共用，冷卻後只放一個請求試探；決策紀錄的 `decided_by` 新增 `fallback`、新增 `fallback_reason`；決策紀錄另外寫進新資料表 `decision_records`；新設定 `LLM_BREAKER_SHARED`、`DECISION_TRACE_DB`，見 3、4.3、5.2、7.1、8.2、10.1。v0.18：MCP 工具介面改良［組員的 mcp-eval v3］：每個參數加說明、`plan_date` 新增 `origin_station_name`、走路上限在 MCP 可省略［預設 12］、新增 MCP 專用的錯誤代碼 `AMBIGUOUS`；`/api/coverage` 新增 `cuisines`，見 6.1、6.3、6.6。v0.17：Google 座標更新失敗時，404 才馬上停用，暫時的錯誤隔天再試，見 4.5。v0.16：出發點的交通接不上時，`NO_FEASIBLE` 的 `reasons` 只放 `transit_window`、`message` 寫出時間；TDX 的 `arrival` 查不到時往前重查、`depart` 改取最早抵達；路線快取換成 `v3`，見 3.2、5.3、6.4、7.1。v0.15：AI 推論：Ollama 連續連不上就熔斷；LLM 可選擇棄權［預設關閉］；Router 判斷方式可由設定切換［預設不變］；每次規劃寫一行決策紀錄日誌，見 3、3.1、7.1。v0.14：規劃和抓取拆成兩個 worker：`worker` 只聽 `plans`、新增 `worker-crawl` 只聽 `crawl`，抓取時規劃不用再排隊等，見 5.6、8.1。v0.13：第二階段實作：真的 TDX［頭尾步行 20 分鐘、車資沒給時自己估］、TDX 車站、OSM 餐廳、開眼爬蟲、`rq cron`、MCP；新增蘆竹（南崁）商圈、青埔先不開放；八德只用廣豐新天地。v0.12：逐項確認實作時新增的預設值：早到 30 分鐘內等開門、餐廳備選補滿 2 家、沒判斷屬性的店不排、Jev 沒把握就附備選、新增 `restaurant.hours_verified`。v0.11：實作中的補充列在 10.1；`restaurants.source` 新增 `demo`；修正 5.3 路線快取的取整範例；7.3 補上價位區間的代碼；實作時的小調整：`areas.sort_order`、`area_hubs.geom` 可以是 null、migration 一併寫入類別和票價。v0.10：補上前端對照時發現的缺口：下拉選單的回應範例、跨午夜的判斷、`reasons` 的 key、排隊順位的意思、備選欄位、OSM 出處。v0.9：備選只附估計值、第一名固定「最推薦」、回程緩衝加 `return_window`。v0.8 起前端 ZeroGap 照這份規格串接、飲食限制延後；架構與 v0.4 相同） |
+| 日期 | 2026-11-08 |
 | 狀態 | 草稿 |
 | 討論紀錄 | [spec-discussion.md](spec-discussion.md) |
 
@@ -156,7 +156,7 @@ docker-compose.yml
 | **Google Places** | 寫入時找餐廳；規劃時補店家資料並驗證營業時間；座標超過 25 天就更新（條款上限 30 天） | API 金鑰 | 各 SKU 依每月免費額度留 5% 邊際（見 3.3） | 規劃用的額度用完就改用 OSM 備案 |
 | **OSM**（Overpass API）【預設】 | 備案用的餐廳資料 | 無 | 顯示時要署名 OpenStreetMap（見 6.7） | — |
 | **開眼電影網** | 影城、電影、場次 | 無（爬蟲） | 每天 1 次 | — |
-| **Ollama** | Jev 沒把握時代為選擇：網頁、MCP、寫入時都用它 | 無（內部） | — | 逾時、連不上、回答不在候選裡時：一律採用 Jev 機率最高的選項。規劃時連續 2 次連不上就熔斷，同一次規劃剩下的題目不再呼叫（冷卻 300 秒）（2026-10-26 決定） |
+| **Ollama** | Jev 沒把握時代為選擇：網頁、MCP、寫入時都用它 | 無（內部） | — | 逾時、連不上、回答不在候選裡時：一律採用 Jev 機率最高的選項。連續 2 次連不上就熔斷，冷卻 300 秒內直接採用 Jev 最高的選項（2026-10-26 決定）。熔斷狀態放在 Redis，所有 worker、所有規劃共用；冷卻結束後只放一個請求去試探，成功就恢復，失敗就再熔斷；Redis 出錯時當作沒有熔斷、照常呼叫 LLM（見 5.2；`LLM_BREAKER_SHARED=false` 時回到每次規劃各自計算） |
 
 ### 3.1 TypeSafe Jev
 
@@ -490,6 +490,29 @@ CHECK 約束：`source = 'google'` 時，`osm_*` 欄位必須是 null。這樣�
 
 索引：`(job, started_at desc)`。狀態列的「資料更新時間」就從這張表讀取。
 
+#### `decision_records` 規劃時的決策紀錄
+
+每次規劃結束時（失敗也一樣），每一題寫一筆，內容和 7.1 的 `decision_trace` 日誌相同。只有選項代碼、機率、狀態和時間，不放使用者偏好、選項名稱、prompt。
+
+| 欄位 | 型別 | 說明 |
+|---|---|---|
+| `id` | bigint | 主鍵 |
+| `job_id` | text | RQ 的工作 ID；工作不存在資料庫，所以不設外鍵 |
+| `question_id` | text | 題目 id |
+| `k` | smallint | 選項數 |
+| `policy` | text | 當時用的判斷方式，例如 `fixed:0.6` |
+| `p_top`、`margin`、`norm_entropy` | double, null | 最高機率、第一名和第二名的差距、正規化的熵；沒有機率時為 null |
+| `unsure` | boolean | 有沒有判定為 Jev 沒把握 |
+| `jev_top`、`jev_model` | text, null | Jev 第一名、Jev 的模型版本 |
+| `jev_latency_ms`、`jev_attempts` | double／smallint, null | Jev 請求的時間（同一次請求包含好幾題時是整次的時間）和次數 |
+| `llm_status`、`llm_latency_ms`、`llm_model` | text／double／text, null | LLM 的結果、時間和模型；沒有問 LLM 時為 null |
+| `chosen` | text, null | 最後選的代碼 |
+| `decided_by` | text | `jev`、`llm` 或 `fallback`（CHECK 約束），意思見 7.1 |
+| `fallback_reason` | text, null | 見 7.1 |
+| `created_at`、`updated_at` | timestamptz | |
+
+索引：`job_id`、`created_at`。由 migration `0004` 建立。
+
 ### 4.4 PostgreSQL 功能的用法
 
 **PostGIS：依使用者的步行上限，找影城附近的餐廳**
@@ -570,6 +593,9 @@ WHERE subject_type = 'restaurant' AND decided_by = 'llm';
 | 每月額度 | `quota:{對象}:{YYYY-MM}` | string（計數器） | 下個月 5 日 |
 | 規劃進度頻道 | `plan:{job_id}:events` | Pub/Sub | — |
 | LLM 連線狀態 | `status:llm` | string | 30 秒【預設】 |
+| LLM 熔斷：連續失敗次數 | `llm:breaker:v1:{OLLAMA_BASE_URL}:failures` | string（計數器） | 冷卻時間的 2 倍 |
+| LLM 熔斷：熔斷中 | `llm:breaker:v1:{OLLAMA_BASE_URL}:open` | string | 冷卻時間（300 秒） |
+| LLM 熔斷：試探鎖 | `llm:breaker:v1:{OLLAMA_BASE_URL}:probe` | string（`SET NX`） | LLM 逾時 ＋ 5 秒 |
 | 佇列 | `rq:*` | 由 RQ 管理 | — |
 
 起點和終點用前綴加資料庫 ID 表示，例如 `sta12`（車站）、`cin3`（影城）、`hub2`（商圈代表點）、`res45`（餐廳）。
@@ -1121,10 +1147,18 @@ MCP 的工具錯誤沿用上表的 code，寫成 `CODE：訊息`；另外有一�
 - 精確路線如果比步驟 2 的估算還慢、接不上了，就剔除這組，改用下一組。
 
 **決策紀錄**（2026-10-26 決定）：步驟 4、6 的每一題都記成一筆，規劃結束時（失敗也一樣）在 worker 的日誌寫一行 `decision_trace {JSON}`。
-- 每一筆：題目 id、選項數、當時用的判斷方式、最高機率、第一名和第二名的差距、熵、有沒有判定為沒把握、Jev 第一名、Jev 的模型版本、請求時間和次數、LLM 的結果（`ok`、`timeout`、`connect`、`http`、`network`、`invalid_response`、`not_candidate`、`circuit_open`、`abstain`、`disabled`）、LLM 的時間和模型、最後選的代碼、`decided_by`。
-- 另附摘要：題數、沒把握的題數、由 LLM 決定的題數、LLM 各種結果的次數、LLM 總共花的時間。
+- 每一筆：題目 id、選項數、當時用的判斷方式、最高機率、第一名和第二名的差距、熵、有沒有判定為沒把握、Jev 第一名、Jev 的模型版本、請求時間和次數、LLM 的結果（`ok`、`timeout`、`connect`、`http`、`network`、`invalid_response`、`not_candidate`、`circuit_open`、`abstain`、`disabled`）、LLM 的時間和模型、最後選的代碼、`decided_by`、`fallback_reason`。
+- 這裡的 `decided_by`（和 6.5 方案結果的 `decided_by` 不同）：
+  - `llm`：LLM 真的有回答，採用 LLM 選的。
+  - `jev`：採用 Jev 第一名，包含 Jev 沒把握但 LLM 失敗或棄權的情況。只有一個選項（或沒有選項）時也是 `jev`。
+  - `fallback`：這題沒有 Jev 結果（每月額度用完，planner 給每個選項均等機率），LLM 也沒有成功代選，選的只是排序最前面的代碼。
+- `fallback_reason`：
+  - null：正常路徑（Jev 有把握，或 LLM 有回答）。
+  - `jev_unavailable`：搭配 `decided_by = fallback`。
+  - `llm_<LLM 的結果>`，例如 `llm_timeout`、`llm_circuit_open`、`llm_abstain`：Jev 沒把握、LLM 失敗或棄權，改用 Jev 第一名（`decided_by = jev`）。
+- 另附摘要：題數、沒把握的題數、由 LLM 決定的題數、LLM 各種結果的次數、LLM 總共花的時間；有 `fallback` 時另加 `decided_by_fallback` 的題數。
 - **不記錄**使用者的條件、出發地、店名和送給 LLM 的 prompt，只有代碼、機率、狀態和時間。
-- 只寫日誌，API 回應不變。程式在 `app/decision_trace.py`。
+- 日誌照常輸出；`DECISION_TRACE_DB=true`（預設）時另外寫進 `decision_records`（4.3），用 `job_id` 查同一次規劃的每一題。寫入失敗只記警告並 rollback，不影響規劃結果。API 回應不變。程式在 `app/decision_trace.py`、`app/planner.py`。
 
 **步驟 7：排時間軸、算花費、貼標籤**
 - 計算每一段的時間、到家時間、比最晚到家早幾分鐘、最緊緩衝、每人花費明細。
@@ -1203,7 +1237,7 @@ MCP 的工具錯誤沿用上表的 code，寫成 `CODE：訊息`；另外有一�
 
 ### 8.2 環境變數（`.env`，不進版本控制）
 
-`DATABASE_URL`、`REDIS_URL`、`TDX_CLIENT_ID`、`TDX_CLIENT_SECRET`、`GOOGLE_PLACES_API_KEY`、`TYPESAFE_API_KEY`、`JEV_MODE=real|mock`、`JEV_MODEL`、`JEV_MIN_TOP_PROBABILITY=0.6`、`ROUTER_POLICY=fixed`、`ROUTER_PARAM`、`OLLAMA_BASE_URL`、`OLLAMA_MODEL=qwen2.5:3b`、`LLM_ALLOW_ABSTAIN=false`、`CORS_ORIGINS`，以及各項限流、額度、時間規則（候位、用餐時間、步行速度等）的數字。
+`DATABASE_URL`、`REDIS_URL`、`TDX_CLIENT_ID`、`TDX_CLIENT_SECRET`、`GOOGLE_PLACES_API_KEY`、`TYPESAFE_API_KEY`、`JEV_MODE=real|mock`、`JEV_MODEL`、`JEV_MIN_TOP_PROBABILITY=0.6`、`ROUTER_POLICY=fixed`、`ROUTER_PARAM`、`OLLAMA_BASE_URL`、`OLLAMA_MODEL=qwen2.5:3b`、`LLM_ALLOW_ABSTAIN=false`、`LLM_BREAKER_SHARED=true`、`DECISION_TRACE_DB=true`、`CORS_ORIGINS`，以及各項限流、額度、時間規則（候位、用餐時間、步行速度等）的數字。
 
 ### 8.3 外部 API 的錯誤處理【預設】
 
@@ -1263,7 +1297,8 @@ MCP 的工具錯誤沿用上表的 code，寫成 `CODE：訊息`；另外有一�
 | Jev 沒把握的門檻 | 最高機率低於 0.6（照簡報） | 3.1 |
 | 沒把握的判斷方式 | `fixed`（就是上一列的門檻）；可切換成 `options`、`margin`、`entropy`（2026-10-26） | 3.1 |
 | LLM 棄權 | 關閉（2026-10-26） | 7.1 |
-| LLM 熔斷 | 規劃時連續 2 次連不上，冷卻 300 秒（2026-10-26） | 3 |
+| LLM 熔斷 | 連續 2 次連不上，冷卻 300 秒（2026-10-26）；狀態放 Redis，所有 worker 共用（`LLM_BREAKER_SHARED=true`） | 3、5.2 |
+| 決策紀錄寫進資料庫 | 開啟（`DECISION_TRACE_DB=true`） | 4.3、7.1 |
 | TDX `arrival` 查不到時往前重查 | 每次往前 30 分鐘，最多 3 次（2026-10-27） | 3.2 |
 | 規劃時 Jev 的選項數 | 電影、餐廳各最多 10 個 | 7.1 |
 | 同一組有多個場次時 | 取最緊緩衝最大的一場 | 7.1 |
