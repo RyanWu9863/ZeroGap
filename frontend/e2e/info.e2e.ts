@@ -56,3 +56,25 @@ test.describe('方法頁', () => {
     expect(text).not.toMatch(/\bAI\b|Jev|LLM|機率/)
   })
 })
+
+test.describe('AI 助理頁', () => {
+  test('六個工具都列出來；展示站（假資料）照實說還不能連', async ({ page }) => {
+    await page.goto('/ai')
+    for (const t of ['list_areas', 'search_locations', 'list_stations', 'list_categories', 'data_coverage', 'plan_date']) {
+      await expect(page.getByText(t, { exact: true })).toBeVisible()
+    }
+    await expect(page.getByText(/沒有接上真的後端/)).toBeVisible()
+    await expect(page.getByText(/claude mcp add/)).toHaveCount(0)
+  })
+  test('範例句子可以複製', async ({ page, context, browserName }) => {
+    test.skip(browserName !== 'chromium', '只有 Chromium 能在測試裡給剪貼簿權限')
+    await context.grantPermissions(['clipboard-read', 'clipboard-write'])
+    await page.goto('/ai')
+    await page.getByRole('button', { name: /複製/ }).first().click()
+    await expect(page.getByRole('button', { name: /已複製/ })).toBeVisible()
+  })
+  test('不出現 Jev、LLM、機率', async ({ page }) => {
+    await page.goto('/ai')
+    expect(await page.locator('main').innerText()).not.toMatch(/Jev|LLM|機率/)
+  })
+})
