@@ -226,6 +226,9 @@ export const PlanResult = z.object({
   plans: z.array(Plan),
 })
 
+/** GET /api/plans/{id}（分享連結，子專案 ①）：當初的條件和結果，保留 7 天 */
+export const SavedPlan = z.object({ job_id: z.string(), request: PlanRequest, result: PlanResult, created_at: ISO, expires_at: ISO })
+
 // ── SSE 事件（6.4） ─────────────────────────────────────────────
 
 export const Stage = z.enum(['loading_data', 'checking_feasibility', 'filtering', 'choosing', 'llm_fallback', 'verifying_hours', 'routing', 'waiting_quota', 'building_result'])
@@ -261,6 +264,7 @@ export type RouteAlternative = z.infer<typeof RouteAlternative>
 export type Plan = z.infer<typeof Plan>
 export type RestaurantSource = z.infer<typeof RestaurantSource>
 export type PlanResult = z.infer<typeof PlanResult>
+export type SavedPlan = z.infer<typeof SavedPlan>
 export type Stage = z.infer<typeof Stage>
 export type QueuedEvent = z.infer<typeof QueuedEvent>
 export type ProgressEvent = z.infer<typeof ProgressEvent>

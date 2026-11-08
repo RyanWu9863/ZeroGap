@@ -3,27 +3,9 @@ import { useState } from 'react'
 import { useRequestLabels } from '@/api/labels'
 import type { Plan, PlanRequest } from '@/api/schemas'
 import { cn } from '@/lib/utils'
+import { writeClipboard } from '@/shared/lib/clipboard'
 import { itineraryToText } from '@/shared/lib/copyText'
 import type { SwapView } from './swap'
-
-/** 先用新式剪貼簿；被瀏覽器擋下（LINE 內建瀏覽器、權限未開）就改用舊方法 */
-async function writeClipboard(text: string): Promise<boolean> {
-  try {
-    await navigator.clipboard.writeText(text)
-    return true
-  } catch {
-    const area = document.createElement('textarea')
-    area.value = text
-    area.setAttribute('readonly', '')
-    area.style.position = 'fixed'
-    area.style.opacity = '0'
-    document.body.appendChild(area)
-    area.select()
-    const ok = document.execCommand('copy')
-    area.remove()
-    return ok
-  }
-}
 
 /** 「複製行程」（Q27、Q61）：純前端。兩種方法都失敗時，直接把文字秀出來讓人手動複製。 */
 export function CopyButton({ request, plan, swapped, className }: { request: PlanRequest; plan: Plan; swapped: SwapView | null; className?: string }) {

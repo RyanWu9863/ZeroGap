@@ -15,7 +15,7 @@ import { needsOrigin, readRank, readRequest, writeRequest } from './urlState'
 export function useResultState() {
   const [params, setParams] = useSearchParams()
   const location = useLocation()
-  const { request: stored, selectedRank, replaceRequest, selectRank } = usePlanStore()
+  const { request: stored, selectedRank, replaceRequest } = usePlanStore()
   const [today] = useState(todayISO)
   // 目前位置的座標只存在這台瀏覽器（網址只寫 from=here）
   const here = stored.origin_lat != null && stored.origin_lng != null ? { lat: stored.origin_lat, lng: stored.origin_lng } : null
@@ -40,9 +40,5 @@ export function useResultState() {
     replaceRequest(next)
     setParams((p) => writeRequest(p, next, 1), { replace: true })
   }
-  const choosePlan = (r: number) => {
-    selectRank(r)
-    setParams((p) => writeRequest(p, request, r), { replace: true })
-  }
-  return { request, rank, today, update, choosePlan, pickOrigin }
+  return { request, rank, today, update, pickOrigin }
 }

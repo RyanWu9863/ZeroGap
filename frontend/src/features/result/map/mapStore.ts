@@ -1,6 +1,9 @@
 import { create } from 'zustand'
 
 export type MapMode = 'sketch' | 'google'
+
+/** 有設定 Google 地圖金鑰（VITE_GOOGLE_MAPS_KEY）才能開真實地圖；有的話預設就開（規格 D10） */
+export const HAS_MAPS_KEY = Boolean(import.meta.env.VITE_GOOGLE_MAPS_KEY)
 export type Camera = { center: { lat: number; lng: number }; zoom: number }
 
 /**
@@ -14,7 +17,7 @@ export const useMapStore = create<{
   setMode: (m: MapMode) => void
   setCamera: (rank: number, c: Camera) => void
 }>()((set) => ({
-  mode: 'sketch',
+  mode: HAS_MAPS_KEY ? 'google' : 'sketch',
   camera: null,
   cameraFor: null,
   setMode: (mode) => set({ mode }),
