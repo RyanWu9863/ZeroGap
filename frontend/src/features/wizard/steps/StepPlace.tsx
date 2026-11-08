@@ -2,7 +2,7 @@ import { MapPin } from 'lucide-react'
 import { useEffect } from 'react'
 import { useLocation } from 'react-router'
 import { atStation } from '@/shared/lib/origin'
-import { useAreas, useOpenCounty, useStations } from '@/api/queries'
+import { failure, useAreas, useCounties, useOpenCounty, useStations } from '@/api/queries'
 import { usePlanStore } from '@/store/planStore'
 import { ChoiceCard, Chips, Field } from '../parts/Choice'
 import { LocationButton } from '../parts/LocationButton'
@@ -17,8 +17,14 @@ import { StepShell } from './StepShell'
 export function StepPlace() {
   const { request, setRequest } = usePlanStore()
   const { counties, county } = useOpenCounty()
-  const areas = useAreas().data
-  const stations = useStations().data
+  const countiesQuery = useCounties()
+  const areasQuery = useAreas()
+  const stationsQuery = useStations()
+  const areas = areasQuery.data
+  const stations = stationsQuery.data
+  // 哪一份清單真的載入失敗（不是重試中）；重試就把失敗的那幾份重抓（計畫 P1-1）
+  const queries = [countiesQuery, areasQuery, stationsQuery]
+  const failed = queries.map(failure).find(Boolean) ?? null
   // 送出前重新定位失敗時，精靈會帶著原因回到這一步
   const locateError = (useLocation().state as { locateError?: string } | null)?.locateError ?? null
 
@@ -32,7 +38,12 @@ export function StepPlace() {
 
   const open = counties?.filter((c) => c.code === county) ?? []
   return (
-    <StepShell title="從哪裡出發，去哪裡玩？" loading={!counties || !areas || !stations}>
+    <StepShell
+      title="從哪裡出發，去哪裡玩？"
+      loading={!counties || !areas || !stations}
+      error={failed}
+      onRetry={() => queries.filter((q) => q.isError).forEach((q) => void q.refetch())}
+    >
       {areas && stations && (
         <>
           <Field title="縣市" hint="目前服務桃園市，其他縣市陸續開放。">

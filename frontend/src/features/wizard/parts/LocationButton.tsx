@@ -41,7 +41,7 @@ export function LocationButton({ request, onChange, error: initialError }: {
         disabled={busy}
         className={cn(
           'zg-surface flex w-full items-center gap-3 px-4 py-3 text-left text-sm transition-colors hover:border-foreground/40 disabled:opacity-70 pointer-coarse:min-h-12',
-          on && 'border-foreground ring-2 ring-foreground/80 cine:border-primary cine:ring-primary',
+          on && 'border-foreground ring-2 ring-foreground/80',
         )}
       >
         {busy ? <LoaderCircle className="size-4 shrink-0 animate-spin motion-reduce:animate-none" aria-hidden="true" /> : <LocateFixed className="size-4 shrink-0" aria-hidden="true" />}

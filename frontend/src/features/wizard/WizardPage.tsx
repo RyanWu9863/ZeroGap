@@ -1,7 +1,7 @@
 import { ArrowLeft, ArrowRight } from 'lucide-react'
 import { AnimatePresence, motion } from 'motion/react'
-import { useEffect, useState } from 'react'
-import { useTrialStore } from '@/features/trial/trialStore'
+import { useRef, useState } from 'react'
+import { usePageTitle } from '@/shared/lib/usePageTitle'
 import { Link, Navigate, useNavigate, useParams } from 'react-router'
 import { atLocation, locate, LocateError, noOrigin, usesLocation } from '@/shared/lib/origin'
 import { usePlanStore } from '@/store/planStore'
@@ -10,7 +10,8 @@ import { StepFun } from './steps/StepFun'
 import { StepPlace } from './steps/StepPlace'
 import { StepTime } from './steps/StepTime'
 import { SummaryLine } from './parts/SummaryLine'
-import { firstIncomplete, stepComplete } from './validation'
+import { useDateContext } from './useDateContext'
+import { firstIncomplete, STEPS, stepComplete } from './validation'
 import { WizardProgress } from './WizardProgress'
 
 const STEP_VIEWS = { 1: StepPlace, 2: StepTime, 3: StepFun, 4: StepFood } as const
@@ -25,22 +26,27 @@ export function WizardPage() {
   const request = usePlanStore((s) => s.request)
   const setRequest = usePlanStore((s) => s.setRequest)
   const [locating, setLocating] = useState(false)
-  const markTrial = useTrialStore((s) => s.mark)
-  useEffect(() => markTrial('startClickAt'), [markTrial]) // 試用計時：按了開始（Q79）
+  const dateCtx = useDateContext()
   // 往後一步從右邊滑入、往前一步從左邊滑入（React 官方「依前一次的值調整 state」寫法）
   const [prev, setPrev] = useState(n)
   const [dir, setDir] = useState(1)
+  // 換過步驟之後，新的一步滑進來時把焦點移到標題，螢幕閱讀器才知道換頁了（P2-2）；第一次進來不搶焦點
+  const [moved, setMoved] = useState(false)
   if (n !== prev) {
     setDir(n > prev ? 1 : -1)
     setPrev(n)
+    setMoved(true)
   }
+  const stepRef = useRef<HTMLDivElement>(null)
+  const label = STEPS.find((s) => s.n === n)?.label
+  usePageTitle(label ? `${'①②③④'[n - 1]} ${label}` : null)
 
   if (!(n in STEP_VIEWS)) return <Navigate to="/plan/1" replace />
   const View = STEP_VIEWS[n as keyof typeof STEP_VIEWS]
-  const complete = stepComplete(n, request)
+  const complete = stepComplete(n, request, dateCtx)
 
   const submit = async () => {
-    const missing = firstIncomplete(request)
+    const missing = firstIncomplete(request, dateCtx)
     if (missing) return navigate(`/plan/${missing}`)
     // 用目前位置出發時，每次送出都重新定位（使用者決定）；失敗就回第 1 步改選車站
     if (usesLocation(request)) {
@@ -86,21 +92,24 @@ export function WizardPage() {
           animate="center"
           exit="exit"
           transition={{ duration: 0.22, ease: 'easeOut' }}
+          ref={stepRef}
+          onAnimationComplete={(def) => {
+            if (moved && def === 'center') stepRef.current?.querySelector('h1')?.focus({ preventScroll: true })
+          }}
         >
           <View />
         </motion.div>
       </AnimatePresence>
 
       <div
-        className="fixed inset-x-0 bottom-0 z-30 border-t bg-background/90 p-3 backdrop-blur sm:static sm:mt-10 sm:border-0 sm:bg-transparent sm:p-0 sm:backdrop-blur-none"
-        style={{ paddingBottom: 'max(0.75rem, env(safe-area-inset-bottom, 0px))' }}
+        className="fixed inset-x-0 bottom-[calc(3.5rem+env(safe-area-inset-bottom,0px))] z-30 border-t bg-background/90 p-3 backdrop-blur sm:static sm:mt-10 sm:border-0 sm:bg-transparent sm:p-0 sm:backdrop-blur-none"
       >
         {n < 4 ? (
           <div className="flex justify-end">
             <button
               onClick={() => navigate(`/plan/${n + 1}`)}
               disabled={!complete}
-              className="inline-flex h-10 items-center gap-1.5 rounded-full bg-primary px-5 text-sm font-medium text-primary-foreground disabled:opacity-40 lin:rounded-md"
+              className="inline-flex h-10 items-center gap-1.5 rounded-full bg-primary px-5 text-sm font-medium text-primary-foreground disabled:opacity-40"
             >
               下一步 <ArrowRight className="size-4" />
             </button>
@@ -111,7 +120,7 @@ export function WizardPage() {
             <button
               onClick={submit}
               disabled={locating}
-              className="flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-primary text-base font-semibold text-primary-foreground disabled:opacity-70 lin:rounded-md"
+              className="flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-primary text-base font-semibold text-primary-foreground disabled:opacity-70"
             >
               {locating ? '正在取得目前位置…' : '排出接得上的行程'} <ArrowRight className="size-4" />
             </button>

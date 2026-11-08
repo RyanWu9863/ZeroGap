@@ -4,6 +4,7 @@ import { stamp } from '@/shared/lib/time'
 /** 幾個時間裡最新的一個；都沒有是 null */
 const latest = (...xs: (string | null | undefined)[]) => xs.filter((x): x is string => Boolean(x)).sort((a, b) => Date.parse(a) - Date.parse(b)).at(-1) ?? null
 
+
 /**
  * 結果頁底部一行小字（Q63，驗收 A9 的使用者版）：場次、餐廳資料的更新時間（/api/status 的 data_updated_at）。
  * 新格式沒有「匯入失敗」的旗標，只顯示時間；班次是規劃當下向 TDX 查的，另外說一句。完整狀態在系統幕後。

@@ -5,7 +5,18 @@
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <!-- iOS：瀏海與底部橫條的安全區域（viewport-fit=cover）、網址列顏色、加到主畫面的圖示與名稱、不要把數字自動變成電話連結 -->
-    <meta name="theme-color" content="#f7f6f2" />
+    <meta name="theme-color" content="#f4f7f9" />
+    <!-- 外觀（規格 4.1）：React 載入前先套上，深色模式的人不會先看到一閃白畫面。邏輯和 src/shared/theme/theme.ts 的 resolveTheme 一樣 -->
+    <script>
+      try {
+        var pref = (JSON.parse(localStorage.getItem('zg-theme') || '{}').state || {}).pref || 'system'
+        var night = pref === 'night' || (pref === 'system' && matchMedia('(prefers-color-scheme: dark)').matches)
+        document.documentElement.dataset.theme = night ? 'night' : 'day'
+        if (night) document.documentElement.classList.add('dark')
+        var tc = document.querySelector('meta[name="theme-color"]')
+        if (tc) tc.setAttribute('content', night ? '#0b1016' : '#f4f7f9')
+      } catch (e) {}
+    </script>
     <meta name="format-detection" content="telephone=no" />
     <meta name="apple-mobile-web-app-title" content="零空檔" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />

@@ -1,6 +1,7 @@
 // 產生連結預覽圖 public/og.png（決策 Q96）：貼到 LINE／社群時顯示的那張圖。
 // 用 Playwright 的 Chromium 把一段 HTML 截成 1200×630。執行：node scripts/make-og.mjs
 import { readFileSync } from 'node:fs'
+import { fileURLToPath } from 'node:url'
 import { chromium } from '@playwright/test'
 
 const logo = readFileSync(new URL('../public/favicon.svg', import.meta.url), 'utf8')
@@ -34,6 +35,6 @@ const html = `<!doctype html><html><head><meta charset="utf-8"><style>
 const browser = await chromium.launch()
 const page = await browser.newPage({ viewport: { width: 1200, height: 630 } })
 await page.setContent(html)
-await page.screenshot({ path: new URL('../public/og.png', import.meta.url).pathname })
+await page.screenshot({ path: fileURLToPath(new URL('../public/og.png', import.meta.url)) })
 await browser.close()
 console.log('public/og.png 已產生')

@@ -1,0 +1,45 @@
+# 前端檢查：frontend/ 有改動的 PR 和推到 main 時，在 Ubuntu、Windows 各跑一次
+# （組員用 Mac 和 Windows 開發；Mac 靠本機的 npm run predemo，因為私人 repo 的 macOS 分鐘數算 10 倍）
+name: Frontend CI
+
+on:
+  pull_request:
+    paths: ['frontend/**', '.github/workflows/frontend-ci.yml']
+  push:
+    branches: [main]
+    paths: ['frontend/**', '.github/workflows/frontend-ci.yml']
+
+permissions:
+  contents: read
+
+concurrency:
+  group: frontend-ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  check:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci
+      - run: npx tsc -b
+      - run: npm run lint
+      - run: npm test
+      - run: npm run build:pages
+        env:
+          PAGES_BASE: /ZeroGap/
+          VITE_USE_MOCK: 'true'
+      - run: npx playwright install --with-deps chromium
+      - run: npx playwright test --project=chromium

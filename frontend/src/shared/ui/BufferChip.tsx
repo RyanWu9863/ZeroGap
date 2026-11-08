@@ -18,7 +18,7 @@ export function BufferChip({ minutes, text, className }: { minutes: number; text
     <span className={cn('inline-flex max-w-full flex-wrap items-center gap-x-1.5 rounded-full px-2.5 py-1 text-xs font-medium', LEVEL_CLS[level], className)}>
       <Check className="size-3.5" strokeWidth={3} aria-hidden="true" />
       <span>{text}</span>
-      <span className="opacity-70">・{LEVEL_LABEL[level]}</span>
+      <span className="font-normal">・{LEVEL_LABEL[level]}</span>
     </span>
   )
 }

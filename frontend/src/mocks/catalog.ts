@@ -3,7 +3,7 @@ import { benchmarkRequest } from './request'
 
 /*
  * 開發用假資料：下拉選單和狀態列（格式照後端規格書 6.2、6.3，2026-10-21 對過後端實際的回應）。
- * 有場次的日期用「今天起 14 天」動態產生，讓試做稿哪天打開都能選。
+ * 有場次的日期用「今天起 14 天」動態產生，讓開發和展示哪天打開都能選。
  */
 export const counties = [
   { code: 'Taoyuan', name: '桃園市', has_open_areas: true },

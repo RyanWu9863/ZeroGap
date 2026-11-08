@@ -32,7 +32,7 @@ export function ChoiceCard({ selected, onClick, title, desc, icon, disabled, cla
       onClick={onClick}
       className={cn(
         'zg-surface relative flex w-full items-start gap-3 p-4 text-left transition-[border-color,box-shadow] disabled:cursor-not-allowed disabled:opacity-45',
-        selected ? 'border-foreground ring-2 ring-foreground/80 cine:border-primary cine:ring-primary lin:border-primary lin:ring-primary' : 'hover:border-foreground/40',
+        selected ? 'border-foreground ring-2 ring-foreground/80' : 'hover:border-foreground/40',
         className,
       )}
     >
@@ -65,7 +65,7 @@ export function Chips<T extends string | number | null>({ options, value, onChan
           aria-checked={o.value === value}
           disabled={o.disabled}
           onClick={() => onChange(o.value)}
-          className="zg-num rounded-full border bg-card px-3.5 py-1.5 text-sm transition-colors pointer-coarse:min-h-10 hover:border-foreground/40 disabled:cursor-not-allowed disabled:opacity-40 aria-checked:border-primary aria-checked:bg-primary aria-checked:text-primary-foreground lin:rounded-md"
+          className="zg-num rounded-full border bg-card px-3.5 py-1.5 text-sm transition-colors pointer-coarse:min-h-10 hover:border-foreground/40 disabled:cursor-not-allowed disabled:opacity-40 aria-checked:border-primary aria-checked:bg-primary aria-checked:text-primary-foreground"
         >
           {o.label}
         </button>
