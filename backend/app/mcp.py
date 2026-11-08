@@ -24,6 +24,7 @@ from app.db import async_session
 from app.plan_stream import plan_events, reserve_plan
 from app.redis_client import async_redis
 from app.relative_dates import DateNotUnderstood, resolve_date
+from app.saved_plans import share_url
 from app.schemas import PlanRequest
 from app.services import ApiError
 
@@ -385,6 +386,7 @@ async def plan_date(
     ] = None,
 ) -> dict[str, Any]:
     """規劃行程，回傳前三名方案（格式同 REST 的 POST /api/plans 的 result）。
+    回傳裡有 share_url 時，請一併給使用者：點開可以看完整的時間軸和每段緩衝。
 
     呼叫前要先用 data_coverage 確認那天有場次；每個參數都要用前面工具查到的值。
     回到出發點就算到家。「不限」「交給 Jev 決定」都傳 null。
@@ -414,11 +416,14 @@ async def plan_date(
     # 在迴圈中途 return、raise 時，generator 會停在 yield，不會自己跑 finally（釋放這個 IP 的
     # 「規劃中」鎖），要等被回收才收尾 → 同一個 IP 下一次會一直收到 PLAN_IN_PROGRESS。
     # aclosing 保證離開時馬上收尾（2026-10-29 mcp-eval 端到端測試發現）
-    events = plan_events(r, s, job_id, req.model_dump(mode="json"), ip)
+    saved: list[bool] = []
+    events = plan_events(r, s, job_id, req.model_dump(mode="json"), ip, on_saved=saved.append)
     async with aclosing(events):
         async for name, data in events:
             if name == "result":
-                return data
+                # 分享連結（規格書 6.8）：有設定網頁網址、而且真的存起來了才附
+                url = share_url(s, job_id) if saved and saved[-1] else None
+                return {**data, "share_url": url} if url else data
             if name == "error":
                 raise ToolError(_plan_error_text(data))
             if name == "queued":

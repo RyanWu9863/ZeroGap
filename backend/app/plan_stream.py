@@ -4,12 +4,14 @@
 2. `plan_events`：先訂閱 `plan:{job_id}:events`，再把工作排進佇列；產生 (事件, 資料)：
    `queued`（順位改變時再送一次）、worker 的 `progress`、最後的 `result` 或 `error`；
    一陣子沒有事件時產生 `ping`（SSE 轉成心跳註解，MCP 忽略）
+   收到 result 時先存一份（分享連結，規格書 6.8），再交出去；存不進去不影響規劃
 3. 結束或中斷（使用者斷線、MCP 客戶端取消）時取消工作，並釋放這個 IP 的「規劃中」標記
 """
 
 import asyncio
 import json
 from collections.abc import AsyncIterator, Awaitable, Callable
+from datetime import datetime
 from typing import Any
 
 import anyio
@@ -28,7 +30,8 @@ from app.jobs.queue import (
 )
 from app.redis_client import rq_redis
 from app.redis_utils.ratelimit import ahit
-from app.services import ApiError, sse
+from app.saved_plans import save_plan
+from app.services import TZ, ApiError, sse
 
 POLL_SECONDS = 2.0
 Event = tuple[str, dict[str, Any]]
@@ -83,6 +86,7 @@ async def plan_events(
     body: dict[str, Any],
     ip: str,
     disconnected: Callable[[], Awaitable[bool]] = _never,
+    on_saved: Callable[[bool], None] | None = None,
 ) -> AsyncIterator[Event]:
     rq_conn = rq_redis()
     pubsub = r.pubsub()
@@ -117,6 +121,11 @@ async def plan_events(
                 # 送出前就要標記：MCP 拿到結果就離開，generator 停在 yield，
                 # 收尾時才不會把剛跑完的工作停掉（2026-10-24 bug 清單 L2）
                 finished = event["event"] in ("result", "error")
+                if event["event"] == "result":
+                    # 分享連結：交出結果前先存好，MCP 拿到結果就能馬上給連結（規格書 6.8）
+                    ok = await save_plan(r, s, job_id, body, event["data"], datetime.now(TZ))
+                    if on_saved is not None:
+                        on_saved(ok)
                 yield event["event"], event["data"]
                 if finished:
                     return

@@ -108,6 +108,11 @@ class Settings(BaseSettings):
     route_cache_ttl_seconds: int = 6 * 3600
     route_cache_slot_minutes: int = 15
     llm_status_ttl_seconds: int = 30
+    # 分享連結（規格書 6.8）：排出來的結果存幾秒；網頁的網址（沒設定時 MCP 不附 share_url）
+    saved_plan_ttl_seconds: int = 7 * 24 * 3600
+    public_web_base_url: str = ""
+    # Redis 記憶體用量超過 maxmemory 的這個比例就不存分享用的行程（maxmemory 為 0 不檢查）
+    saved_plan_max_memory_ratio: float = 0.7
 
     @field_validator("cors_origins", mode="before")
     @classmethod

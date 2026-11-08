@@ -337,6 +337,42 @@ async def test_plan_stream_error_event(client, engine, worker):
     assert data["reasons"]["budget"] > 0
 
 
+# ── GET /api/plans/{job_id}：分享連結（規格書 6.8） ──────────────────────
+
+
+async def test_saved_plan_round_trip(client, engine, worker):
+    res = await client.post("/api/plans", json=plan_body(engine), timeout=60)
+    result = parse_sse(res.text)[-1][1]
+    job = result["job_id"]
+
+    got = await client.get(f"/api/plans/{job}")
+    assert got.status_code == 200
+    body = got.json()
+    assert body["job_id"] == job
+    assert body["result"] == result  # 跟 SSE 交出的同一份，沒有重排
+    assert body["request"]["area"] == "taoyuan"
+    assert body["created_at"].endswith("+08:00")
+    created = datetime.fromisoformat(body["created_at"])
+    expires = datetime.fromisoformat(body["expires_at"])
+    assert expires - created == timedelta(days=7)
+
+
+@pytest.mark.parametrize("job", ["a" * 32, "A" * 32, "not-a-job-id"])
+async def test_saved_plan_not_found(client, job):
+    res = await client.get(f"/api/plans/{job}")
+    assert res.status_code == 404
+    assert res.json()["error"]["code"] == "NOT_FOUND"
+    assert "7 天" in res.json()["error"]["message"]
+
+
+async def test_saved_plan_uses_read_limit(client):
+    override(api_read_per_minute=1)
+    assert (await client.get(f"/api/plans/{'a' * 32}")).status_code == 404
+    res = await client.get(f"/api/plans/{'a' * 32}")
+    assert res.status_code == 429
+    assert "Retry-After" in res.headers
+
+
 # ── GET /api/locations：自選的出發位置（2026-10-21） ─────────────────
 
 
