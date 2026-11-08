@@ -14,7 +14,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app import saved_plans, services, tracing
 from app.config import Settings, get_settings
 from app.db import async_session
-from app.plan_stream import plan_events, rate_limited, reserve_plan, sse_stream
+from app.plan_stream import plan_events, rate_limited, reserve_plan, sse_stream, with_saved_flag
 from app.redis_client import async_redis
 from app.redis_utils.ratelimit import ahit
 from app.schemas import (
@@ -131,11 +131,19 @@ async def create_plan(request: Request, req: PlanRequest, db: Db, r: Redis, s: C
         ip = client_ip(request)
         await reserve_plan(r, s, ip, job_id)
         parent = tracing.capture()
+    saved: list[bool] = []  # 分享連結存成功沒（6.8）：result 事件多帶 saved
     events = plan_events(
-        r, s, job_id, req.model_dump(mode="json"), ip, request.is_disconnected, trace_parent=parent
+        r,
+        s,
+        job_id,
+        req.model_dump(mode="json"),
+        ip,
+        request.is_disconnected,
+        trace_parent=parent,
+        on_saved=saved.append,
     )
     return StreamingResponse(
-        sse_stream(events),
+        sse_stream(with_saved_flag(events, saved)),
         media_type="text/event-stream",
         headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
     )

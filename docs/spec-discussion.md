@@ -1041,6 +1041,18 @@ rq cron（只負責觸發）── 每天 06:00 ──▶ 抓取佇列 ──▶
 - **測試**：新增單元 `test_saved_plans` 16 個（含 Redis 記憶體七成的防線）、`test_plan_stream` +3、`test_api` +5、`test_mcp` +2。後端全部 495 個通過、3 個失敗；3 個失敗是 `tests/integration/test_redis_utils.py::TestQuota` 本來就有的日期相關測試（程式裡固定「現在」是 2026-10-20，key 在 2026-11-05 到期），這個分支沒碰。分支 `feat/plan-share-link`。
 - **還沒做**：前端分享頁 `/p/:id`、zod schema、分享時的位置提醒（前端第 4 批）；合約檢查工具加入 `saved_plan`。
 
+### 2026-11-08 分享連結存成功沒（規格書 v0.23）
+
+- **起因**：Redis 記憶體用超過七成或存檔出錯時，後端會跳過存檔（S7）。MCP 靠 `on_saved` 知道、不附連結；網頁卻不知道：自己的瀏覽器看得到 `/p/編號`（前端存在瀏覽器），傳出去的連結會 404。
+- **決定**（2026-11-08 使用者同意設計）：
+  | # | 決定 | 理由 |
+  |---|---|---|
+  | S8 | 網頁的 SSE `result` 多帶 `saved`（`true`／`false`），只加在 `POST /api/plans` 這條路（`plan_stream.with_saved_flag`），`plan_events` 和 MCP 回傳不變 | 一個欄位就夠前端判斷；MCP 已經用 `share_url` 有沒有表達同一件事 |
+  | S9 | 存進 Redis 的那份、`GET /api/plans/{job_id}` 不帶 `saved`；前端沒看到就當作有存 | 打得開分享連結本身就證明有存；舊後端也不會被誤判 |
+  | S10 | 前端 `saved: false` 時：停用「分享連結」、說明改用「複製行程」或加到行事曆；行事曆照樣能加，但不放打不開的連結 | 不給出打不開的連結，又不擋住其他用法 |
+- **改了哪些檔案**：`backend/app/plan_stream.py`（`with_saved_flag`）、`backend/app/api.py`；前端 `api/schemas.ts`、`api/savedPlans.ts`（`canShare`）、`features/result/PlanActions.tsx`、`shared/lib/ics.ts`、假後端 `mocks/server.ts`（新情境 `?mock=save_fail`）、`mocks/savedPlans.ts`；`docs/backend-spec.md`（v0.23：6.4、6.8）。
+- **測試**：後端新增單元 `test_saved_flag` 5 個、`test_api` 2 處改寫；前端單元 +5、e2e +1（先確認改之前會失敗）。
+
 ## 6. 剩下的步驟
 
 - **第 5 步：部署、測試、錯誤處理**

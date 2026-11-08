@@ -209,6 +209,21 @@ async def _plan_events(
             await release_active(r, ip, job_id)
 
 
+async def with_saved_flag(events: AsyncIterator[Event], saved: list[bool]) -> AsyncIterator[Event]:
+    """網頁的 SSE：`result` 多帶 `saved`，說這份有沒有存起來（規格書 6.8，v0.23）。
+
+    `saved` 是傳給 `plan_events(on_saved=saved.append)` 的同一個 list；`plan_events` 交出 result
+    前已經存過，所以這時看得到結果。存不進去時，自己的瀏覽器還看得到 /p/{job_id}，傳出去的連結卻
+    會 404，前端看到 false 就把分享停用。MCP 不經過這裡（它看 on_saved 決定附不附 share_url）。
+    提早關掉時用 aclosing 馬上關內層，原因同 `plan_events`。
+    """
+    async with aclosing(events) as inner:
+        async for name, data in inner:
+            if name == "result":
+                data = {**data, "saved": bool(saved and saved[-1])}
+            yield name, data
+
+
 async def sse_stream(events: AsyncIterator[Event]) -> AsyncIterator[str]:
     """轉成 SSE；`ping` 變成心跳註解，避免中間的代理切斷連線（6.4）。"""
     async for name, data in events:
