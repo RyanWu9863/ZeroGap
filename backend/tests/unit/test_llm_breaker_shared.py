@@ -223,7 +223,8 @@ def test_successful_probe_clears_state(r):
     p.pick(QUESTION, PROBS)
     r.now += 61
     assert picker(store).pick(QUESTION, PROBS).status == "ok"
-    assert r.data == {}  # 失敗次數、熔斷、試探鎖都清掉
+    # 失敗次數、熔斷、試探鎖都清掉
+    assert not any(r.exists(k) for k in (store.failures_key, store.open_key, store.probe_key))
     assert picker(store).pick(QUESTION, PROBS).code == "r3"
     assert route.call_count == 4
 
