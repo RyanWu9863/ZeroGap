@@ -15,11 +15,13 @@ import { mockResult } from './planResult'
  *   queue_full      排隊已滿（HTTP 503）
  *   pending         規劃一直不回應：看（和測試）等待畫面
  *   options_error   精靈的商圈清單前 2 次都失敗（第一次＋自動重試），之後按「重試」就成功（計畫 P1-1）
+ *   coverage_error  場次日期（/api/coverage）前 2 次都失敗，之後按「重試」就成功（首頁「哪天」那格自己說明＋重試）
  */
 const wait = (ms: number) => new Promise((r) => setTimeout(r, ms))
 const scenario = () => new URLSearchParams(window.location.search).get('mock')
 
 let areasFailLeft = 2
+let coverageFailLeft = 2
 
 export async function mockGet(path: string, signal?: AbortSignal): Promise<unknown> {
   await wait(120)
@@ -29,6 +31,10 @@ export async function mockGet(path: string, signal?: AbortSignal): Promise<unkno
   if (url.pathname === '/api/areas' && scenario() === 'options_error' && areasFailLeft > 0) {
     areasFailLeft--
     throw new ApiError('network', '假資料情境：商圈清單載入失敗')
+  }
+  if (url.pathname === '/api/coverage' && scenario() === 'coverage_error' && coverageFailLeft > 0) {
+    coverageFailLeft--
+    throw new ApiError('network', '假資料情境：場次日期載入失敗')
   }
   const q = (k: string) => url.searchParams.get(k)
   switch (url.pathname) {

@@ -66,6 +66,7 @@ async function tabAndPress(page: Page, text: string, key: string) {
 test('只用鍵盤就能走完四步精靈（P2-2）', async ({ page, browserName }, info) => {
   test.skip(info.project.name === 'iphone', '手機沒有實體鍵盤')
   const key = browserName === 'webkit' ? 'Alt+Tab' : 'Tab'
+  await page.clock.setFixedTime(new Date('2026-11-08T10:00:00+08:00')) // 白天：不走晚上換日期的路
   await page.goto('/plan/1')
   await expect(page).toHaveTitle('① 地點｜零空檔')
   for (let step = 2; step <= 4; step++) {
