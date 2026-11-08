@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
+import { areas } from '@/mocks/catalog'
 import { benchmarkRequest } from '@/mocks/request'
-import { dateIssue, quickDate, quickMissing } from './quickPlan'
+import { AREA_NAME_LENGTHS, dateIssue, quickDate, quickMissing } from './quickPlan'
 
 const ctx = { today: '2026-11-08', available: ['2026-11-08', '2026-11-09', '2026-11-12'] }
 const known = { areas: ['taoyuan', 'zhongli'], stations: [103, 104] }
@@ -48,4 +49,11 @@ describe('dateIssue', () => {
   it('今天出發時間已過：past-departure', () => expect(dateIssue({ ...req, date: '2026-11-08' }, ctx, evening)).toBe('past-departure'))
   it('那天沒場次：unusable', () => expect(dateIssue({ ...req, date: '2026-11-10' }, ctx, morning)).toBe('unusable'))
   it('沒填日期：unusable', () => expect(dateIssue({ ...req, date: '' }, ctx, morning)).toBe('unusable'))
+})
+
+describe('商圈佔位', () => {
+  // 假後端送的商圈清單，跟 useAreas 一樣只留開放的；字數不一樣，佔位就跟真的按鈕不一樣寬，載入後「排行程」會跳
+  it('每個佔位的字數跟開放商圈名稱的字數一樣', () => {
+    expect(AREA_NAME_LENGTHS).toEqual(areas.filter((a) => a.is_open !== false).map((a) => [...a.name].length))
+  })
 })

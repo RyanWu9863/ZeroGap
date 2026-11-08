@@ -41,3 +41,14 @@ export function quickMissing(r: PlanRequest, known: { areas?: string[]; stations
   if (!(r.budget_per_person > 0)) out.push('budget')
   return out
 }
+
+/**
+ * 首頁商圈清單載入前的佔位：每個灰色按鈕放幾個全形空白（QuickPlanForm 用跟真的商圈按鈕同樣的外框和字級）。
+ * 必須跟真的開放商圈名稱的字數一樣（桃園區、中壢、八德、蘆竹（南崁）），寬度、換行才會一樣，載入後「排行程」才不會跳。
+ * 佔位比真的寬時（2026-11-08 以前），iPad、手機上佔兩行、真的只有一行，「排行程」載入後往上跳 44～48px；
+ * 按下去到放開之間剛好跳，放開的位置已經不在按鈕上，這次點擊就不見了。
+ * 真正的來源是後端的商圈種子 migration（backend/migrations/versions/ 裡 0001、0002 等建立或新增商圈的檔案）；
+ * 商圈開張或關閉時，這裡要跟著改，不然「排行程」載入後又會跳。
+ * quickPlan.test.ts 拿假後端的商圈清單（mocks/catalog.ts）對字數：商圈改了，那邊和這裡要一起改。
+ */
+export const AREA_NAME_LENGTHS = [3, 2, 2, 6]

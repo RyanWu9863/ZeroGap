@@ -44,7 +44,7 @@ $env:PAGES_BASE="/my-repo/"; npm run build:pages
 
 ## 假資料與後端
 
-預設使用假資料（`VITE_USE_MOCK=true`）。要接後端時複製 `.env.example` 成 `.env`，把 `VITE_USE_MOCK` 改成 `false`。開發時 `/api` 會自動轉給 `localhost:8000`。新版的 Google 地圖模式需要 `VITE_GOOGLE_MAPS_KEY`（沒設就只有路線示意圖），設定方式見導讀 07。
+預設使用假資料（`VITE_USE_MOCK=true`）。要接後端時複製 `.env.example` 成 `.env`，把 `VITE_USE_MOCK` 改成 `false`。開發時 `/api` 會自動轉給 `localhost:8000`。新版的 Google 地圖模式需要 `VITE_GOOGLE_MAPS_KEY`（沒設就只有路線示意圖），設定方式見導讀 07。`/ai` 頁顯示的 MCP 網址：先看 `VITE_PUBLIC_MCP_URL`，沒設就用 `VITE_API_BASE` + `/mcp`，再沒有就是同網域的 `/mcp`（假資料模式不顯示網址，頁面會說展示站沒有接上真的後端）。開發時 Vite 和正式的 nginx 都會把 `/mcp` 轉給後端。
 
 API 合約照**後端規格書 v0.13 第 6 章**（`docs/backend-spec.md`，舊的 `docs/API.md` 已停用）。`POST /api/plans` 回傳 SSE 串流，一次規劃約 2～3 分鐘。改接的經過見 `docs/導讀_06_改接後端v0.9.md`。
 
@@ -56,7 +56,10 @@ API 合約照**後端規格書 v0.13 第 6 章**（`docs/backend-spec.md`，舊�
 | 四步精靈 | `/plan/1~4` | 完成 |
 | 排程中 | `/result` | 真進度漏斗（SSE：排隊人數、交通查詢秒數），排好後換到 `/p/編號` |
 | 結果頁／分享頁 | `/p/:id` | 錶盤＋瓶頸聚光燈、時間軸、地圖（真實步行路線）、分享連結、加到行事曆、改條件重排、過期和找不到的說明；換一部／換一家、其他班次 |
-| 系統幕後 | `/behind` | 方法、漏斗（長條／桑基）、Jev 機率、資料來源、展示模式、Agent 接口、原始 JSON |
+| 方法 | `/method` | 十段捲動解說：五關怎麼篩、緩衝怎麼算、資料從哪來；數字來自真後端範例的第 1 個方案 |
+| AI 助理 | `/ai` | 怎麼把 ZeroGap 接進 Claude（MCP 網址、六個工具、做不到的事） |
+| 關於 | `/about` | 誰做的、資料來源和授權、隱私（這台瀏覽器存了什麼） |
+| 系統幕後 | `/behind`（**不在導覽列**，上台用） | 夜主題；方法、漏斗（長條／桑基）、Jev 機率、資料來源、展示模式、MCP、原始 JSON |
 
 **首頁**：數字是上次真實規劃的結果，沒有就顯示「示範」數字；點太多時自動抽樣（手機 4,000、電腦 12,000 點），減少動態時只顯示最後一幕。白話說明見 [導讀 10：首頁](docs/導讀_10_首頁.md)。
 

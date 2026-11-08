@@ -1,3 +1,4 @@
+import { Link } from 'react-router'
 import { useStatus } from '@/api/queries'
 import { latestUpdate } from './latestUpdate'
 
@@ -15,6 +16,19 @@ export function SiteFooter() {
           </time>
         </p>
       )}
+      <p>
+        <Link to="/method" className="underline underline-offset-2 hover:text-foreground">
+          方法
+        </Link>
+        ・
+        <Link to="/ai" className="underline underline-offset-2 hover:text-foreground">
+          在 AI 助理裡使用
+        </Link>
+        ・
+        <Link to="/about" className="underline underline-offset-2 hover:text-foreground">
+          關於
+        </Link>
+      </p>
       <p>交通：交通部 TDX 運輸資料流通服務・電影場次：開眼電影網・餐廳：OpenStreetMap、Google 地圖</p>
       <p>
         ZeroGap 零空檔・資策會 AIAE1 第一組專題・

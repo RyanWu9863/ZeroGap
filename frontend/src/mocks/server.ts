@@ -1,4 +1,5 @@
 import { ApiError } from '@/api/errors'
+import { API_TIMEOUT_MS } from '@/shared/lib/config'
 import type { PlanRequest, PlanResult } from '@/api/schemas'
 import { areas, categories, counties, coverage, stations, status } from './catalog'
 import { mockResult } from './planResult'
@@ -17,6 +18,9 @@ import { mockSavePlan, newJobId } from './savedPlans'
  *   pending         規劃一直不回應：看（和測試）等待畫面
  *   options_error   精靈的商圈清單前 2 次都失敗（第一次＋自動重試），之後按「重試」就成功（計畫 P1-1）
  *   coverage_error  場次日期（/api/coverage）前 2 次都失敗，之後按「重試」就成功（首頁「哪天」那格自己說明＋重試）
+ *   slow_lists      縣市、商圈、車站清單和場次日期都晚 2 秒才回（看和測試首頁「排行程」先按、載入好再送）
+ *   lists_hang      縣市、商圈、車站清單和場次日期一直不回，跟真的連線一樣 10 秒後算逾時（會自動再查一次）；
+ *                   每送一次在 console.debug 記一筆（看和測試首頁「排行程」等太久的說明、請求有沒有被叫重來）
  */
 const wait = (ms: number) => new Promise((r) => setTimeout(r, ms))
 const scenario = () => new URLSearchParams(window.location.search).get('mock')
@@ -24,11 +28,19 @@ const scenario = () => new URLSearchParams(window.location.search).get('mock')
 let areasFailLeft = 2
 let coverageFailLeft = 2
 
+const LIST_PATHS = ['/api/counties', '/api/areas', '/api/stations', '/api/coverage']
+
 export async function mockGet(path: string, signal?: AbortSignal): Promise<unknown> {
-  await wait(120)
+  const url = new URL(path, 'http://mock')
+  const list = LIST_PATHS.includes(url.pathname)
+  if (list && scenario() === 'lists_hang') {
+    console.debug(`假資料情境 lists_hang：送出 ${url.pathname}`)
+    await wait(API_TIMEOUT_MS.default)
+    throw new ApiError('timeout', `API ${path} 超過 ${API_TIMEOUT_MS.default / 1000} 秒沒有回應`)
+  }
+  await wait(list && scenario() === 'slow_lists' ? 2000 : 120)
   // 和真的 fetch 一樣：被取消的請求（例如開發模式 React 重掛一次）算取消，不算失敗
   if (signal?.aborted) throw new DOMException('取消', 'AbortError')
-  const url = new URL(path, 'http://mock')
   if (url.pathname === '/api/areas' && scenario() === 'options_error' && areasFailLeft > 0) {
     areasFailLeft--
     throw new ApiError('network', '假資料情境：商圈清單載入失敗')

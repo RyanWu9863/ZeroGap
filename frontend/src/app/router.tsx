@@ -5,7 +5,7 @@ import { PageLoading } from './PageLoading'
 import { NotFound, RouteError } from './RouteError'
 
 /**
- * 網址結構（決策 Q29）：/、/plan/1~4、/result（送出、等待）、/p/:id（排好的行程）、/behind；其他網址顯示「找不到這一頁」（P0-2）。
+ * 網址結構（決策 Q29）：/、/plan/1~4、/result（送出、等待）、/p/:id（排好的行程）、/method、/ai、/about、/behind；其他網址顯示「找不到這一頁」（P0-2）。
  * 錯誤頁有兩層：頁面出錯時留著導覽列（內層）；連外框都出錯時整頁顯示（外層）。
  */
 export const router = createBrowserRouter(
@@ -34,6 +34,21 @@ export const router = createBrowserRouter(
             {
               path: '/p/:id',
               lazy: async () => ({ Component: (await import('@/features/result/PlanPage')).PlanPage }),
+              hydrateFallbackElement: <PageLoading />,
+            },
+            {
+              path: '/method',
+              lazy: async () => ({ Component: (await import('@/features/method/MethodPage')).MethodPage }),
+              hydrateFallbackElement: <PageLoading />,
+            },
+            {
+              path: '/ai',
+              lazy: async () => ({ Component: (await import('@/features/ai/AiPage')).AiPage }),
+              hydrateFallbackElement: <PageLoading />,
+            },
+            {
+              path: '/about',
+              lazy: async () => ({ Component: (await import('@/features/about/AboutPage')).AboutPage }),
               hydrateFallbackElement: <PageLoading />,
             },
             {
