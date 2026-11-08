@@ -32,7 +32,11 @@ class DecisionRecord:
     llm_latency_ms: float | None
     llm_model: str | None
     chosen: str | None
-    decided_by: Literal["jev", "llm"]
+    # fallback：Jev 沒有結果（每月額度用完），LLM 也沒回答，選的只是排序最前面的代碼
+    decided_by: Literal["jev", "llm", "fallback"]
+    # None：正常路徑。jev_unavailable：沒有 Jev 結果；llm_<status>：Jev 沒把握但 LLM
+    # 失敗或棄權（timeout、circuit_open、abstain……），採用 Jev 第一名
+    fallback_reason: str | None = None
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)
@@ -44,14 +48,26 @@ def record_decision(
     policy: RouterPolicy,
     pick: LlmPick | None,
     jev: JevResult | None = None,
+    jev_unavailable: bool = False,
 ) -> DecisionRecord:
     """`pick` 是 None 表示沒有問 LLM（Jev 有把握）。最後的選擇照 planner 現在的規則：
     有問 LLM 就用 `pick.code`（LLM 失敗時它本身就是 Jev 第一名），沒問就用 Jev 第一名。
+
+    `jev_unavailable` 是 True 表示這題沒有 Jev 結果（每月額度用完，機率是 planner 給的均等值）。
+    `jev` 是 None 只表示沒給 JevResult，不代表 Jev 沒有結果。
     """
     probs = answer.probabilities
     f = decision_features(probs) if probs else None
     jev_top = answer.top if probs else None
     by_llm = bool(pick and pick.used_llm)
+    if by_llm or not probs:
+        decided_by, reason = ("llm" if by_llm else "jev"), None
+    elif jev_unavailable:
+        decided_by, reason = "fallback", "jev_unavailable"
+    elif pick is not None:
+        decided_by, reason = "jev", f"llm_{pick.status or 'unknown'}"
+    else:
+        decided_by, reason = "jev", None
     return DecisionRecord(
         question_id=question.id,
         k=len(probs),
@@ -68,17 +84,22 @@ def record_decision(
         llm_latency_ms=pick.latency_ms if pick else None,
         llm_model=pick.model if pick else None,
         chosen=pick.code if pick else jev_top,
-        decided_by="llm" if by_llm else "jev",
+        decided_by=decided_by,
+        fallback_reason=reason,
     )
 
 
 def summarize(records: list[DecisionRecord]) -> dict[str, Any]:
     """一次規劃的摘要，給一行日誌用：幾題、幾題沒把握、LLM 各種結果幾次、LLM 一共花多久。"""
     asked = [r for r in records if r.llm_status is not None]
-    return {
+    out: dict[str, Any] = {
         "questions": len(records),
         "unsure": sum(r.unsure for r in records),
         "decided_by_llm": sum(r.decided_by == "llm" for r in records),
         "llm_status": dict(Counter(r.llm_status for r in asked)),
         "llm_latency_ms_total": round(sum(r.llm_latency_ms or 0.0 for r in asked), 1),
     }
+    # 只在有 fallback 時才加，沒有的話摘要的欄位和以前一樣
+    if fallback := sum(r.decided_by == "fallback" for r in records):
+        out["decided_by_fallback"] = fallback
+    return out
