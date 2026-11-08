@@ -27,18 +27,32 @@ PROBS = {"r1": 0.45, "r2": 0.35, "r3": 0.20}
 
 
 class FakeRedis:
-    """exists、get、set（nx、ex）、delete、incr、expire、pipeline。"""
+    """exists、get、set（nx、ex）、delete、incr、expire、pipeline（含 WATCH／MULTI／EXEC 交易）。
+
+    每個 key 有版本號，寫入或過期就加一，給交易判斷「WATCH 之後有沒有被別人改過」。
+    `before_exec` 可以放一個函式，下一次交易 EXEC 前會先執行一次，模擬別的 worker 剛好插進來。
+    """
 
     def __init__(self):
         self.now = 1000.0
         self.data: dict[str, tuple[str, float | None]] = {}
+        self.versions: dict[str, int] = {}
+        self.before_exec = None
+
+    def _touch(self, key):
+        self.versions[key] = self.versions.get(key, 0) + 1
 
     def _alive(self, key):
         item = self.data.get(key)
         if item and item[1] is not None and self.now >= item[1]:
             del self.data[key]
+            self._touch(key)
             return None
         return item
+
+    def version(self, key):
+        self._alive(key)
+        return self.versions.get(key, 0)
 
     def exists(self, key):
         return int(self._alive(key) is not None)
@@ -51,15 +65,22 @@ class FakeRedis:
         if nx and self._alive(key) is not None:
             return None
         self.data[key] = (str(value), None if ex is None else self.now + ex)
+        self._touch(key)
         return True
 
     def delete(self, *keys):
-        return sum(self.data.pop(k, None) is not None for k in keys)
+        n = 0
+        for k in keys:
+            if self.data.pop(k, None) is not None:
+                n += 1
+                self._touch(k)
+        return n
 
     def incr(self, key):
         item = self._alive(key)
         value = int(item[0]) + 1 if item else 1
         self.data[key] = (str(value), item[1] if item else None)
+        self._touch(key)
         return value
 
     def expire(self, key, seconds):
@@ -67,6 +88,7 @@ class FakeRedis:
         if item is None:
             return False
         self.data[key] = (item[0], self.now + seconds)
+        self._touch(key)
         return True
 
     def pipeline(self):
@@ -74,18 +96,50 @@ class FakeRedis:
 
 
 class FakePipeline:
+    """沒有 WATCH 時把指令排起來，execute 一次跑完。WATCH 之後、MULTI 之前的指令馬上執行；
+    execute 時被 WATCH 的 key 有變動就丟 WatchError，和 redis-py 的交易相同。"""
+
     def __init__(self, client):
-        self.client, self.calls = client, []
+        self.client, self.calls, self.watched, self.queued = client, [], None, False
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *exc):
+        self.reset()
+
+    def reset(self):
+        self.calls, self.watched, self.queued = [], None, False
+
+    def watch(self, *keys):
+        self.watched = {k: self.client.version(k) for k in keys}
+
+    def unwatch(self):
+        self.watched = None
+
+    def multi(self):
+        self.queued = True
 
     def __getattr__(self, name):
-        def queue(*args, **kw):
+        def call(*args, **kw):
+            if self.watched is not None and not self.queued:
+                return getattr(self.client, name)(*args, **kw)
             self.calls.append((name, args, kw))
             return self
 
-        return queue
+        return call
 
     def execute(self):
-        return [getattr(self.client, n)(*a, **kw) for n, a, kw in self.calls]
+        try:
+            if self.watched is not None:
+                hook, self.client.before_exec = self.client.before_exec, None
+                if hook:
+                    hook()
+                if any(self.client.version(k) != v for k, v in self.watched.items()):
+                    raise redis.WatchError("WATCH 的 key 被改過")
+            return [getattr(self.client, n)(*a, **kw) for n, a, kw in self.calls]
+        finally:
+            self.reset()
 
 
 class BrokenRedis:
