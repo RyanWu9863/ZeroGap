@@ -324,6 +324,7 @@ async def test_plan_stream_end_to_end(client, engine, worker, redis_url):
     result = events[-1][1]
     assert result["job_id"] == events[0][1]["job_id"]
     assert result["plans"][0]["highlight"]["key"] == "recommended"
+    assert result["saved"] is True  # 分享連結存好了（6.8，v0.23）
     # 串流結束後釋放「規劃中」的標記，可以再送一次
     assert not redis.Redis.from_url(redis_url).exists("active:plan:127.0.0.1")
 
@@ -349,7 +350,9 @@ async def test_saved_plan_round_trip(client, engine, worker):
     assert got.status_code == 200
     body = got.json()
     assert body["job_id"] == job
-    assert body["result"] == result  # 跟 SSE 交出的同一份，沒有重排
+    # 跟 SSE 交出的同一份，沒有重排；saved 只在 SSE 那份（說這次存成功沒），存起來的不帶（v0.23）
+    assert result.pop("saved") is True
+    assert body["result"] == result
     assert body["request"]["area"] == "taoyuan"
     assert body["created_at"].endswith("+08:00")
     created = datetime.fromisoformat(body["created_at"])

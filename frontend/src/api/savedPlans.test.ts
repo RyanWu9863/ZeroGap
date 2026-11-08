@@ -3,7 +3,7 @@ import type { Run } from './planRuns'
 import { requestKey } from './planRuns'
 import { benchmarkRequest } from '@/mocks/request'
 import { mockResult } from '@/mocks/planResult'
-import { JOB_ID_RE, localSavedPlan, shareStatus } from './savedPlans'
+import { canShare, JOB_ID_RE, localSavedPlan, shareStatus } from './savedPlans'
 
 const ID = 'a'.repeat(32)
 const result = mockResult(benchmarkRequest, false, ID)
@@ -69,4 +69,11 @@ describe('分享頁過期了沒', () => {
     const expires = new Date(firstDepart - 3_600_000)
     expect(shareStatus({ ...doc, expires_at: expires.toISOString() }, expires)).toBe('expired')
   })
+})
+
+describe('這份有沒有存起來（規格書 6.8，v0.23）', () => {
+  const doc = { job_id: ID, request: benchmarkRequest, result, created_at: '', expires_at: '' }
+  it('後端說存成功：可以分享', () => expect(canShare({ ...doc, result: { ...result, saved: true } })).toBe(true))
+  it('後端說沒存起來：不能分享（傳出去的連結會打不開）', () => expect(canShare({ ...doc, result: { ...result, saved: false } })).toBe(false))
+  it('沒有這個欄位（舊後端、從分享連結打開的那份）：當作有存', () => expect(canShare(doc)).toBe(true))
 })

@@ -33,6 +33,12 @@ export function localSavedPlan(runs: Record<string, Run>, id: string): SavedPlan
   return null
 }
 
+/**
+ * 分享連結傳出去打不打得開：後端存不進去時（Redis 太滿或出錯）SSE 的結果帶 saved: false，
+ * 這台瀏覽器還看得到 /p/:id，傳出去的卻會 404（規格書 6.8，v0.23）
+ */
+export const canShare = (doc: SavedPlan) => doc.result.saved !== false
+
 /** 過期＝超過保留期限，或每個方案的出發時間都過了（規格 3.3） */
 export function shareStatus(doc: SavedPlan, now: Date): 'ok' | 'expired' {
   const t = now.getTime()

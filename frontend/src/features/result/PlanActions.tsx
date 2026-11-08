@@ -2,6 +2,7 @@ import { CalendarPlus, Check, RefreshCw, Share2 } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router'
 import { USE_MOCK } from '@/api/client'
+import { canShare } from '@/api/savedPlans'
 import type { Plan, SavedPlan } from '@/api/schemas'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
@@ -32,7 +33,7 @@ export function PlanActions({
   stationName: string
   /** 手機底部固定列：只放「分享連結」，提醒文字不放 */
   compact?: boolean
-  /** 分享頁過期了：分享連結、加到行事曆都不能按 */
+  /** 分享頁過期了：分享連結、加到行事曆都不能按（這份沒存起來時只停用分享，見 canShare） */
   expired?: boolean
   className?: string
 }) {
@@ -42,6 +43,8 @@ export function PlanActions({
   const copiedTimer = useRef<ReturnType<typeof setTimeout>>(undefined)
   useEffect(() => () => clearTimeout(copiedTimer.current), []) // 離開頁面時不要讓計時器去改已經不在的元件
   const url = shareUrl(window.location.origin, import.meta.env.BASE_URL, doc.job_id, plan.rank)
+  // 後端這次沒存起來：這台看得到，傳出去的連結會打不開（規格書 6.8）。行事曆照樣能加，只是不放連結
+  const unsaved = !canShare(doc)
 
   const onShare = async () => {
     const touch = window.matchMedia('(pointer: coarse)').matches
@@ -63,7 +66,7 @@ export function PlanActions({
   }
 
   const onCalendar = () => {
-    const text = icsFor({ plan, jobId: doc.job_id, request: doc.request, url, stationName, now: new Date() })
+    const text = icsFor({ plan, jobId: doc.job_id, request: doc.request, url: unsaved ? null : url, stationName, now: new Date() })
     const href = URL.createObjectURL(new Blob([text], { type: 'text/calendar;charset=utf-8' }))
     const a = document.createElement('a')
     a.href = href
@@ -81,7 +84,7 @@ export function PlanActions({
 
   // 手機的分享按鈕在底部固定列，這裡的那顆只在電腦版出現（不會有兩顆同名按鈕）
   const shareButton = (
-    <Button onClick={onShare} disabled={expired} className={cn(btn, !compact && 'max-lg:hidden')}>
+    <Button onClick={onShare} disabled={expired || unsaved} className={cn(btn, !compact && 'max-lg:hidden')}>
       {share === 'done' ? <Check className="size-4" /> : <Share2 className="size-4" />}
       分享連結
     </Button>
@@ -101,9 +104,11 @@ export function PlanActions({
   const located = doc.request.origin_lat != null
   const mockNote = USE_MOCK || demo
   // 提醒文字每個寬度只顯示一份：手機在底部固定列的分享按鈕旁，電腦在右欄（max-lg:hidden）
-  // 過期時分享鈕按不了，位置和展示版的提醒都用不到，只留過期那一行
+  // 過期或沒存起來時分享鈕按不了，位置和展示版的提醒都用不到，只留說明那一行
   const notes = expired ? (
     <p className="text-xs text-muted-foreground">行程過期了，先重排再分享。</p>
+  ) : unsaved ? (
+    <p className="text-xs text-muted-foreground">這份行程這次沒存起來，連結傳出去會打不開；可以改用「複製行程」或加到行事曆。</p>
   ) : (
     <>
       {located && <p className="text-xs text-muted-foreground">這個連結含有你出發的大概位置（約 100 公尺內），只傳給信任的人。</p>}

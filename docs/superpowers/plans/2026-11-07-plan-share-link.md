@@ -627,7 +627,7 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 ```bash
 cd ~/Desktop/JEV/ZeroGap/team-share/backend && uv run pytest -q && uv run ruff check . && uv run ruff format --check .
 cd .. && git log --oneline origin/main..HEAD
-git log --format='%ae' origin/main..HEAD | sort | uniq -c   # 不能出現 chensamuel0123@gmail.com（使用者 11/07 要求匿名）
+git log --format='%ae' origin/main..HEAD | sort | uniq -c   # 不能出現舊的私人 email（使用者 11/07 要求匿名）
 git diff --stat origin/main..HEAD -- frontend   # 必須沒有輸出
 ```
 

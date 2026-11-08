@@ -34,4 +34,11 @@ describe('行事曆檔（.ics）', () => {
     expect(folded.split('\r\n').slice(1).every((l) => l.startsWith(' '))).toBe(true)
     expect(folded.replace(/\r\n /g, '')).toBe(long)
   })
+
+  it('沒有連結（這份沒存起來，連結會打不開）：不寫 URL，說明裡也不放連結', () => {
+    const noLink = icsFor({ plan, jobId: 'c'.repeat(32), request: benchmarkRequest, url: null, stationName: '中壢站', now: new Date('2026-11-08T02:00:00Z') }).replace(/\r\n /g, '')
+    expect(noLink).not.toContain('URL:')
+    expect(noLink).not.toContain('行程連結')
+    expect(noLink).toContain(`DTSTART:${icsDate(plan.depart_at)}`)
+  })
 })

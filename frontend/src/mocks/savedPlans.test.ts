@@ -53,4 +53,14 @@ describe('假後端的分享編號', () => {
     expect(mockLoadPlan(ids[0], NOW)).toBeNull()
     expect(mockLoadPlan(ids[20], NOW)).not.toBeNull()
   })
+
+  it('存成功回 true；localStorage 存不進去（私密瀏覽、空間滿）回 false，不丟例外', () => {
+    const id = newJobId()
+    expect(mockSavePlan({ job_id: id, request: benchmarkRequest, result: mockResult(benchmarkRequest, false, id) }, NOW)).toBe(true)
+    globalThis.localStorage.setItem = () => {
+      throw new DOMException('滿了', 'QuotaExceededError')
+    }
+    const other = newJobId()
+    expect(mockSavePlan({ job_id: other, request: benchmarkRequest, result: mockResult(benchmarkRequest, false, other) }, NOW)).toBe(false)
+  })
 })

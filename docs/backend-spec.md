@@ -2,7 +2,7 @@
 
 | 項目 | 內容 |
 |---|---|
-| 版本 | v0.22（AI 推論：Ollama 熔斷狀態改放 Redis，所有 worker 和規劃共用，冷卻後只放一個請求試探；決策紀錄的 `decided_by` 新增 `fallback`、新增 `fallback_reason`；決策紀錄另外寫進新資料表 `decision_records`；新設定 `LLM_BREAKER_SHARED`、`DECISION_TRACE_DB`，見 3、4.3、5.2、7.1、8.2、10.1。v0.21：分享連結：排出來的結果存 7 天，新增 GET /api/plans/{job_id}；MCP plan_date 回傳 share_url，見 5.2、6.2、6.6、6.7、6.8、8.2、10.1。v0.20：mcp-eval v4：MCP 的 `date` 可以直接用使用者的說法［今天、明天、週六、下週日、12/25］，由伺服器換算；`list_areas`、`data_coverage` 不能規劃時回 `can_plan: false` 和 `tell_user`，見 6.6。v0.19：mcp-eval 端到端修正：影城附近走路到不了任何能排的餐廳時，`/api/coverage` 不列它的場次和日期、規劃的 `NO_FEASIBLE` 說明是影城離餐廳太遠；TDX 兩點 200 公尺內不查直接走路、1 公里內逾時也改走路；MCP 的 `NO_FEASIBLE` 附上被排除的原因和組數，見 5.3、6.2、6.3、7.1。v0.18：MCP 工具介面改良［組員的 mcp-eval v3］：每個參數加說明、`plan_date` 新增 `origin_station_name`、走路上限在 MCP 可省略［預設 12］、新增 MCP 專用的錯誤代碼 `AMBIGUOUS`；`/api/coverage` 新增 `cuisines`，見 6.1、6.3、6.6。v0.17：Google 座標更新失敗時，404 才馬上停用，暫時的錯誤隔天再試，見 4.5。v0.16：出發點的交通接不上時，`NO_FEASIBLE` 的 `reasons` 只放 `transit_window`、`message` 寫出時間；TDX 的 `arrival` 查不到時往前重查、`depart` 改取最早抵達；路線快取換成 `v3`，見 3.2、5.3、6.4、7.1。v0.15：AI 推論：Ollama 連續連不上就熔斷；LLM 可選擇棄權［預設關閉］；Router 判斷方式可由設定切換［預設不變］；每次規劃寫一行決策紀錄日誌，見 3、3.1、7.1。v0.14：規劃和抓取拆成兩個 worker：`worker` 只聽 `plans`、新增 `worker-crawl` 只聽 `crawl`，抓取時規劃不用再排隊等，見 5.6、8.1。v0.13：第二階段實作：真的 TDX［頭尾步行 20 分鐘、車資沒給時自己估］、TDX 車站、OSM 餐廳、開眼爬蟲、`rq cron`、MCP；新增蘆竹（南崁）商圈、青埔先不開放；八德只用廣豐新天地。v0.12：逐項確認實作時新增的預設值：早到 30 分鐘內等開門、餐廳備選補滿 2 家、沒判斷屬性的店不排、Jev 沒把握就附備選、新增 `restaurant.hours_verified`。v0.11：實作中的補充列在 10.1；`restaurants.source` 新增 `demo`；修正 5.3 路線快取的取整範例；7.3 補上價位區間的代碼；實作時的小調整：`areas.sort_order`、`area_hubs.geom` 可以是 null、migration 一併寫入類別和票價。v0.10：補上前端對照時發現的缺口：下拉選單的回應範例、跨午夜的判斷、`reasons` 的 key、排隊順位的意思、備選欄位、OSM 出處。v0.9：備選只附估計值、第一名固定「最推薦」、回程緩衝加 `return_window`。v0.8 起前端 ZeroGap 照這份規格串接、飲食限制延後；架構與 v0.4 相同） |
+| 版本 | v0.23（分享連結：網頁的 SSE `result` 多帶 `saved`［這份有沒有存起來］，存不進去時前端停用分享、行事曆不放連結；MCP 回傳不變，見 6.4、6.8。v0.22：AI 推論：Ollama 熔斷狀態改放 Redis，所有 worker 和規劃共用，冷卻後只放一個請求試探；決策紀錄的 `decided_by` 新增 `fallback`、新增 `fallback_reason`；決策紀錄另外寫進新資料表 `decision_records`；新設定 `LLM_BREAKER_SHARED`、`DECISION_TRACE_DB`，見 3、4.3、5.2、7.1、8.2、10.1。v0.21：分享連結：排出來的結果存 7 天，新增 GET /api/plans/{job_id}；MCP plan_date 回傳 share_url，見 5.2、6.2、6.6、6.7、6.8、8.2、10.1。v0.20：mcp-eval v4：MCP 的 `date` 可以直接用使用者的說法［今天、明天、週六、下週日、12/25］，由伺服器換算；`list_areas`、`data_coverage` 不能規劃時回 `can_plan: false` 和 `tell_user`，見 6.6。v0.19：mcp-eval 端到端修正：影城附近走路到不了任何能排的餐廳時，`/api/coverage` 不列它的場次和日期、規劃的 `NO_FEASIBLE` 說明是影城離餐廳太遠；TDX 兩點 200 公尺內不查直接走路、1 公里內逾時也改走路；MCP 的 `NO_FEASIBLE` 附上被排除的原因和組數，見 5.3、6.2、6.3、7.1。v0.18：MCP 工具介面改良［組員的 mcp-eval v3］：每個參數加說明、`plan_date` 新增 `origin_station_name`、走路上限在 MCP 可省略［預設 12］、新增 MCP 專用的錯誤代碼 `AMBIGUOUS`；`/api/coverage` 新增 `cuisines`，見 6.1、6.3、6.6。v0.17：Google 座標更新失敗時，404 才馬上停用，暫時的錯誤隔天再試，見 4.5。v0.16：出發點的交通接不上時，`NO_FEASIBLE` 的 `reasons` 只放 `transit_window`、`message` 寫出時間；TDX 的 `arrival` 查不到時往前重查、`depart` 改取最早抵達；路線快取換成 `v3`，見 3.2、5.3、6.4、7.1。v0.15：AI 推論：Ollama 連續連不上就熔斷；LLM 可選擇棄權［預設關閉］；Router 判斷方式可由設定切換［預設不變］；每次規劃寫一行決策紀錄日誌，見 3、3.1、7.1。v0.14：規劃和抓取拆成兩個 worker：`worker` 只聽 `plans`、新增 `worker-crawl` 只聽 `crawl`，抓取時規劃不用再排隊等，見 5.6、8.1。v0.13：第二階段實作：真的 TDX［頭尾步行 20 分鐘、車資沒給時自己估］、TDX 車站、OSM 餐廳、開眼爬蟲、`rq cron`、MCP；新增蘆竹（南崁）商圈、青埔先不開放；八德只用廣豐新天地。v0.12：逐項確認實作時新增的預設值：早到 30 分鐘內等開門、餐廳備選補滿 2 家、沒判斷屬性的店不排、Jev 沒把握就附備選、新增 `restaurant.hours_verified`。v0.11：實作中的補充列在 10.1；`restaurants.source` 新增 `demo`；修正 5.3 路線快取的取整範例；7.3 補上價位區間的代碼；實作時的小調整：`areas.sort_order`、`area_hubs.geom` 可以是 null、migration 一併寫入類別和票價。v0.10：補上前端對照時發現的缺口：下拉選單的回應範例、跨午夜的判斷、`reasons` 的 key、排隊順位的意思、備選欄位、OSM 出處。v0.9：備選只附估計值、第一名固定「最推薦」、回程緩衝加 `return_window`。v0.8 起前端 ZeroGap 照這份規格串接、飲食限制延後；架構與 v0.4 相同） |
 | 日期 | 2026-11-08 |
 | 狀態 | 草稿 |
 | 討論紀錄 | [spec-discussion.md](spec-discussion.md) |
@@ -850,7 +850,7 @@ MCP 的工具錯誤沿用上表的 code，寫成 `CODE：訊息`；`NO_FEASIBLE`
 |---|---|---|
 | `queued` | `{"job_id":"...","position":2}` | 排隊中，順位改變時再次推送。`position` 是在佇列中的順位，1 代表下一個就輪到 |
 | `progress` | `{"stage":"filtering","combinations":1880,"feasible":39}` | 執行中 |
-| `result` | 見 6.5 | 完整結果，推送後關閉串流 |
+| `result` | 見 6.5 | 完整結果，推送後關閉串流；多帶 `saved`（分享連結存成功沒，6.8，v0.23） |
 | `error` | `{"code":"NO_FEASIBLE","message":"...","reasons":{"last_train":1210,"budget":520}}` | 失敗，推送後關閉串流 |
 
 - `stage` 的值：`loading_data`、`checking_feasibility`、`filtering`、`choosing`、`llm_fallback`、`verifying_hours`、`routing`、`waiting_quota`、`building_result`
@@ -1079,20 +1079,20 @@ MCP 的工具錯誤沿用上表的 code，寫成 `CODE：訊息`；`NO_FEASIBLE`
 使用者在 AI 助理裡排行程時，MCP 只回文字，看不到時間軸。做法是後端把排出來的結果存起來，給一個編號（就是 `job_id`），連結 `{網站}/p/{job_id}` 打開就是網頁上的**同一份**行程，不重排。網頁自己排好時也用同一個連結分享。
 
 **存在哪裡、存什麼**
-- `plan_events` 收到 worker 的 `result` 事件時，**在把結果交出去之前**寫進 Redis。`POST /api/plans`（SSE）和 MCP `plan_date` 都走 `plan_events`，一個地方涵蓋兩條路。SSE `result` 事件的格式不變，不加欄位。
+- `plan_events` 收到 worker 的 `result` 事件時，**在把結果交出去之前**寫進 Redis。`POST /api/plans`（SSE）和 MCP `plan_date` 都走 `plan_events`，一個地方涵蓋兩條路。網頁的 SSE `result` 事件多帶一個 `saved`（v0.23，見下面「存不進去」）。
 - Key：`plan:{job_id}:saved`（5.2），string（JSON），過期 `SAVED_PLAN_TTL_SECONDS`（預設 604800 秒＝7 天【預設】）。
 - 內容：
   ```jsonc
   {
     "job_id": "8f3a…",
     "request": { },   // 當初送出的 PlanRequest（model_dump(mode="json")）
-    "result": { },    // SSE result 事件的 data，原封不動
+    "result": { },    // worker 交出的結果，原封不動（不含網頁 SSE 才有的 saved）
     "created_at": "2026-11-07T21:03:00+08:00",
     "expires_at": "2026-11-14T21:03:00+08:00"
   }
   ```
 - 只存排出來的結果；`NO_FEASIBLE` 等錯誤不存。
-- 存不進去（`redis.RedisError`，例如 Redis 滿了）不影響規劃：只記一行 warning 日誌（logger `app.saved_plans`，訊息「分享用的行程存不進 Redis」），照樣交出結果，只是沒有連結。MCP 靠 `plan_events` 的 `on_saved` 回呼知道有沒有存成功，沒存成功就不附 `share_url`，避免給出打不開的連結。
+- 存不進去（`redis.RedisError`，例如 Redis 滿了）不影響規劃：只記一行 warning 日誌（logger `app.saved_plans`，訊息「分享用的行程存不進 Redis」），照樣交出結果，只是沒有連結。MCP 靠 `plan_events` 的 `on_saved` 回呼知道有沒有存成功，沒存成功就不附 `share_url`，避免給出打不開的連結。網頁拿不到 `on_saved`，所以 `POST /api/plans` 的 SSE `result` 多帶 `saved`（`true`／`false`，v0.23）：`false` 時自己的瀏覽器還看得到 `/p/{job_id}`（前端把排過的存在瀏覽器），傳出去的連結卻會 404，前端停用分享、加到行事曆時不放連結，並說明可以改用「複製行程」。存進 Redis 的那份、`GET /api/plans/{job_id}` 和 MCP 的回傳都不帶 `saved`（MCP 看有沒有 `share_url`）；前端沒看到 `saved` 就當作有存。
 - 大小：一份約 15 KB（實測：3 個方案的結果約 14.6 KB，加上請求）。最壞情況：每個 IP 每小時最多 10 次規劃（5.5），7 天最多約 1,680 份、約 25 MB；全站受限於單一 `plans` worker 的速度，一週約 9,450 份，約 140～380 MB，已可能超過 Redis 256 MB（5.1，`noeviction`）。Redis 滿了會讓限流等所有寫入失敗、整個 API 回 503，所以 `save_plan` 先看記憶體：用量超過 `maxmemory` 的 70%（`SAVED_PLAN_MAX_MEMORY_RATIO`，預設 0.7；`maxmemory` 為 0 表示沒限制就不檢查）就跳過這次存檔，只記 warning、照樣交出結果、不附連結，把剩下的空間留給限流和佇列。公開上線前要再檢討（縮短保存天數或限制筆數）。
 - 用「目前位置」出發時，座標和 `origin_name`（出發地名稱）照原樣存（2026-11-07 使用者決定）；前端分享時要提醒「連結會包含你的出發位置」（前端第 4 批）。
 

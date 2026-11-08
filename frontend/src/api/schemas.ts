@@ -224,6 +224,11 @@ export const PlanResult = z.object({
   restaurant_source: SourceMode,
   stats: z.object({ combinations: z.number().int(), feasible: z.number().int() }),
   plans: z.array(Plan),
+  /**
+   * 這份有沒有存起來、分享連結打不打得開（規格書 6.8，v0.23）。只有 SSE 交出的那份有；
+   * 從分享連結拿回來的那份、舊後端都沒有，沒有就當作有存（canShare）
+   */
+  saved: z.boolean().optional(),
 })
 
 /** GET /api/plans/{id}（分享連結，子專案 ①）：當初的條件和結果，保留 7 天 */
