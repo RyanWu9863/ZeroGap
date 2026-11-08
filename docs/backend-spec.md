@@ -156,7 +156,7 @@ docker-compose.yml
 | **Google Places** | 寫入時找餐廳；規劃時補店家資料並驗證營業時間；座標超過 25 天就更新（條款上限 30 天） | API 金鑰 | 各 SKU 依每月免費額度留 5% 邊際（見 3.3） | 規劃用的額度用完就改用 OSM 備案 |
 | **OSM**（Overpass API）【預設】 | 備案用的餐廳資料 | 無 | 顯示時要署名 OpenStreetMap（見 6.7） | — |
 | **開眼電影網** | 影城、電影、場次 | 無（爬蟲） | 每天 1 次 | — |
-| **Ollama** | Jev 沒把握時代為選擇：網頁、MCP、寫入時都用它 | 無（內部） | — | 逾時、連不上、回答不在候選裡時：一律採用 Jev 機率最高的選項。連續 2 次連不上就熔斷，冷卻 300 秒內直接採用 Jev 最高的選項（2026-10-26 決定）。熔斷狀態放在 Redis，所有 worker、所有規劃共用；冷卻結束後只放一個請求去試探，成功就恢復，失敗就再熔斷；Redis 出錯時當作沒有熔斷、照常呼叫 LLM（見 5.2；`LLM_BREAKER_SHARED=false` 時回到每次規劃各自計算） |
+| **Ollama** | Jev 沒把握時代為選擇：網頁、MCP、寫入時都用它 | 無（內部） | — | 逾時、連不上、回答不在候選裡時：一律採用 Jev 機率最高的選項。連續 2 次連不上就熔斷，冷卻 300 秒內直接採用 Jev 最高的選項（2026-10-26 決定）。熔斷狀態放在 Redis，所有 worker、所有規劃共用；冷卻結束後只放一個請求去試探，成功就恢復，失敗就再熔斷；每個狀態轉換都是一筆 Redis WATCH／MULTI 交易，之後已經發出新試探時，遲到的舊試探回報不改狀態；Redis 出錯時當作沒有熔斷、照常呼叫 LLM（見 5.2；`LLM_BREAKER_SHARED=false` 時回到每次規劃各自計算） |
 
 ### 3.1 TypeSafe Jev
 
@@ -595,7 +595,8 @@ WHERE subject_type = 'restaurant' AND decided_by = 'llm';
 | LLM 連線狀態 | `status:llm` | string | 30 秒【預設】 |
 | LLM 熔斷：連續失敗次數 | `llm:breaker:v1:{OLLAMA_BASE_URL}:failures` | string（計數器） | 冷卻時間的 2 倍 |
 | LLM 熔斷：熔斷中 | `llm:breaker:v1:{OLLAMA_BASE_URL}:open` | string | 冷卻時間（300 秒） |
-| LLM 熔斷：試探鎖 | `llm:breaker:v1:{OLLAMA_BASE_URL}:probe` | string（`SET NX`） | LLM 逾時 ＋ 5 秒 |
+| LLM 熔斷：試探租約 | `llm:breaker:v1:{OLLAMA_BASE_URL}:probe` | string（這一次試探的代號） | LLM 逾時 ＋ 5 秒 |
+| LLM 熔斷：最近一次試探代號 | `llm:breaker:v1:{OLLAMA_BASE_URL}:gen` | string（試探結束不刪，用來認出遲到的舊回報） | 1 天 |
 | 佇列 | `rq:*` | 由 RQ 管理 | — |
 
 起點和終點用前綴加資料庫 ID 表示，例如 `sta12`（車站）、`cin3`（影城）、`hub2`（商圈代表點）、`res45`（餐廳）。
