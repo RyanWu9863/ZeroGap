@@ -223,7 +223,8 @@ def test_successful_probe_clears_state(r):
     p.pick(QUESTION, PROBS)
     r.now += 61
     assert picker(store).pick(QUESTION, PROBS).status == "ok"
-    assert r.data == {}  # 失敗次數、熔斷、試探鎖都清掉
+    # 失敗次數、熔斷、試探鎖都清掉
+    assert not any(r.exists(k) for k in (store.failures_key, store.open_key, store.probe_key))
     assert picker(store).pick(QUESTION, PROBS).code == "r3"
     assert route.call_count == 4
 
@@ -433,3 +434,43 @@ def test_contention_falls_back_to_open(r, caplog):
     r.before_exec = None
     assert "一直被其他 worker 改動" in caplog.text
     assert not r.exists(store.probe_key)
+
+
+# ── 第三輪複審（2026-11-08）：放行前驗證、試探世代 ──
+
+
+def test_closed_is_validated_against_concurrent_probe(r):
+    # 讀完「沒有租約」到放行之間，別人拿到了租約：放行前的空交易會發現，重來後看到租約
+    store = other(r)
+    for _ in range(2):
+        store.record_failure(2, 300)
+    r.now += 601  # 失敗次數也過期了
+    r.before_exec = lambda: r.set(store.probe_key, "someone", ex=35)
+    assert store.state(2, 35) == "open"
+
+
+def test_late_success_after_new_probe_failed_is_ignored(r):
+    a, b = other(r), other(r)
+    for _ in range(2):
+        a.record_failure(2, 300)
+    r.now += 301
+    assert a.state(2, 35) == "probe"
+    r.now += 36  # A 的租約過期
+    assert b.state(2, 35) == "probe"
+    b.record_failure(2, 300)  # B 試探失敗，重新熔斷並刪掉自己的租約
+    a.record_success()  # A 遲到的成功：之後發出過新的試探，不能清掉 B 剛開的熔斷
+    assert r.exists(a.open_key)
+    assert other(r).state(2, 35) == "open"
+
+
+def test_late_failure_after_new_probe_succeeded_is_ignored(r):
+    a, b = other(r), other(r)
+    for _ in range(2):
+        a.record_failure(2, 300)
+    r.now += 301
+    assert a.state(2, 35) == "probe"
+    r.now += 36
+    assert b.state(2, 35) == "probe"
+    b.record_success()  # B 試探成功，狀態清除
+    assert a.record_failure(2, 300) == 0  # A 遲到的失敗不重新計數
+    assert other(r).state(2, 35) == "closed"
