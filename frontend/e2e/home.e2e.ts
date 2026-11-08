@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test'
+import { expect, test, type Page } from '@playwright/test'
 
 /** 完整的暫存條件（planStore 逐欄驗證 request 整份；只寫部分欄位會整份被換成預設值） */
 const stored = (patch: Record<string, unknown>) => ({
@@ -25,6 +25,20 @@ const stored = (patch: Record<string, unknown>) => ({
   },
   version: 3,
 })
+
+/**
+ * 小視窗的程式（QuickPickers）先擋著，測試按 release() 才放行。
+ * 原本固定晚 1.5 秒：CI 的 Windows 機器開頁面就超過 1.5 秒，測試還沒看到暫代按鈕，真的按鈕就已經換上了
+ */
+async function holdPickers(page: Page) {
+  let open!: () => void
+  const gate = new Promise<void>((res) => (open = res))
+  await page.route(/QuickPickers/, async (r) => {
+    await gate
+    await r.continue()
+  })
+  return { release: () => open() }
+}
 
 test.describe('首頁', () => {
   test('標題、示範數字、四格快速條件都在；點陣在減少動態時直接是最後一格', async ({ page }) => {
@@ -181,26 +195,22 @@ test.describe('首頁', () => {
   })
 
   test('小視窗的程式還沒載入就按「從哪出發」：載入好直接打開', async ({ page }) => {
-    await page.route(/QuickPickers/, async (r) => {
-      await new Promise((res) => setTimeout(res, 1500))
-      await r.continue()
-    })
+    const pickers = await holdPickers(page)
     await page.goto('/')
     const trigger = page.getByRole('group', { name: '從哪出發' }).getByRole('button')
     await expect(trigger).not.toHaveAttribute('aria-haspopup', /.+/) // 還是暫代按鈕
     await trigger.click()
+    pickers.release()
     await expect(page.getByRole('radiogroup', { name: '出發站' })).toBeVisible()
   })
 
   test('焦點在暫代按鈕上，小視窗程式載入後焦點移到真的按鈕', async ({ page }) => {
-    await page.route(/QuickPickers/, async (r) => {
-      await new Promise((res) => setTimeout(res, 1500))
-      await r.continue()
-    })
+    const pickers = await holdPickers(page)
     await page.goto('/')
     const trigger = page.getByRole('group', { name: '哪天' }).getByRole('button')
     await expect(trigger).not.toHaveAttribute('aria-haspopup', /.+/)
     await trigger.focus()
+    pickers.release()
     await expect(trigger).toHaveAttribute('aria-haspopup', /.+/, { timeout: 15_000 }) // 換成真的按鈕
     await expect(trigger).toBeFocused()
     await expect(page.getByRole('group', { name: '選擇日期' })).toBeHidden()
