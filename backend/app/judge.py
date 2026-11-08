@@ -44,6 +44,11 @@ class RestaurantJudge:
         self.timeout = timeout
         self.keep_alive = keep_alive
         self.think = think
+        # 同一個 judge 的請求共用連線；逾時照樣每次請求各自帶，和以前的 httpx.post 相同
+        self._http = httpx.Client()
+
+    def close(self) -> None:
+        self._http.close()
 
     def _enum(self, field: str) -> list[Any]:
         return {
@@ -91,7 +96,7 @@ class RestaurantJudge:
         if self.think is not None:
             body["think"] = self.think
         try:
-            resp = httpx.post(f"{self.base_url}/api/generate", json=body, timeout=self.timeout)
+            resp = self._http.post(f"{self.base_url}/api/generate", json=body, timeout=self.timeout)
             resp.raise_for_status()
             answer = json.loads(resp.json()["response"])
         except (httpx.HTTPError, ValueError, KeyError, TypeError) as exc:
@@ -120,6 +125,10 @@ class MovieJudge:
         self.timeout = timeout
         self.keep_alive = keep_alive
         self.think = think
+        self._http = httpx.Client()
+
+    def close(self) -> None:
+        self._http.close()
 
     def genre(self, title: str, synopsis: str | None, country: str | None) -> str | None:
         lines = [
@@ -146,7 +155,7 @@ class MovieJudge:
         if self.think is not None:
             body["think"] = self.think
         try:
-            resp = httpx.post(f"{self.base_url}/api/generate", json=body, timeout=self.timeout)
+            resp = self._http.post(f"{self.base_url}/api/generate", json=body, timeout=self.timeout)
             resp.raise_for_status()
             value = json.loads(resp.json()["response"])["genre"]
         except (httpx.HTTPError, ValueError, KeyError, TypeError) as exc:
