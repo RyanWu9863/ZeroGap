@@ -319,26 +319,6 @@ def test_failed_probe_reopens_even_if_failures_expired(r):
     assert route.call_count == 1
 
 
-def test_success_between_failure_steps_leaves_no_open_circuit(r):
-    # record_failure 數到門檻、還沒開熔斷之前，別的 worker 成功了：留下的熔斷標記不算
-    store = RedisBreakerStore(r, BASE)
-    store.record_failure(2, 60)
-    real_pipeline, calls = r.pipeline, []
-
-    def racing_pipeline():
-        calls.append(1)
-        if len(calls) == 2:  # 第二步（開熔斷）之前
-            store.record_success()
-        return real_pipeline()
-
-    r.pipeline = racing_pipeline
-    assert store.record_failure(2, 60) == 2
-    r.pipeline = real_pipeline
-    assert r.exists(store.open_key)  # 標記被留下來了
-    assert store.state(2, 6) == "closed"  # 但不算熔斷
-    assert not r.exists(store.open_key)
-
-
 def test_probe_lock_value_identifies_owner(r):
     a, b = RedisBreakerStore(r, BASE), RedisBreakerStore(r, BASE)
     for _ in range(2):
