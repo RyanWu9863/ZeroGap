@@ -3,6 +3,7 @@ attributes 不含 prompt、LLM 逾時的 status、trace context 經過 RQ 的 jo
 追蹤自己出錯不影響規劃。全部用 InMemorySpanExporter，不連任何服務。
 """
 
+import asyncio
 import json
 from datetime import UTC, datetime, timedelta
 from types import SimpleNamespace
@@ -14,6 +15,7 @@ from opentelemetry.sdk.trace import TracerProvider
 from opentelemetry.sdk.trace.export import SimpleSpanProcessor
 from opentelemetry.sdk.trace.export.in_memory_span_exporter import InMemorySpanExporter
 from opentelemetry.trace import StatusCode
+from pydantic import BaseModel
 
 from app import tracing
 from app.config import Settings
@@ -23,6 +25,7 @@ from app.jobs import queue as queue_module
 from app.llm import LlmPick, LlmPicker
 from app.planner import Planner
 from app.planning.choose import ChoiceQuestion, Option, RouterPolicy
+from app.services import ApiError
 
 BASE = "http://ollama.test:11434"
 SECRET_STATE = {"note": "使用者偏好-不該出現在span"}
@@ -328,3 +331,112 @@ def test_exception_inside_span_still_propagates(spans):
         raise ValueError("planner error")
     [sp] = spans.get_finished_spans()
     assert sp.status.status_code == StatusCode.ERROR
+
+
+# ── 例外只記類別名稱，不記訊息（訊息可能含使用者輸入） ─────────────────
+
+MARK = "LEAK7Q使用者輸入"
+
+
+class Form(BaseModel):
+    budget_per_person: int
+
+
+def raise_validation_error():
+    # pydantic 的訊息會帶輸入值：input_value='LEAK7Q使用者輸入'
+    Form.model_validate({"budget_per_person": MARK})
+
+
+def raise_api_error():
+    # services.validate_plan 的訊息會帶使用者給的商圈代碼（api.py 的 plan.request 包住它）
+    raise ApiError(404, "NOT_FOUND", f"商圈 {MARK} 不存在或沒有開放")
+
+
+def span_texts(sp) -> list[str]:
+    """span 上會送出去的文字：attributes、events（含 event 的 attributes）、status 說明。"""
+    texts = [str(v) for v in sp.attributes.values()]
+    for event in sp.events:
+        texts += [event.name, *(str(v) for v in event.attributes.values())]
+    texts.append(sp.status.description or "")
+    return texts
+
+
+@pytest.mark.parametrize(
+    ("raise_it", "error_type"),
+    [(raise_validation_error, "ValidationError"), (raise_api_error, "ApiError")],
+)
+def test_exception_message_is_not_recorded(spans, raise_it, error_type):
+    # 原例外照常往外丟，訊息不變
+    with pytest.raises(Exception, match=MARK) as info:
+        with tracing.span("outer"), tracing.span("inner"):
+            raise_it()
+    assert type(info.value).__name__ == error_type
+
+    got = spans.get_finished_spans()
+    assert {sp.name for sp in got} == {"outer", "inner"}  # 例外經過的外層也一樣
+    for sp in got:
+        assert not any(MARK in text for text in span_texts(sp)), sp.name
+        assert [event.name for event in sp.events] == []
+        assert sp.status.status_code == StatusCode.ERROR
+        assert sp.status.description == error_type
+        assert sp.attributes["error.type"] == error_type
+
+
+def test_start_span_does_not_record_exception_message(spans):
+    # start_span 的 span 平常用 end_span 結束；就算被當成 context manager 用，也不記訊息
+    sp, _ = tracing.start_span("manual")
+    with pytest.raises(ValueError, match=MARK), sp:
+        raise ValueError(f"輸入 {MARK}")
+    [got] = spans.get_finished_spans()
+    assert not any(MARK in text for text in span_texts(got))
+
+
+def test_generator_exit_is_not_an_error(spans):
+    """消費端提早關掉 generator 是正常的流程，不標錯誤。"""
+
+    def stream():
+        with tracing.span("stream"):
+            yield 1
+            yield 2
+
+    g = stream()
+    assert next(g) == 1
+    g.close()  # GeneratorExit 從 with 裡面丟出來
+    [sp] = spans.get_finished_spans()
+    assert sp.status.status_code == StatusCode.UNSET
+    assert "error.type" not in sp.attributes
+    assert [event.name for event in sp.events] == []
+
+
+async def test_cancelled_is_not_an_error(spans):
+    """請求被取消（使用者斷線、MCP 客戶端取消）是正常的流程，不標錯誤。"""
+    started = asyncio.Event()
+
+    async def wait_forever():
+        with tracing.span("waiting"):
+            started.set()
+            await asyncio.Event().wait()
+
+    task = asyncio.create_task(wait_forever())
+    await started.wait()
+    task.cancel()
+    with pytest.raises(asyncio.CancelledError):
+        await task
+    [sp] = spans.get_finished_spans()
+    assert sp.status.status_code == StatusCode.UNSET
+    assert "error.type" not in sp.attributes
+    assert [event.name for event in sp.events] == []
+
+
+def test_broken_error_status_only_warns(spans, monkeypatch, caplog):
+    def boom(self, *args, **kwargs):
+        raise RuntimeError("status broken")
+
+    from opentelemetry.sdk.trace import Span
+
+    monkeypatch.setattr(Span, "set_status", boom)
+    with pytest.raises(ValueError, match="planner error"), tracing.span("boom"):
+        raise ValueError("planner error")
+    assert "span status 寫不進去" in caplog.text
+    [sp] = spans.get_finished_spans()
+    assert sp.attributes["error.type"] == "ValueError"

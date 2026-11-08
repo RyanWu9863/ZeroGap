@@ -5,6 +5,7 @@
 
 追蹤只是記錄：這裡的函式自己出錯只記警告，不能讓規劃失敗；包住的程式丟出的例外照常往外丟。
 span 的 attributes 只放代碼、狀態、數字和時間，**不放 prompt、使用者的偏好或金鑰**。
+例外只記類別名稱（`error.type`），不記例外訊息：訊息可能含使用者輸入。
 """
 
 import logging
@@ -117,9 +118,20 @@ def span(
     attributes: Mapping[str, Any] | None = None,
     parent: otel_context.Context | None = None,
 ) -> Iterator[Span]:
-    """開一個 span 並設成目前的 span。追蹤出錯時給一個不記錄的 span，程式照常執行。"""
+    """開一個 span 並設成目前的 span。追蹤出錯時給一個不記錄的 span，程式照常執行。
+
+    包住的程式丟出 Exception 時，status 設成 ERROR、`error.type` 記例外類別名稱，原例外照常往外丟。
+    """
     try:
-        cm = tracer().start_as_current_span(name, context=parent, attributes=_clean(attributes))
+        # SDK 預設會把 str(exc) 寫進 exception event 和 status description，
+        # 例外訊息可能含使用者輸入（例如 ValidationError 的輸入值、不存在的商圈代碼），所以關掉
+        cm = tracer().start_as_current_span(
+            name,
+            context=parent,
+            attributes=_clean(attributes),
+            record_exception=False,
+            set_status_on_exception=False,
+        )
         current = cm.__enter__()
     except Exception:  # noqa: BLE001
         log.warning("span %s 開不起來，這段不追蹤", name, exc_info=True)
@@ -128,6 +140,10 @@ def span(
     try:
         yield current
     except BaseException as exc:
+        # GeneratorExit、CancelledError 不是 Exception：generator 被關掉、請求被取消是正常的流程
+        if isinstance(exc, Exception):
+            set_attrs(current, {"error.type": type(exc).__name__})
+            set_error(current, type(exc).__name__)
         try:
             cm.__exit__(type(exc), exc, exc.__traceback__)
         except Exception:  # noqa: BLE001
@@ -150,7 +166,14 @@ def start_span(
     if _provider is None:
         return _INVALID, None
     try:
-        sp = tracer().start_span(name, context=parent, attributes=_clean(attributes))
+        # 這個 span 被當成 context manager 用時，SDK 也會自動記例外訊息；和 span() 一樣關掉
+        sp = tracer().start_span(
+            name,
+            context=parent,
+            attributes=_clean(attributes),
+            record_exception=False,
+            set_status_on_exception=False,
+        )
         return sp, trace.set_span_in_context(sp, parent)
     except Exception:  # noqa: BLE001
         log.warning("span %s 開不起來，這段不追蹤", name, exc_info=True)
