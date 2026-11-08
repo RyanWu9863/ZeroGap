@@ -17,6 +17,7 @@ import redis
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
+from app import tracing
 from app.config import Settings
 from app.decision_trace import DecisionRecord, record_decision, summarize
 from app.jev.base import ChoiceAnswer, Jev, JevResult
@@ -200,6 +201,19 @@ class Planner:
         questions = [q for q in questions if q.options]
         if not questions:
             return {}
+        attrs = {"job_id": self.job_id, "jev.questions": len(questions)}
+        with tracing.span("planner.ask_jev", attrs) as sp:
+            answers = self._ask_jev_inner(questions)
+            r = self._jev_result
+            tracing.set_attrs(sp, {
+                "jev.unavailable": self._jev_unavailable,
+                "jev.model": r.model if r else None,
+                "jev.latency_ms": r.latency_ms if r else None,
+                "jev.attempts": r.attempts if r else None,
+            })  # fmt: skip
+            return answers
+
+    def _ask_jev_inner(self, questions: list[ChoiceQuestion]) -> dict[str, ChoiceAnswer]:
         if not has_room(self.d.redis, "jev_cost_micro_usd", self.s.quota_jev_cost_micro_usd):
             # 每月費用用完：全部交給 LLM（3、5.5），機率都一樣
             self._jev_result = None
@@ -218,26 +232,37 @@ class Planner:
 
     def _decide(self, question: ChoiceQuestion, answer: ChoiceAnswer) -> tuple[str, bool]:
         """回傳 (選中的代碼, 是否由 LLM 決定)。"""
-        probs = answer.probabilities
-        if not self.policy.unsure(probs):
-            self._record(question, answer, None)
-            return answer.top, False
-        self.progress("llm_fallback", question=question.id)
-        pick = self.d.llm.pick(question, probs)
-        self._record(question, answer, pick)
-        return pick.code, pick.used_llm
+        with tracing.span("planner.decide", {"job_id": self.job_id, "question_id": question.id}):
+            probs = answer.probabilities
+            if not self.policy.unsure(probs):
+                self._record(question, answer, None)
+                return answer.top, False
+            self.progress("llm_fallback", question=question.id)
+            pick = self.d.llm.pick(question, probs)
+            self._record(question, answer, pick)
+            return pick.code, pick.used_llm
 
     def _record(self, question: ChoiceQuestion, answer: ChoiceAnswer, pick: LlmPick | None):
-        self.decisions.append(
-            record_decision(
-                question,
-                answer,
-                self.policy,
-                pick,
-                self._jev_result,
-                jev_unavailable=self._jev_unavailable,
-            )
+        rec = record_decision(
+            question,
+            answer,
+            self.policy,
+            pick,
+            self._jev_result,
+            jev_unavailable=self._jev_unavailable,
         )
+        self.decisions.append(rec)
+        # 和 decision_records 同一組欄位，job_id 一樣，查得到是哪一筆
+        tracing.set_attrs(tracing.current_span(), {
+            "router.policy": rec.policy,
+            "router.unsure": rec.unsure,
+            "router.k": rec.k,
+            "router.p_top": rec.p_top,
+            "decided_by": rec.decided_by,
+            "fallback_reason": rec.fallback_reason,
+            "llm.status": rec.llm_status,
+            "llm.latency_ms": rec.llm_latency_ms,
+        })  # fmt: skip
 
     def _log_decisions(self) -> None:
         """只是記錄：自己出錯也不能影響規劃，或蓋掉規劃本身的錯誤。"""
@@ -286,11 +311,18 @@ class Planner:
             self._log_decisions()
 
     def _run(self) -> dict[str, Any]:
+        stage = lambda name: tracing.span(name, {"job_id": self.job_id})  # noqa: E731
         self.progress("loading_data")
-        self._load()
+        with stage("planner.load"):
+            self._load()
         self.progress("checking_feasibility")
-        reach, leave = self._feasible_times()
-        result = filter_all(self.showtimes, self.restaurants, self.walk, reach, leave, self.cond)
+        with stage("planner.feasibility") as sp:
+            reach, leave = self._feasible_times()
+            result = filter_all(
+                self.showtimes, self.restaurants, self.walk, reach, leave, self.cond
+            )
+            tracing.set_attrs(sp, {"plan.combinations": result.combinations,
+                                   "plan.feasible": result.feasible_count})  # fmt: skip
         self.progress("filtering", combinations=result.combinations, feasible=result.feasible_count)
         if not result.feasible:
             tight = self._transit_too_tight(reach, leave)
@@ -306,8 +338,11 @@ class Planner:
         self.reach, self.leave = reach, leave
 
         self.progress("choosing")
-        ranked, picks = self._choose(result)
-        plans = self._verify_and_route(ranked)
+        with stage("planner.choose"):
+            ranked, picks = self._choose(result)
+        with stage("planner.verify_and_route") as sp:
+            plans = self._verify_and_route(ranked)
+            tracing.set_attrs(sp, {"plan.plans": len(plans)})
         if not plans:
             raise PlanError("NO_FEASIBLE", "查到的精確路線都接不上，請放寬時間再試一次", {})
         # 已經查到營業時間、確定接不上的店，或查不到的店，也不能出現在「換一家」「換一部」
@@ -322,7 +357,8 @@ class Planner:
         }
 
         self.progress("building_result")
-        return self._build_result(result, plans, picks)
+        with stage("planner.build_result"):
+            return self._build_result(result, plans, picks)
 
     # ── 步驟 1：讀取資料 ─────────────────────────────────────────
 
@@ -695,10 +731,12 @@ class Planner:
             tried += len(batch)
 
             self.progress("verifying_hours")
-            candidates = [c for c in (self._verify_hours(r) for r in batch) if c]
+            with tracing.span("planner.verify_hours", {"job_id": self.job_id, "batch": len(batch)}):
+                candidates = [c for c in (self._verify_hours(r) for r in batch) if c]
 
             self.progress("routing")
-            routed = [c for c in candidates if self._exact_routes(c)]
+            with tracing.span("planner.routing", {"job_id": self.job_id}):
+                routed = [c for c in candidates if self._exact_routes(c)]
             questions = []
             for i, c in enumerate(routed):
                 questions.append(build_route_question(f"route_go_{i}", c.go))
@@ -709,7 +747,8 @@ class Planner:
                 ret, ret_info = self._pick_route(
                     f"route_return_{i}", questions[2 * i + 1], answers, c.ret
                 )
-                tl = build_timeline(c.combo, go, ret, self._places(c), self.cond)
+                with tracing.span("planner.timeline", {"job_id": self.job_id}):
+                    tl = build_timeline(c.combo, go, ret, self._places(c), self.cond)
                 if tl is not None:
                     plans.append((c, tl, {"route_go": go_info, "route_return": ret_info}))
         return plans[:PLANS_WANTED]
