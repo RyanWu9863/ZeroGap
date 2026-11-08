@@ -203,3 +203,13 @@ test('平板直放：路線示意圖不會被放大到滿版（P2-5）', async (
   const box = await page.getByRole('group', { name: /^路線：/ }).boundingBox()
   expect(box!.width).toBeLessThanOrEqual(320)
 })
+
+test('結果頁預設就有行程路線地圖：沒有金鑰時用示意圖並說明，也能開 Google 地圖看完整路線（規格 D10）', async ({ page }) => {
+  await page.goto(resultUrl(''))
+  await expect(resultsHeading(page)).toBeVisible()
+  const map = page.getByRole('main').getByTestId('route-map')
+  await expect(map.getByRole('group', { name: /^路線：/ })).toBeVisible()
+  await map.getByRole('radio', { name: 'Google 地圖' }).click()
+  await expect(map.getByRole('status')).toContainText('目前沒有開啟 Google 地圖')
+  await expect(map.getByRole('link', { name: /在 Google 地圖查看完整路線/ })).toHaveAttribute('href', /^https:\/\/www\.google\.com\/maps\/dir\//)
+})
