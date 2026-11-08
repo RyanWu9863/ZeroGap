@@ -547,7 +547,7 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 ### Task 7：推分支、開 PR（不合併）
 
 - [ ] `cd frontend && npm run predemo`（最後確認）
-- [ ] `git log --format='%ae' feat/frontend-foundation..HEAD | sort | uniq -c`：不能出現 `chensamuel0123@gmail.com`
+- [ ] `git log --format='%ae' feat/frontend-foundation..HEAD | sort | uniq -c`：不能出現 舊的私人 email
 - [ ] `git push -u git@github.com:RyanWu9863/ZeroGap.git feat/home-quick`
 - [ ] `gh pr create -R RyanWu9863/ZeroGap --base feat/frontend-foundation --head feat/home-quick --title "前端第 3 批：首頁點陣剪枝＋四格快速條件（疊在 #3 上）" --body-file …`：做了什麼、截圖說明（文字）、測試和 perf 數字、「疊在 #3 上，請先合併 #3」、最後一行 `🤖 Generated with [Claude Code](https://claude.com/claude-code)`。**不合併。**
 

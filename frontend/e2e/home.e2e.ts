@@ -145,18 +145,21 @@ test.describe('首頁', () => {
     await page.goto('/?mock=lists_hang') // 假資料情境：清單一直不回，跟真的連線一樣 10 秒逾時、自動再查一次
     await page.getByRole('button', { name: '排行程' }).click()
     await expect(page.getByRole('button', { name: '準備中…' })).toBeVisible()
-    expect(sent).toBe(1)
+    // 開發模式 React 會把元件掛兩次，打開頁面時可能先送一次、馬上取消再送一次（被取消的那次假後端也會記），
+    // 所以從「頁面打開後送了幾次」往上數，不寫死 1
+    expect(sent).toBeGreaterThan(0)
+    const first = sent
     await page.clock.fastForward(10_000)
     const alert = page.getByRole('alert').filter({ hasText: '資料還沒載入好' })
     await expect(alert).toBeVisible()
     await expect(page.getByRole('button', { name: '排行程' })).not.toHaveAttribute('aria-busy', /.+/)
-    await expect.poll(() => sent).toBe(2) // 逾時後真的又送了一次
+    await expect.poll(() => sent).toBe(first + 1) // 逾時後真的又送了一次
     await alert.getByRole('button', { name: '再試一次' }).click()
     await expect(page.getByRole('button', { name: '準備中…' })).toHaveAttribute('aria-busy', 'true')
     await expect(alert).toBeHidden()
     await expect(page.getByRole('button', { name: '準備中…' })).toBeFocused() // 「再試一次」消失後，焦點交給主按鈕
     await page.waitForTimeout(500)
-    expect(sent).toBe(2) // 正在查的那次沒有被取消重送
+    expect(sent).toBe(first + 1) // 正在查的那次沒有被取消重送
   })
 
   test('缺商圈時不送出，焦點跳到那一格並說明', async ({ page }) => {

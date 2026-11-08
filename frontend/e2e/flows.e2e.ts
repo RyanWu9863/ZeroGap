@@ -43,7 +43,7 @@ test('等待畫面可以取消，回到精靈第 4 步', async ({ page }) => {
 })
 
 test('日期過期：舊網址先提示再一鍵重排；精靈把舊日期換成最近可選日（P0-1）', async ({ page }) => {
-  await page.clock.setFixedTime(new Date('2026-11-02T10:00:00')) // Demo 當天
+  await page.clock.setFixedTime(new Date('2026-11-02T10:00:00+08:00')) // Demo 當天
   await page.goto(resultUrl('date=2026-10-30'))
   await expect(page.getByRole('heading', { name: '這組行程的日期已經過了' })).toBeVisible()
   await page.getByRole('button', { name: /改成 11\/2（一）/ }).click()
