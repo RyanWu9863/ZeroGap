@@ -25,14 +25,17 @@ function readAll(): SavedPlan[] {
   }
 }
 
-export function mockSavePlan(doc: { job_id: string; request: PlanRequest; result: PlanResult }, now = new Date()): void {
+/** 存成功回 true；存不進去回 false（假後端照實在結果帶 saved，跟真後端一樣） */
+export function mockSavePlan(doc: { job_id: string; request: PlanRequest; result: PlanResult }, now = new Date()): boolean {
   const saved: SavedPlan = { ...doc, created_at: now.toISOString(), expires_at: new Date(now.getTime() + SAVED_TTL_MS).toISOString() }
   const rest = readAll().filter((d) => d.job_id !== doc.job_id)
   const next = [...rest, saved].sort((a, b) => Date.parse(b.created_at) - Date.parse(a.created_at)).slice(0, KEEP)
   try {
     localStorage.setItem(MOCK_SAVED_KEY, JSON.stringify(next))
+    return true
   } catch {
-    // 存不進去（私密瀏覽、空間滿了）就算了：只是分享連結打不開，跟真後端記憶體滿時一樣
+    // 存不進去（私密瀏覽、空間滿了）：只是分享連結打不開，跟真後端記憶體滿時一樣
+    return false
   }
 }
 

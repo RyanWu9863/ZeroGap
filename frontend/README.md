@@ -71,13 +71,14 @@ API 合約照**後端規格書 v0.13 第 6 章**（`docs/backend-spec.md`，舊�
 - 系統拿不定：網址加 `?mock=low_confidence`，電影選「幫我挑」：第 1 案的電影、用餐那一步底下可以換一部／換一家，第 2 案的回程有其他班次
 - 沒有場次：`?mock=no_showtimes`
 - 排隊已滿：`?mock=queue_full`
+- 分享連結沒存起來（後端 Redis 太滿時）：`?mock=save_fail`，排好後「分享連結」停用並說明
 - 從目前位置出發：精靈第 1 步按「使用目前位置」（定位要 HTTPS，`localhost` 例外）；假後端在離桃園站超過 30 公里時回 400
 
 ## 特殊模式（網址參數）
 
 | 參數 | 用途 |
 |---|---|
-| `?mock=no_solution`、`low_confidence`、`no_showtimes`、`queue_full` | 預覽無解、系統拿不定、沒有場次、排隊已滿（只在假資料模式） |
+| `?mock=no_solution`、`low_confidence`、`no_showtimes`、`queue_full`、`save_fail` | 預覽無解、系統拿不定、沒有場次、排隊已滿、分享連結沒存起來（只在假資料模式） |
 | `?mock=pending` | 預覽等待畫面：規劃一直不回應（只在假資料模式） |
 | `?mock=options_error` | 預覽精靈的「載入失敗＋重試」：商圈清單前 2 次失敗，按重試就恢復（只在假資料模式） |
 | `?mock=coverage_error` | 預覽首頁「哪天」那格的「載入失敗＋重試」：場次日期前 2 次失敗，按重試就恢復（只在假資料模式） |

@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs'
 import { expect, test, type Page } from '@playwright/test'
 import { expectSeen, watchFor } from './seen'
 
@@ -219,6 +220,24 @@ test.describe('分享、行事曆、改條件', () => {
     const dl = page.waitForEvent('download')
     await page.getByRole('button', { name: '加到行事曆' }).click()
     expect((await dl).suggestedFilename()).toMatch(/\.ics$/)
+  })
+
+  test('這份沒存起來：分享停用並說明；行事曆照樣能加、不放打不開的連結（規格書 6.8）', async ({ page }) => {
+    await page.goto(resultUrl('&mock=save_fail')) // 假後端：排得出來但存不進去，結果帶 saved: false
+    await expect(resultsHeading(page)).toBeVisible({ timeout: 30_000 })
+    await expect(page).toHaveURL(PLAN_URL)
+    await expect(page.getByRole('button', { name: '分享連結' }).locator('visible=true')).toBeDisabled()
+    await expect(page.getByText(/這份行程這次沒存起來，連結傳出去會打不開/).locator('visible=true')).toHaveCount(1)
+    await expect(page.getByText(/展示版：這個連結只在這台瀏覽器打得開/)).toHaveCount(0)
+    const dl = page.waitForEvent('download')
+    await page.getByRole('button', { name: '加到行事曆' }).click()
+    const ics = readFileSync((await (await dl).path())!, 'utf8').replace(/\r\n /g, '')
+    expect(ics).toContain('BEGIN:VEVENT')
+    expect(ics).not.toContain('URL:')
+    expect(ics).not.toContain('/p/')
+    await page.reload() // 這台排過的紀錄裡記著沒存起來，重新整理還是停用
+    await expect(resultsHeading(page)).toBeVisible()
+    await expect(page.getByRole('button', { name: '分享連結' }).locator('visible=true')).toBeDisabled()
   })
 
   test('改條件重排：帶著這份行程的條件回到精靈', async ({ page }) => {

@@ -21,6 +21,7 @@ import { mockSavePlan, newJobId } from './savedPlans'
  *   slow_lists      縣市、商圈、車站清單和場次日期都晚 2 秒才回（看和測試首頁「排行程」先按、載入好再送）
  *   lists_hang      縣市、商圈、車站清單和場次日期一直不回，跟真的連線一樣 10 秒後算逾時（會自動再查一次）；
  *                   每送一次在 console.debug 記一筆（看和測試首頁「排行程」等太久的說明、請求有沒有被叫重來）
+ *   save_fail       排得出來，但存不進去（跟真後端 Redis 太滿時一樣）：結果帶 saved: false，分享連結停用
  */
 const wait = (ms: number) => new Promise((r) => setTimeout(r, ms))
 const scenario = () => new URLSearchParams(window.location.search).get('mock')
@@ -137,17 +138,23 @@ export async function mockPlanResponse(req: PlanRequest, signal?: AbortSignal): 
       let t = 0
       for (const [delay, event, data] of frames(req, jobId)) {
         t += delay
-        // 先送心跳註解，事件再從位元組中間切成兩半送（可能切在中文字中間）：確認拆串流的程式不怕被切斷
-        const bytes = enc.encode(`: ping\n\nevent: ${event}\ndata: ${JSON.stringify(data)}\n\n`)
-        const cut = Math.floor(bytes.length / 2) + 1
+        let rest = new Uint8Array()
         timers.push(
           setTimeout(() => {
-            // 結果送出前先存進假後端（被取消的規劃計時器已清掉，不會存）
-            if (event === 'result') mockSavePlan({ job_id: jobId, request: req, result: data as PlanResult })
+            let payload = data
+            if (event === 'result') {
+              // 結果送出前先存進假後端（被取消的規劃計時器已清掉，不會存）；跟真後端一樣帶 saved（規格書 6.8）
+              const saved = scenario() !== 'save_fail' && mockSavePlan({ job_id: jobId, request: req, result: data as PlanResult })
+              payload = { ...(data as PlanResult), saved }
+            }
+            // 先送心跳註解，事件再從位元組中間切成兩半送（可能切在中文字中間）：確認拆串流的程式不怕被切斷
+            const bytes = enc.encode(`: ping\n\nevent: ${event}\ndata: ${JSON.stringify(payload)}\n\n`)
+            const cut = Math.floor(bytes.length / 2) + 1
+            rest = bytes.slice(cut)
             controller.enqueue(bytes.slice(0, cut))
           }, t),
         )
-        timers.push(setTimeout(() => controller.enqueue(bytes.slice(cut)), t + 10))
+        timers.push(setTimeout(() => controller.enqueue(rest), t + 10))
       }
       timers.push(setTimeout(() => controller.close(), t + 30))
       signal?.addEventListener('abort', () => {

@@ -30,9 +30,10 @@ export function foldLine(line: string): string {
   return out.join('\r\n ')
 }
 
-export function icsFor({ plan, jobId, request, url, stationName, now }: { plan: Plan; jobId: string; request: PlanRequest; url: string; stationName: string; now: Date }): string {
+/** url 是 null：這份沒存起來，連結會打不開，就不寫進行事曆（規格書 6.8，v0.23） */
+export function icsFor({ plan, jobId, request, url, stationName, now }: { plan: Plan; jobId: string; request: PlanRequest; url: string | null; stationName: string; now: Date }): string {
   const steps = describeTimeline(plan, request.date)
-  const desc = [...steps.map((s) => `${s.time} ${s.title}：${s.desc}`), '', `行程連結：${url}`].join('\n')
+  const desc = [...steps.map((s) => `${s.time} ${s.title}：${s.desc}`), ...(url ? ['', `行程連結：${url}`] : [])].join('\n')
   const lines = [
     'BEGIN:VCALENDAR',
     'VERSION:2.0',
@@ -47,7 +48,7 @@ export function icsFor({ plan, jobId, request, url, stationName, now }: { plan: 
     `SUMMARY:${icsEscape(`電影《${plan.movie.title}》＋晚餐`)}`,
     `LOCATION:${icsEscape(plan.movie.cinema)}`,
     `DESCRIPTION:${icsEscape(`從${stationName}出發\n${desc}`)}`,
-    `URL:${url}`,
+    ...(url ? [`URL:${url}`] : []),
     'END:VEVENT',
     'END:VCALENDAR',
   ]
