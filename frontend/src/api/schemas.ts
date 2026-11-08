@@ -68,8 +68,7 @@ export const StatusResponse = z.object({
  * 一律送代碼或 id；「不限」「幫我挑」都送 null。
  * 出發點二擇一（2026-10-21）：車站 id，或「目前位置」的兩個座標（另一邊送 null）
  */
-export const PlanRequest = z
-  .object({
+const PlanRequestFields = z.object({
   area: z.string().min(1),
   origin_station_id: z.number().int().positive().nullable(),
   /** 目前位置：瀏覽器定位，取到小數點 3 位（約 100 公尺）；回到同一個位置就算「到家」 */
@@ -88,9 +87,21 @@ export const PlanRequest = z
   budget_per_person: z.number().int().positive(),
   max_walk_minutes: z.number().int().positive(),
 })
-  .refine((r) => (r.origin_lat != null && r.origin_lng != null ? r.origin_station_id == null : r.origin_station_id != null && r.origin_lat == null && r.origin_lng == null), {
-    message: '出發點要二擇一：車站，或目前位置的兩個座標',
-  })
+
+export const PlanRequest = PlanRequestFields.refine(
+  (r) => (r.origin_lat != null && r.origin_lng != null ? r.origin_station_id == null : r.origin_station_id != null && r.origin_lat == null && r.origin_lng == null),
+  { message: '出發點要二擇一：車站，或目前位置的兩個座標' },
+)
+
+/**
+ * 精靈填到一半的條件（存在瀏覽器裡的那份，計畫 P1-3）：
+ * 還沒選的商圈、出發站、日期分別是 ''、0、''（見 store/planStore.ts 的 blankRequest），出發點也還沒二擇一
+ */
+export const DraftRequest = PlanRequestFields.extend({
+  area: z.string(),
+  origin_station_id: z.number().int().nonnegative().nullable(),
+  date: z.union([DATE, z.literal('')]),
+})
 
 // ── 規劃結果（6.5） ─────────────────────────────────────────────
 
@@ -215,6 +226,9 @@ export const PlanResult = z.object({
   plans: z.array(Plan),
 })
 
+/** GET /api/plans/{id}（分享連結，子專案 ①）：當初的條件和結果，保留 7 天 */
+export const SavedPlan = z.object({ job_id: z.string(), request: PlanRequest, result: PlanResult, created_at: ISO, expires_at: ISO })
+
 // ── SSE 事件（6.4） ─────────────────────────────────────────────
 
 export const Stage = z.enum(['loading_data', 'checking_feasibility', 'filtering', 'choosing', 'llm_fallback', 'verifying_hours', 'routing', 'waiting_quota', 'building_result'])
@@ -238,6 +252,7 @@ export type Category = z.infer<typeof Category>
 export type CoverageResponse = z.infer<typeof CoverageResponse>
 export type StatusResponse = z.infer<typeof StatusResponse>
 export type PlanRequest = z.infer<typeof PlanRequest>
+export type DraftRequest = z.infer<typeof DraftRequest>
 export type BufferGate = z.infer<typeof BufferGate>
 export type Place = z.infer<typeof Place>
 export type ReturnWindow = z.infer<typeof ReturnWindow>
@@ -249,6 +264,7 @@ export type RouteAlternative = z.infer<typeof RouteAlternative>
 export type Plan = z.infer<typeof Plan>
 export type RestaurantSource = z.infer<typeof RestaurantSource>
 export type PlanResult = z.infer<typeof PlanResult>
+export type SavedPlan = z.infer<typeof SavedPlan>
 export type Stage = z.infer<typeof Stage>
 export type QueuedEvent = z.infer<typeof QueuedEvent>
 export type ProgressEvent = z.infer<typeof ProgressEvent>

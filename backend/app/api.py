@@ -11,7 +11,7 @@ from fastapi.responses import StreamingResponse
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app import services, tracing
+from app import saved_plans, services, tracing
 from app.config import Settings, get_settings
 from app.db import async_session
 from app.plan_stream import plan_events, rate_limited, reserve_plan, sse_stream
@@ -24,9 +24,11 @@ from app.schemas import (
     CoverageOut,
     LocationOut,
     PlanRequest,
+    SavedPlanOut,
     StationOut,
     StatusOut,
 )
+from app.services import ApiError
 
 router = APIRouter(prefix="/api")
 
@@ -137,3 +139,14 @@ async def create_plan(request: Request, req: PlanRequest, db: Db, r: Redis, s: C
         media_type="text/event-stream",
         headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
     )
+
+
+@router.get("/plans/{job_id}", response_model=SavedPlanOut, dependencies=read)
+async def get_saved_plan(job_id: str, r: Redis, s: Conf):
+    """分享連結（6.8）：拿回當初排出來的同一份結果。格式不對或過期都回 404。"""
+    doc = (
+        await saved_plans.load_plan(r, job_id) if saved_plans.JOB_ID_RE.fullmatch(job_id) else None
+    )
+    if doc is None:
+        raise ApiError(404, "NOT_FOUND", saved_plans.not_found_message(s))
+    return doc

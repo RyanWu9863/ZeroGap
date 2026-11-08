@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import { PlanError, postPlan } from './client'
+import { ApiError } from './errors'
 import type { PlanRequest, PlanResult, Stage } from './schemas'
 
 /*
@@ -22,6 +23,8 @@ export type Run = {
   /** 目前階段；waiting_quota 不算階段，另外用 waitingQuota 表示 */
   stage: Exclude<Stage, 'waiting_quota'> | null
   waitingQuota: boolean
+  /** waiting_quota 事件給的等待秒數 */
+  waitSeconds: number | null
   combinations: number | null
   feasible: number | null
   result: PlanResult | null
@@ -47,8 +50,9 @@ type Store = { runs: Record<string, Run>; lastDoneKey: string | null }
 export const usePlanRunStore = create<Store>()(
   persist((): Store => ({ runs: {}, lastDoneKey: null }), {
     name: 'zg-plan-runs',
-    // version 2：結果格式改成 v0.13（餐廳多了 hours_verified 等欄位），舊版存的結果直接丟掉
-    version: 2,
+    // version 3：結果編號改成後端格式（舊版假資料存的是 mock-job，換頁會到「找不到」），舊版存的結果直接丟掉
+    // （version 2：結果格式改成 v0.13，餐廳多了 hours_verified 等欄位）
+    version: 3,
     migrate: () => ({ runs: {}, lastDoneKey: null }),
     // 只存跑完的；最多留最近 6 組
     partialize: (s) => ({
@@ -63,7 +67,7 @@ export const usePlanRunStore = create<Store>()(
   }),
 )
 
-const blank = (): Run => ({ status: 'connecting', startedAt: Date.now(), position: null, stage: null, waitingQuota: false, combinations: null, feasible: null, result: null, error: null, finishedAt: null })
+const blank = (): Run => ({ status: 'connecting', startedAt: Date.now(), position: null, stage: null, waitingQuota: false, waitSeconds: null, combinations: null, feasible: null, result: null, error: null, finishedAt: null })
 
 const patch = (key: string, p: Partial<Run>) =>
   usePlanRunStore.setState((s) => (s.runs[key] ? { runs: { ...s.runs, [key]: { ...s.runs[key], ...p } } } : s))
@@ -84,8 +88,10 @@ const timers = new Map<string, ReturnType<typeof setTimeout>>()
 const wait = (ms: number) => new Promise((r) => setTimeout(r, ms))
 
 function toRunError(e: unknown): RunError {
-  if (e instanceof PlanError) return { code: e.code, message: e.message, reasons: e.reasons, retryAfter: e.retryAfter, status: e.status }
-  return { code: 'NETWORK', message: e instanceof Error ? e.message : String(e), reasons: null, retryAfter: null, status: null }
+  if (e instanceof PlanError) return { code: e.code, message: e.message, reasons: e.reasons, retryAfter: e.retryAfter, status: e.status ?? null }
+  // 連不上、等太久、格式不對（errors.ts 的種類）各給一個代碼，結果頁照代碼講白話
+  const code = e instanceof ApiError ? e.kind.toUpperCase() : 'NETWORK'
+  return { code, message: e instanceof Error ? e.message : String(e), reasons: null, retryAfter: null, status: null }
 }
 
 async function execute(key: string, req: PlanRequest, ctrl: AbortController) {
@@ -95,9 +101,9 @@ async function execute(key: string, req: PlanRequest, ctrl: AbortController) {
         signal: ctrl.signal,
         onEvent: (e) => {
           if (e.type === 'queued') patch(key, { status: 'queued', position: e.data.position })
-          else if (e.data.stage === 'waiting_quota') patch(key, { status: 'running', waitingQuota: true })
+          else if (e.data.stage === 'waiting_quota') patch(key, { status: 'running', waitingQuota: true, waitSeconds: e.data.wait_seconds ?? null })
           else {
-            const p: Partial<Run> = { status: 'running', stage: e.data.stage, waitingQuota: false, position: null }
+            const p: Partial<Run> = { status: 'running', stage: e.data.stage, waitingQuota: false, waitSeconds: null, position: null }
             if (e.data.combinations != null) p.combinations = e.data.combinations
             if (e.data.feasible != null) p.feasible = e.data.feasible
             patch(key, p)

@@ -1,5 +1,6 @@
 import type { PlanRequest } from '@/api/schemas'
 import { MIN_COMFORT_HOURS } from '@/shared/lib/config'
+import { isPastDate } from '@/shared/lib/dates'
 import { usesLocation } from '@/shared/lib/origin'
 import { taipeiNow } from '@/shared/lib/time'
 
@@ -33,13 +34,27 @@ export function departureInPast(r: PlanRequest, now = taipeiNow()): boolean {
   return r.date === now.date && toMinutes(r.earliest_departure) <= now.minutes
 }
 
+/**
+ * 檢查日期用的背景資訊（P0-1）：今天、可選日。不給就只檢查「有沒有填」。
+ * 由呼叫的地方傳入，讓這裡維持純函式。
+ */
+export type DateContext = { today?: string; available?: readonly string[] }
+
+/** 日期可以用嗎？：有填、不是過去、（有清單時）在可選日裡 */
+export function dateUsable(date: string, ctx: DateContext = {}): boolean {
+  if (!date) return false
+  if (ctx.today && isPastDate(date, ctx.today)) return false
+  if (ctx.available && !ctx.available.includes(date)) return false
+  return true
+}
+
 /** 這一步填完了沒？沒填完「下一步」不能按 */
-export function stepComplete(n: number, r: PlanRequest): boolean {
+export function stepComplete(n: number, r: PlanRequest, ctx: DateContext = {}): boolean {
   switch (n) {
     case 1:
       return Boolean(r.area && ((r.origin_station_id ?? 0) > 0 || usesLocation(r)))
     case 2:
-      return Boolean(r.date) && minutesAvailable(r) > 0 && !departureInPast(r)
+      return dateUsable(r.date, ctx) && minutesAvailable(r) > 0 && !departureInPast(r)
     case 3:
       return true // 「幫我挑」也算選好了
     case 4:
@@ -50,8 +65,8 @@ export function stepComplete(n: number, r: PlanRequest): boolean {
 }
 
 /** 第一個還沒填完的步驟；全部填完回傳 null */
-export function firstIncomplete(r: PlanRequest): number | null {
-  return STEPS.find((s) => !stepComplete(s.n, r))?.n ?? null
+export function firstIncomplete(r: PlanRequest, ctx: DateContext = {}): number | null {
+  return STEPS.find((s) => !stepComplete(s.n, r, ctx))?.n ?? null
 }
 
 /** 出門到回到站有幾分鐘 */

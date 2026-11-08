@@ -602,3 +602,46 @@ def test_no_way_home_reports_transit_window(session, r):
         run_plan(request(session), "job-test", deps, lambda *a, **k: None)
     assert list(exc.value.reasons) == ["transit_window"]
     assert "查不到 23:00 前回到出發點的車" in exc.value.message
+
+
+def test_cinemas_without_restaurants_nearby_say_so(session, engine, r):
+    # 影城附近走路到不了任何餐廳（例如桃園新光影城在高鐵站旁，離中壢的餐廳 6 公里）：
+    # 放寬時間、預算都沒用，要說清楚是影城離餐廳太遠（2026-10-30 mcp-eval 端到端 N01）
+    session.execute(
+        text(
+            "UPDATE cinemas SET geom = ST_Translate(geom::geometry, 0, 0.03)::geography "
+            "WHERE area_id = (SELECT id FROM areas WHERE code = 'taoyuan')"
+        )
+    )
+    session.commit()
+    try:
+        with pytest.raises(PlanError) as exc:
+            run(session, r, request(session))
+        assert exc.value.code == "NO_FEASIBLE"
+        assert "示意影城 桃園 A" in exc.value.message and "示意影城 桃園 B" in exc.value.message
+        assert "走路 12 分鐘內沒有" in exc.value.message
+        # 最近的要走 45 分鐘，超過步行上限的最大選項 20：不叫使用者放寬
+        assert "最近的一家要走 45 分鐘" in exc.value.message
+        assert "都沒有用，建議換片型、換商圈" in exc.value.message
+        assert exc.value.reasons.get("walk")  # 前端照樣拿得到原本的計數
+    finally:
+        reseed(engine, DAY)
+
+
+def test_cinemas_a_bit_far_suggest_a_longer_walk(session, engine, r):
+    # 放寬步行就走得到的，告訴使用者要放寬到幾分鐘
+    session.execute(
+        text(
+            "UPDATE cinemas SET geom = ST_Translate(geom::geometry, 0, 0.012)::geography "
+            "WHERE area_id = (SELECT id FROM areas WHERE code = 'taoyuan')"
+        )
+    )
+    session.commit()
+    try:
+        with pytest.raises(PlanError) as exc:
+            run(session, r, request(session, max_walk_minutes=8))
+        # 最近的一家約 595 公尺，走 11 分鐘：步行上限的選項裡，12 分鐘是第一個走得到的
+        assert "走路 8 分鐘內沒有" in exc.value.message
+        assert "最近的一家要走 11 分鐘。建議把步行上限放寬到 12 分鐘" in exc.value.message
+    finally:
+        reseed(engine, DAY)

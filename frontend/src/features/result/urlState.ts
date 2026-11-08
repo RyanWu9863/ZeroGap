@@ -7,6 +7,7 @@ import { blankRequest } from '@/store/planStore'
  * 照後端規格書 6.4 存代碼和 id（from 是車站 id、to 是商圈代碼）；
  * 用目前位置出發時 from=here，座標不寫進網址，只存在這台瀏覽器（2026-10-21 使用者決定）；
  * 「不限」「幫我挑」（null）不寫進網址，讓網址短一點；?proto=、?mock= 這類其他參數原封不動。
+ * 網址沒寫 date 時用今天（P0-1），讓彩排用的書籤網址哪天都能用。
  */
 type Optional = [field: 'movie_id' | 'movie_genre' | 'hall_type' | 'language' | 'cuisine', key: string, kind: 'int' | 'str']
 const OPTIONAL: Optional[] = [
@@ -43,26 +44,26 @@ type Here = { lat: number; lng: number } | null
  * 網址是「從目前位置出發」，但這台瀏覽器沒有座標（例如別人傳來的連結）：
  * 回傳網址上的其他條件（出發點清空），讓使用者自己選出發點；不是這種情況回傳 null
  */
-export function needsOrigin(params: URLSearchParams, here: Here): PlanRequest | null {
+export function needsOrigin(params: URLSearchParams, here: Here, today: string): PlanRequest | null {
   if (params.get('from') !== HERE || here) return null
-  const r = build(params, null)
+  const r = build(params, null, today)
   return r && { ...r, origin_station_id: 0, origin_lat: null, origin_lng: null }
 }
 
 /**
  * 從網址讀回條件；缺必要欄位或格式不對就回傳 null（改用瀏覽器暫存的條件）。
- * here：這台瀏覽器存的目前位置座標，from=here 時用它
+ * today：沒寫 date 時用的日期；here：這台瀏覽器存的目前位置座標，from=here 時用它
  */
-export function readRequest(params: URLSearchParams, here: Here = null): PlanRequest | null {
-  const r = build(params, here)
+export function readRequest(params: URLSearchParams, today: string, here: Here = null): PlanRequest | null {
+  const r = build(params, here, today)
   return r && PlanRequest.safeParse(r).success ? r : null
 }
 
 /** 照網址組出條件，還沒檢查格式 */
-function build(params: URLSearchParams, here: Here): PlanRequest | null {
+function build(params: URLSearchParams, here: Here, today: string): PlanRequest | null {
   const from = params.get('from')
   const to = params.get('to')
-  const date = params.get('date')
+  const date = params.get('date') || today
   const [start, end] = (params.get('t') ?? '').split('-')
   if (!from || !to || !date || !start || !end) return null
   const r: PlanRequest = {

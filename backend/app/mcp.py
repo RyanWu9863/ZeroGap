@@ -7,9 +7,10 @@
 LLM 備援不用 sampling（新版規範已棄用），跟網頁一樣由 worker 呼叫 Ollama。
 """
 
+import datetime as dt
 import uuid
 from contextlib import aclosing
-from datetime import date
+from datetime import date, datetime
 from typing import Annotated, Any, Literal
 
 from mcp.server import MCPServer
@@ -22,6 +23,8 @@ from app.config import get_settings
 from app.db import async_session
 from app.plan_stream import plan_events, reserve_plan
 from app.redis_client import async_redis
+from app.relative_dates import DateNotUnderstood, resolve_date
+from app.saved_plans import share_url
 from app.schemas import PlanRequest
 from app.services import ApiError
 
@@ -41,8 +44,9 @@ INSTRUCTIONS = (
     "已經講了的（例如「中壢站出發」「每人 800」「十點前回家」）就直接用，不要再跟使用者確認。"
     "走路上限、片型、料理沒講都不用問。\n"
     "4. 商圈沒開放、日期不在 available_dates、想看的片型或影廳那天沒有、想吃的料理不在 cuisines："
-    "告訴使用者並建議替代方案，不要呼叫 plan_date。\n"
-    "5. 「明天」「週六」這類相對日期，用今天的日期換算成 YYYY-MM-DD。\n"
+    "告訴使用者並建議替代方案，不要呼叫 plan_date。"
+    "工具結果裡有 can_plan: false 時，照 tell_user 告訴使用者，不要呼叫 plan_date。\n"
+    "5. 日期直接照使用者的說法填（例如「週六」「明天」），伺服器會換算，不用自己算。\n"
     "一次規劃約 1～3 分鐘，期間會送出進度通知。資料是學術展示用。"
 )
 
@@ -66,9 +70,31 @@ STAGE_TEXT = {
     "building_result": "整理結果",
 }
 
+# NO_FEASIBLE 的 reasons（規格書 6.4）
+REASON_TEXT = {
+    "showtime": "趕不上開演",
+    "walk": "影城到餐廳走太遠",
+    "opening_hours": "不在營業時間",
+    "last_order": "過了最後點餐",
+    "last_train": "趕不上回程",
+    "budget": "超過預算",
+    "transit_window": "出發點的交通接不上",
+}
+
 
 def _tool_error(exc: ApiError) -> ToolError:
     return ToolError(f"{exc.code}：{exc.message}")
+
+
+def _plan_error_text(data: dict[str, Any]) -> str:
+    """附上 reasons：AI 只看到「可以放寬」就只會叫使用者加預算，要知道卡在哪才建議得對
+    （2026-10-30 mcp-eval 端到端 N01）。網頁的 SSE 本來就有 reasons。"""
+    out = f"{data['code']}：{data['message']}"
+    reasons = data.get("reasons") or {}
+    if reasons:
+        parts = "、".join(f"{REASON_TEXT.get(k, k)} {n:,}" for k, n in reasons.items())
+        out += f"（被排除的組合：{parts}）"
+    return out
 
 
 def validation_error_text(exc: ValidationError) -> str:
@@ -82,6 +108,62 @@ def validation_error_text(exc: ValidationError) -> str:
     return f"VALIDATION_ERROR：{field}：{message}" if field else f"VALIDATION_ERROR：{message}"
 
 
+def _date_param(text: str | None, today: date) -> str | None:
+    """MCP 的 date 參數可以直接照抄使用者的說法（「明天」「週六」），在這裡換成 YYYY-MM-DD。
+    小模型很難算星期（mcp-eval v3：通過驗證的 9 次全都差在日期）。"""
+    if text is None:
+        return None
+    try:
+        return resolve_date(text, today).isoformat()
+    except DateNotUnderstood as exc:
+        raise ToolError(f"VALIDATION_ERROR：date：{exc}") from None
+
+
+def _today() -> date:
+    return datetime.now(services.TZ).date()
+
+
+def _area_hints(out: dict[str, Any]) -> dict[str, Any]:
+    """沒開放的商圈、沒有開放商圈的縣市，直接寫「不能規劃」和要跟使用者說的話（mcp-eval v4：
+    超出範圍題小模型只有 29%，靠 AI 記住規則不夠，改成寫在工具結果裡）。"""
+    open_names = "、".join(a["name"] for a in out["areas"] if a["is_open"])
+    areas = [
+        a
+        if a["is_open"]
+        else {
+            **a,
+            "can_plan": False,
+            "tell_user": f"{a['name']}目前沒有開放規劃；可以改成{open_names}",
+        }
+        for a in out["areas"]
+    ]
+    counties = [
+        c
+        if c.get("has_open_areas", True)
+        else {**c, "can_plan": False, "tell_user": f"目前只服務桃園市（{open_names}）"}
+        for c in out["counties"]
+    ]
+    return {**out, "areas": areas, "counties": counties}
+
+
+def _coverage_hints(out: dict[str, Any], day: str | None) -> dict[str, Any]:
+    """商圈沒有任何日期、或問的那天沒有場次時，直接寫「不能規劃」（coverage 只有商圈 code）。"""
+    dates = out.get("available_dates") or []
+    if not dates:
+        return {
+            **out,
+            "can_plan": False,
+            "tell_user": f"商圈 {out['area']} 目前沒有場次資料，沒辦法規劃",
+        }
+    if day is not None and day not in dates:
+        return {
+            **out,
+            "can_plan": False,
+            "tell_user": f"{day} 沒有場次資料；目前可以排 {dates[0]}～{dates[-1]}",
+        }
+    return out
+
+
 @mcp.tool()
 async def list_areas(
     county: Annotated[
@@ -92,10 +174,12 @@ async def list_areas(
     is_open 為 true 才能規劃；目前只有桃園市有開放的商圈。"""
     async with async_session()() as db:
         try:
-            return {
-                "counties": await services.list_counties(db),
-                "areas": await services.list_areas(db, county),
-            }
+            return _area_hints(
+                {
+                    "counties": await services.list_counties(db),
+                    "areas": await services.list_areas(db, county),
+                }
+            )
         except ApiError as exc:
             raise _tool_error(exc) from None
 
@@ -150,19 +234,31 @@ async def list_categories(
 async def data_coverage(
     area: Annotated[str, Field(description="商圈 code（list_areas 的 code，例如 zhongli）")],
     date: Annotated[
-        date | None,
-        Field(description="YYYY-MM-DD；要知道那天有哪些電影、片型、影廳、語言時一定要帶"),
+        str | None,
+        Field(
+            description=(
+                "可以直接照使用者的說法填，例如「明天」「週六」「下週日」「12/25」，"
+                "也可以填 YYYY-MM-DD；要知道那天有哪些電影、片型、影廳、語言時一定要帶"
+            )
+        ),
     ] = None,
 ) -> dict[str, Any]:
     """商圈有場次的日期（available_dates），和排得到的餐廳有哪些料理（cuisines，跟日期無關）；
     指定日期時另外列出可看的電影（含 id）、片型、影廳、語言。
     available_dates 是空的，代表這個商圈目前沒有資料，不能規劃。"""
+    day = _date_param(date, _today())
     async with async_session()() as db:
         try:
-            out = await services.get_coverage(db, async_redis(), get_settings(), area, date)
+            out = await services.get_coverage(
+                db,
+                async_redis(),
+                get_settings(),
+                area,
+                None if day is None else dt.date.fromisoformat(day),
+            )
         except ApiError as exc:
             raise _tool_error(exc) from None
-    return _jsonable(out)
+    return _coverage_hints(_jsonable(out), day)
 
 
 @mcp.tool()
@@ -181,8 +277,8 @@ async def plan_date(
         str,
         Field(
             description=(
-                "YYYY-MM-DD，必須是 data_coverage 的 available_dates 之一；"
-                "「明天」「週六」要用今天的日期換算，不要直接填今天"
+                "可以直接照使用者的說法填，例如「明天」「週六」「下週日」「12/25」，伺服器會換算；"
+                "也可以填 YYYY-MM-DD。必須是 data_coverage 的 available_dates 之一"
             )
         ),
     ],
@@ -290,6 +386,7 @@ async def plan_date(
     ] = None,
 ) -> dict[str, Any]:
     """規劃行程，回傳前三名方案（格式同 REST 的 POST /api/plans 的 result）。
+    回傳裡有 share_url 時，請一併給使用者：點開可以看完整的時間軸和每段緩衝。
 
     呼叫前要先用 data_coverage 確認那天有場次；每個參數都要用前面工具查到的值。
     回到出發點就算到家。「不限」「交給 Jev 決定」都傳 null。
@@ -319,13 +416,16 @@ async def plan_date(
     # 在迴圈中途 return、raise 時，generator 會停在 yield，不會自己跑 finally（釋放這個 IP 的
     # 「規劃中」鎖），要等被回收才收尾 → 同一個 IP 下一次會一直收到 PLAN_IN_PROGRESS。
     # aclosing 保證離開時馬上收尾（2026-10-29 mcp-eval 端到端測試發現）
-    events = plan_events(r, s, job_id, req.model_dump(mode="json"), ip)
+    saved: list[bool] = []
+    events = plan_events(r, s, job_id, req.model_dump(mode="json"), ip, on_saved=saved.append)
     async with aclosing(events):
         async for name, data in events:
             if name == "result":
-                return data
+                # 分享連結（規格書 6.8）：有設定網頁網址、而且真的存起來了才附
+                url = share_url(s, job_id) if saved and saved[-1] else None
+                return {**data, "share_url": url} if url else data
             if name == "error":
-                raise ToolError(f"{data['code']}：{data['message']}")
+                raise ToolError(_plan_error_text(data))
             if name == "queued":
                 message = f"排隊中，前面還有 {data['position'] - 1} 個"
             elif name == "progress":
@@ -343,6 +443,7 @@ async def prepare_plan(params: dict[str, Any]) -> PlanRequest:
     """plan_date 排程前的所有檢查：站名換成 id → PlanRequest 驗格式 → 查資料庫。
     評測（mcp-eval）也直接呼叫這裡，確保評測和正式流程走的是同一段程式。"""
     params = dict(params)
+    params["date"] = _date_param(params.get("date"), _today())
     name = params.pop("origin_station_name", None)
     async with async_session()() as db:
         try:

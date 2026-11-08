@@ -42,7 +42,7 @@ def closed(monkeypatch):
     """內層換成依序送出 EVENTS 的假 generator；回傳的 list 在它收尾時加入 job_id。"""
     done: list[str] = []
 
-    async def fake_plan_events(r, s, job_id, body, ip, disconnected, trace_ctx=None):
+    async def fake_plan_events(r, s, job_id, body, ip, disconnected, trace_ctx=None, on_saved=None):
         try:
             for item in EVENTS:
                 yield item
@@ -109,7 +109,7 @@ async def test_cancel_while_waiting_inside_stream_closes_inner(exporter, monkeyp
     done: list[str] = []
     waiting = asyncio.Event()
 
-    async def fake_plan_events(r, s, job_id, body, ip, disconnected, trace_ctx=None):
+    async def fake_plan_events(r, s, job_id, body, ip, disconnected, trace_ctx=None, on_saved=None):
         try:
             yield EVENTS[0]
             waiting.set()

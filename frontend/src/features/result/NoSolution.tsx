@@ -31,7 +31,7 @@ export function NoSolution({ request, error, onRelax }: { request: PlanRequest; 
     const x = relaxShowtimes(request)
     return (
       <div className="mx-auto max-w-lg px-4 py-12 text-center">
-        <h1 className="text-2xl font-bold cine:font-semibold lin:font-semibold">這天沒有符合條件的場次</h1>
+        <h1 className="text-2xl font-bold">這天沒有符合條件的場次</h1>
         <p className="mt-3 text-muted-foreground">這個商圈這一天找不到符合你選的電影條件的場次。</p>
         <div className="mt-8 space-y-3 text-left">
           {x && <RelaxButton x={x} onRelax={onRelax} />}
@@ -46,7 +46,7 @@ export function NoSolution({ request, error, onRelax }: { request: PlanRequest; 
   if (error.reasons?.transit_window) {
     return (
       <div className="mx-auto max-w-lg px-4 py-12 text-center">
-        <h1 className="text-2xl font-bold cine:font-semibold lin:font-semibold">從這個出發點，交通時間不夠</h1>
+        <h1 className="text-2xl font-bold">從這個出發點，交通時間不夠</h1>
         <p className="mt-3 text-muted-foreground">{error.message}</p>
         <div className="mt-8 space-y-3 text-left">
           <Link to="/plan/1" className="zg-surface flex items-center justify-between p-4 font-medium hover:border-foreground/40">
@@ -60,7 +60,7 @@ export function NoSolution({ request, error, onRelax }: { request: PlanRequest; 
   const { rows, buttons } = relaxPlan(error.reasons ?? {}, request)
   return (
     <div className="mx-auto max-w-lg px-4 py-12 text-center">
-      <h1 className="text-2xl font-bold cine:font-semibold lin:font-semibold">這組條件，找不到每段都接得上的行程</h1>
+      <h1 className="text-2xl font-bold">這組條件，找不到每段都接得上的行程</h1>
       <p className="mt-3 text-muted-foreground">
         {rows[0] ? (
           <>

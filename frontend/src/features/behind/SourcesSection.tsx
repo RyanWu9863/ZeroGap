@@ -1,4 +1,4 @@
-import { useStatus } from '@/api/queries'
+import { failure, useStatus } from '@/api/queries'
 import { USE_MOCK } from '@/api/client'
 import { stamp } from '@/shared/lib/time'
 import { useDemoStore } from '@/store/demoStore'
@@ -12,12 +12,21 @@ const NAMES: Record<string, string> = {
 
 /** 系統幕後 ③：資料來源狀態（驗收 A9，/api/status）＋展示模式開關（Q69） */
 export function SourcesSection() {
-  const { data } = useStatus()
+  const status = useStatus()
+  const { data } = status
   const { demo, setDemo } = useDemoStore()
   return (
     <div className="grid gap-4 md:grid-cols-2 [&>*]:min-w-0">
       <div className="zg-surface p-5">
         <h3 className="font-semibold">資料來源</h3>
+        {failure(status) != null && (
+          <p className="mt-3 text-sm text-muted-foreground" role="alert">
+            目前讀不到系統狀態。
+            <button type="button" onClick={() => status.refetch()} className="ml-1 underline underline-offset-4">
+              重試
+            </button>
+          </p>
+        )}
         {data && (
           <dl className="mt-3 space-y-2 text-sm">
             <div className="flex justify-between gap-4">
@@ -40,12 +49,13 @@ export function SourcesSection() {
                 <dd className={v ? 'zg-num' : 'text-muted-foreground'}>{v ? stamp(v) : '尚未匯入'}</dd>
               </div>
             ))}
-            <p className="pt-1 text-xs text-muted-foreground">班次不預先匯入：每次規劃時向 TDX 即時查詢。</p>
           </dl>
         )}
+        {/* 說明放在 <dl> 外面：<dl> 裡只能放 <dt>／<dd> 組（P2-2） */}
+        {data && <p className="pt-3 text-xs text-muted-foreground">班次不預先匯入：規劃時向 TDX 查詢，同一時段的結果最多暫存 6 小時。</p>}
       </div>
-      <div className="zg-surface p-5">
-        <h3 className="font-semibold">展示模式</h3>
+      <div id="demo" className="zg-surface scroll-mt-20 p-5">
+        <h3 className="font-semibold">展示模式（Demo 現場的保險）</h3>
         <p className="mt-2 text-sm text-muted-foreground">
           Demo 現場後端或網路出問題時打開：改用預先錄製的回應，畫面頂端會一直顯示「展示模式」標籤。
           {USE_MOCK && '（目前整個前端本來就在用開發用假資料。）'}
