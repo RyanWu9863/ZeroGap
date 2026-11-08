@@ -51,6 +51,8 @@ function TriggerFace({ label, disabled, describedBy, onClick, onFocus, onBlur }:
 }
 
 const errorId = (f: QuickField) => `quick-${f}-error`
+/** 換日期的說明（今天出發時間已過、日期已過、那天沒場次時自動換日期） */
+const DATE_NOTICE_ID = 'quick-date-notice'
 
 /** 先按了「排行程」、清單還沒載入好：最多等幾毫秒，超過就說明並給「再試一次」 */
 const SUBMIT_WAIT_MS = 10_000
@@ -175,7 +177,9 @@ export function QuickPlan() {
   const station = stations?.find((s) => s.id === request.origin_station_id)
   const stationLabel = !stations ? '載入車站中…' : usesLocation(request) ? LOCATION_NAME : station ? stationDisplay(station) : '選車站'
   const dateLabel = request.date ? formatDate(request.date) : '選日期'
-  const describe = (f: QuickField) => (errorOf(f) ? errorId(f) : undefined)
+  // 「哪天」的按鈕另外連到換日期的說明（說明放在「排行程」下面，見 DATE_NOTICE_ID）
+  const describe = (f: QuickField) =>
+    [errorOf(f) && errorId(f), f === 'date' && notice && DATE_NOTICE_ID].filter(Boolean).join(' ') || undefined
   // 只念一次：第一個缺的格子＋還有幾格沒填（各格紅字不是 alert，見 Cell）
   const firstError = missing.length ? errorOf(missing[0]) : null
   const alertText = waiting
@@ -302,12 +306,6 @@ export function QuickPlan() {
                     </button>
                   </div>
                 )}
-                {notice && (
-                  <p className="flex items-start gap-1.5 text-xs text-muted-foreground" role="status">
-                    <CalendarClock className="mt-px size-3.5 shrink-0 text-zg-tight" aria-hidden="true" />
-                    <span>{notice}</span>
-                  </p>
-                )}
               </Cell>
 
               <Cell field="budget" title="每人預算" error={errorOf('budget')}>
@@ -335,6 +333,21 @@ export function QuickPlan() {
               <Link to="/plan/1" className="text-sm text-muted-foreground underline-offset-4 hover:text-foreground hover:underline">
                 更多條件（時間、片型、料理…）
               </Link>
+              {/*
+               * 換日期的說明放在「排行程」後面、自己一行：場次日期載入好才知道要不要換，說明這時才冒出來，
+               * 放在「哪天」那格裡會把「排行程」往下推，按下去到放開之間剛好推走，這次點擊就不見了。
+               * 放在按鈕後面怎麼冒出來都推不動按鈕；「哪天」的按鈕也用 aria-describedby 連到這裡。
+               * role=status 一直掛著、只換內容（跟著內容一起出現的 live region 很多螢幕閱讀器不念）；
+               * 沒有說明時高度是 0，用負的上邊距抵掉這一行的間距（不用 hidden，藏起來的 live region 也可能不念）。
+               */}
+              <p id={DATE_NOTICE_ID} role="status" className="flex basis-full items-start gap-1.5 text-sm text-muted-foreground empty:-mt-3">
+                {notice && (
+                  <>
+                    <CalendarClock className="mt-0.5 size-4 shrink-0 text-zg-tight" aria-hidden="true" />
+                    <span>{notice}</span>
+                  </>
+                )}
+              </p>
               {/*
                * 「再試一次」只是再記著這次點擊、重新等 10 秒，不叫正在查的請求從頭來（只是慢的請求重來反而更久）。
                * 連線卡住時請求本身 10 秒會逾時、自動再查一次；查失敗的不會走到這裡：清單失敗整張卡換成錯誤說明＋重試，

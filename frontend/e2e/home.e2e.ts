@@ -78,6 +78,51 @@ test.describe('首頁', () => {
     await expect(page).toHaveURL(/\/p\/[0-9a-f]{32}/, { timeout: 30_000 })
   })
 
+  /*
+   * 2026-11-08：回訪的人存著的日期不能用了（今天的出發時間已過、日期已過、那天沒場次），
+   * 場次日期載入好時才知道要換、才冒出換日期的說明。說明原本放在「哪天」那格裡，會把「排行程」往下推，
+   * 按下去到放開之間剛好冒出來，放開時已經不在按鈕上，這次點擊就不見了（跟上面商圈佔位同一類問題）。
+   */
+  const unusableDates = [
+    { reason: '今天的出發時間已過', now: '2026-11-08T19:00:00+08:00', date: '2026-11-08', notice: '今天 17:00 已經過了' },
+    { reason: '原本的日期已過', now: '2026-11-08T10:00:00+08:00', date: '2026-11-02', notice: '原本的日期已經過了' },
+    { reason: '那天沒有場次', now: '2026-11-08T10:00:00+08:00', date: '2026-11-11', notice: '那天沒有場次' },
+  ]
+  for (const c of unusableDates) {
+    test(`存著的日期不能用（${c.reason}）：冒出換日期的說明時「排行程」不會移動`, async ({ page }) => {
+      await page.clock.setFixedTime(new Date(c.now))
+      await page.addInitScript((v) => localStorage.setItem('zg-plan', v), JSON.stringify(stored({ date: c.date })))
+      await page.goto('/?mock=slow_lists') // 清單和場次日期都晚 2 秒才回：說明在載入好之後才冒出來
+      const button = page.getByRole('button', { name: '排行程' })
+      const before = (await button.boundingBox())!
+      const notice = page.getByRole('status').filter({ hasText: c.notice })
+      await expect(notice).toBeVisible({ timeout: 15_000 })
+      await expect(notice).toContainText('換成最近可以排的')
+      const after = (await button.boundingBox())!
+      expect(Math.abs(after.y - before.y)).toBeLessThan(1)
+    })
+  }
+
+  test('存著的日期不能用：按住「排行程」、冒出換日期的說明才放開，照樣送出', async ({ page }) => {
+    await page.clock.setFixedTime(new Date('2026-11-08T19:00:00+08:00')) // 晚上：今天 17:00 出發已過
+    await page.addInitScript((v) => localStorage.setItem('zg-plan', v), JSON.stringify(stored({ date: '2026-11-08' })))
+    const visited: string[] = []
+    page.on('framenavigated', (f) => {
+      if (f === page.mainFrame()) visited.push(f.url())
+    })
+    await page.goto('/?mock=slow_lists')
+    const button = page.getByRole('button', { name: '排行程' })
+    await button.scrollIntoViewIfNeeded()
+    const box = (await button.boundingBox())!
+    // 按在按鈕上緣附近：按鈕只要往下移幾 px，放開的位置就不在按鈕上
+    await page.mouse.move(box.x + box.width / 2, box.y + 2)
+    await page.mouse.down()
+    await expect(page.getByRole('status').filter({ hasText: '今天 17:00 已經過了' })).toBeVisible({ timeout: 15_000 })
+    await page.mouse.up()
+    await expect(page).toHaveURL(/\/p\/[0-9a-f]{32}/, { timeout: 30_000 })
+    expect(visited.some((u) => new URL(u).pathname.endsWith('/result'))).toBe(true) // 先到排程中，再到結果
+  })
+
   test('清單還在載入時按「排行程」：按鈕顯示準備中、不能重複送，載入好自動送出', async ({ page }) => {
     await page.clock.setFixedTime(new Date('2026-11-08T10:00:00+08:00'))
     await page.goto('/?mock=slow_lists')
@@ -215,16 +260,18 @@ test.describe('首頁', () => {
     await page.clock.setFixedTime(new Date('2026-11-08T19:00:00+08:00'))
     await page.addInitScript((v) => localStorage.setItem('zg-plan', v), JSON.stringify(stored({ date: '2026-11-08' })))
     await page.goto('/')
-    const date = page.getByRole('group', { name: '哪天' })
-    await expect(date.getByText('今天 17:00 已經過了，換成最近可以排的 11/9（一）')).toBeVisible()
-    await expect(date.getByRole('button', { name: /11\/9（一）/ })).toBeVisible()
+    // 說明放在「排行程」下面（不推動按鈕），「哪天」的按鈕用 aria-describedby 連過去
+    await expect(page.getByRole('status').filter({ hasText: '今天 17:00 已經過了，換成最近可以排的 11/9（一）' })).toBeVisible()
+    const dateButton = page.getByRole('group', { name: '哪天' }).getByRole('button', { name: /11\/9（一）/ })
+    await expect(dateButton).toBeVisible()
+    await expect(dateButton).toHaveAccessibleDescription('今天 17:00 已經過了，換成最近可以排的 11/9（一）')
   })
 
   test('原本的日期已經過了：換成最近可以排的日子並說明', async ({ page }) => {
     await page.clock.setFixedTime(new Date('2026-11-08T10:00:00+08:00'))
     await page.addInitScript((v) => localStorage.setItem('zg-plan', v), JSON.stringify(stored({ date: '2026-11-02' })))
     await page.goto('/')
-    await expect(page.getByRole('group', { name: '哪天' }).getByText('原本的日期已經過了，換成最近可以排的 11/8（日）')).toBeVisible()
+    await expect(page.getByRole('status').filter({ hasText: '原本的日期已經過了，換成最近可以排的 11/8（日）' })).toBeVisible()
   })
 
   test('那天沒有場次：換成最近可以排的日子並說明', async ({ page }) => {
@@ -232,6 +279,6 @@ test.describe('首頁', () => {
     // 假資料從今天起 14 天都有場次，只故意空掉第 4 天（今天＋3＝11/11），見 mocks/catalog.ts
     await page.addInitScript((v) => localStorage.setItem('zg-plan', v), JSON.stringify(stored({ date: '2026-11-11' })))
     await page.goto('/')
-    await expect(page.getByRole('group', { name: '哪天' }).getByText('那天沒有場次，換成最近可以排的 11/8（日）')).toBeVisible()
+    await expect(page.getByRole('status').filter({ hasText: '那天沒有場次，換成最近可以排的 11/8（日）' })).toBeVisible()
   })
 })
