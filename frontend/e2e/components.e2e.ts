@@ -38,7 +38,7 @@ test.describe('車站搜尋', () => {
 
 test.describe('月曆', () => {
   test('跨月：過去和沒場次的日子不能選，翻到下個月可以選，翻回來不會亂', async ({ page }) => {
-    await page.clock.setFixedTime(new Date('2026-10-25T10:00:00')) // 週日；可選 10/25～11/7，空掉 10/28
+    await page.clock.setFixedTime(new Date('2026-10-25T10:00:00+08:00')) // 週日；可選 10/25～11/7，空掉 10/28
     await page.goto('/plan/2')
     await expect(page.getByText('2026 年 10 月')).toBeVisible()
     await expect(day(page, '10/25（日）')).toHaveAttribute('aria-pressed', 'true') // 預設＝今天
@@ -60,7 +60,7 @@ test.describe('月曆', () => {
   })
 
   test('跨年：12 月底翻得到明年 1 月', async ({ page }) => {
-    await page.clock.setFixedTime(new Date('2026-12-28T10:00:00')) // 可選 12/28～2027/1/10，空掉 12/31
+    await page.clock.setFixedTime(new Date('2026-12-28T10:00:00+08:00')) // 可選 12/28～2027/1/10，空掉 12/31
     await page.goto('/plan/2')
     await expect(day(page, '12/31（四）')).toBeDisabled()
     await page.getByRole('button', { name: '下個月' }).click()
@@ -71,13 +71,13 @@ test.describe('月曆', () => {
   })
 
   test('快捷鈕：今天剛好是週六時，「本週六」就是今天；沒場次的快捷鈕不能按', async ({ page }) => {
-    await page.clock.setFixedTime(new Date('2026-10-31T10:00:00')) // 週六；可選 10/31～11/13，空掉 11/3
+    await page.clock.setFixedTime(new Date('2026-10-31T10:00:00+08:00')) // 週六；可選 10/31～11/13，空掉 11/3
     await page.goto('/plan/2')
     await expect(page.getByRole('button', { name: /^本週六/ })).toContainText('10/31（六）')
     await expect(page.getByRole('button', { name: /^今天/ })).toHaveAttribute('aria-pressed', 'true')
     await expect(page.getByRole('button', { name: /^本週六/ })).toHaveAttribute('aria-pressed', 'true')
 
-    await page.clock.setFixedTime(new Date('2026-11-04T10:00:00')) // 週三；第 4 天剛好是本週六 11/7，沒場次
+    await page.clock.setFixedTime(new Date('2026-11-04T10:00:00+08:00')) // 週三；第 4 天剛好是本週六 11/7，沒場次
     await page.reload()
     await expect(page.getByRole('button', { name: /^本週六/ })).toContainText('11/7（六）')
     await expect(page.getByRole('button', { name: /^本週六/ })).toBeDisabled()
@@ -99,22 +99,23 @@ test.describe('改條件小視窗', () => {
     await dialog.getByRole('radio', { name: '$1,000' }).click()
     await expect(dialog.getByRole('button', { name: '重算' })).toBeDisabled()
 
+    const before = page.url()
     await dialog.getByRole('radio', { name: '$2,000' }).click()
     await dialog.getByRole('button', { name: '取消' }).click()
     await expect(dialog).toHaveCount(0)
-    await expect(page).toHaveURL(/budget=1000/)
+    await expect(page).toHaveURL(before) // 沒有重排：網址一個字都沒變
 
     await chip.click() // 重開時草稿要清掉，回到目前的條件
     await expect(dialog.getByRole('radio', { name: '$1,000' })).toHaveAttribute('aria-checked', 'true')
     await dialog.getByRole('radio', { name: '$500' }).click()
     await page.keyboard.press('Escape')
     await expect(dialog).toHaveCount(0)
-    await expect(page).toHaveURL(/budget=1000/)
+    await expect(page).toHaveURL(before)
     await expect(chip).toBeVisible()
   })
 
   test('改日期可以翻到下個月，重算後網址和標籤都換成新日期', async ({ page }) => {
-    await page.clock.setFixedTime(new Date('2026-10-25T10:00:00'))
+    await page.clock.setFixedTime(new Date('2026-10-25T10:00:00+08:00'))
     await page.goto(resultUrl)
     await expect(resultsHeading(page)).toBeVisible()
     await page.getByRole('button', { name: '10/25（日）' }).click()
@@ -122,8 +123,8 @@ test.describe('改條件小視窗', () => {
     await dialog.getByRole('button', { name: '下個月' }).click()
     await day(page, '11/3（二）').click()
     await dialog.getByRole('button', { name: '重算' }).click()
-    await expect(page).toHaveURL(/date=2026-11-03/)
     await expect(resultsHeading(page)).toBeVisible()
+    await expect(page).toHaveURL(/\/p\/[0-9a-f]{32}/)
     await expect(page.getByRole('button', { name: '11/3（二）' })).toBeVisible()
   })
 
@@ -135,7 +136,7 @@ test.describe('改條件小視窗', () => {
     await dialog.getByLabel('搜尋出發站').fill('楊梅')
     await dialog.getByRole('radio', { name: '楊梅站' }).click()
     await dialog.getByRole('button', { name: '重算' }).click()
-    await expect(page).toHaveURL(/from=105/) // 楊梅站在假資料裡的 id
+    await expect(page).toHaveURL(/\/p\/[0-9a-f]{32}/)
     await expect(page.getByRole('button', { name: '楊梅站 → 桃園區' })).toBeVisible()
   })
 })

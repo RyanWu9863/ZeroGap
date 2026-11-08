@@ -16,12 +16,18 @@ export type RequestLabels = {
   cuisine: string | null
 }
 
-export function useRequestLabels(r: PlanRequest): RequestLabels {
+/**
+ * request 為 null（幕後頁的示範範例，沒有當時的條件）時，名稱欄位給替代字，不編資料。
+ * 下拉選單的查詢（車站、商圈、料理、片型）為了讓 hook 順序固定，照樣會送出；只有依賴條件的當天場次不會送。
+ */
+export function useRequestLabels(request: PlanRequest | null): RequestLabels {
   const stations = useStations().data
   const areas = useAreas().data
   const cuisines = useCategories('cuisine').data
   const genres = useCategories('movie_genre').data
-  const day = useCoverage(r.area || undefined, r.date || undefined).data
+  const day = useCoverage(request?.area || undefined, request?.date || undefined).data
+  if (!request) return { station: '出發站', area: '商圈', movie: null, genre: null, hall: null, cuisine: null }
+  const r = request
   const station = stations?.find((s) => s.id === r.origin_station_id)
   return {
     station: usesLocation(r) ? LOCATION_NAME : station ? stationDisplay(station) : '出發站',

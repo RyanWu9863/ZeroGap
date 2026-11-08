@@ -10,13 +10,15 @@ const resultUrl = (extra: string) => `/result?from=103&to=taoyuan&t=17:00-23:00&
 const resultsHeading = (page: Page) => page.getByRole('heading', { name: '這 3 個行程，每一段都接得上。' })
 
 test('有解：介紹頁 → 四步精靈 → 等待畫面 → 三個方案，估計值是黃底（A8）、Google 標誌看得到', async ({ page }) => {
+  await page.clock.setFixedTime(new Date('2026-11-08T10:00:00+08:00')) // 白天：不走晚上換日期的路
   await watchFor(page, ['篩出每一段都接得上的組合'])
   await page.goto('/')
-  await page.getByRole('main').getByRole('link', { name: '開始規劃' }).first().click()
+  await page.getByRole('main').getByRole('link', { name: /更多條件/ }).click()
   for (let i = 0; i < 3; i++) await page.getByRole('button', { name: '下一步' }).click()
   await page.getByRole('button', { name: '排出接得上的行程' }).click()
 
   await expect(resultsHeading(page)).toBeVisible({ timeout: 30_000 })
+  await expect(page).toHaveURL(/\/p\/[0-9a-f]{32}/)
   await expectSeen(page, '篩出每一段都接得上的組合') // 等待畫面（SSE 進度）出現過（只看得到幾秒，用「出現過」驗，見 seen.ts）
   await expect(page.getByRole('radiogroup', { name: '選擇方案' }).getByRole('radio')).toHaveCount(3)
   await expect(page.locator('[data-estimated="true"]').first()).toHaveCSS('background-color', 'rgb(255, 241, 184)')
@@ -33,6 +35,7 @@ test('有解：介紹頁 → 四步精靈 → 等待畫面 → 三個方案，�
 })
 
 test('等待畫面可以取消，回到精靈第 4 步', async ({ page }) => {
+  await page.clock.setFixedTime(new Date('2026-11-08T10:00:00+08:00')) // 白天：直接開第 4 步送出時，今天 17:00 出發還沒過
   await page.goto('/plan/4')
   await page.getByRole('button', { name: '排出接得上的行程' }).click()
   await page.getByRole('button', { name: '取消規劃' }).click()
@@ -40,20 +43,35 @@ test('等待畫面可以取消，回到精靈第 4 步', async ({ page }) => {
 })
 
 test('日期過期：舊網址先提示再一鍵重排；精靈把舊日期換成最近可選日（P0-1）', async ({ page }) => {
-  await page.clock.setFixedTime(new Date('2026-11-02T10:00:00')) // Demo 當天
+  await page.clock.setFixedTime(new Date('2026-11-02T10:00:00+08:00')) // Demo 當天
   await page.goto(resultUrl('date=2026-10-30'))
   await expect(page.getByRole('heading', { name: '這組行程的日期已經過了' })).toBeVisible()
   await page.getByRole('button', { name: /改成 11\/2（一）/ }).click()
   await expect(resultsHeading(page)).toBeVisible()
-  await expect(page).toHaveURL(/date=2026-11-02/)
+  await expect(page).toHaveURL(/\/p\/[0-9a-f]{32}/)
+  await expect(page.getByRole('button', { name: '11/2（一）' })).toBeVisible()
 
   // 舊網址又把 10/30 寫回瀏覽器暫存；這時打開精靈第 2 步，要自動換掉並說明
   await page.goto(resultUrl('date=2026-10-30'))
   await expect(page.getByRole('heading', { name: '這組行程的日期已經過了' })).toBeVisible()
   await page.goto('/plan/2')
-  await expect(page.getByText('原本選的 10/30（五） 已經過了或沒有場次')).toBeVisible()
+  await expect(page.getByText('原本的日期已經過了，換成最近可以排的 11/2（一）')).toBeVisible()
   await expect(page.getByRole('group', { name: '選擇日期' }).getByRole('button', { name: '11/2（一）' })).toHaveAttribute('aria-pressed', 'true')
   await expect(page.getByRole('button', { name: '下一步' })).toBeEnabled()
+})
+
+test('晚上打開精靈：今天的出發時間已過，第 2 步自動換到最近可以排的日子，可以按下一步', async ({ page }) => {
+  await page.clock.setFixedTime(new Date('2026-11-08T19:00:00+08:00')) // 預設條件是今天 17:00 出發
+  await page.goto('/plan/2')
+  await expect(page.getByText('今天 17:00 已經過了，換成最近可以排的 11/9（一）')).toBeVisible()
+  const calendar = page.getByRole('group', { name: '選擇日期' })
+  await expect(calendar.getByRole('button', { name: '11/9（一）' })).toHaveAttribute('aria-pressed', 'true')
+  await expect(page.getByRole('button', { name: '下一步' })).toBeEnabled()
+  // 使用者自己選回今天：不再自動換掉，改提醒要選現在之後的出門時間
+  await calendar.getByRole('button', { name: '11/8（日）' }).click()
+  await expect(calendar.getByRole('button', { name: '11/8（日）' })).toHaveAttribute('aria-pressed', 'true')
+  await expect(page.getByText('今天要選現在之後的出門時間。')).toBeVisible()
+  await expect(page.getByRole('button', { name: '下一步' })).toBeDisabled()
 })
 
 test('找不到頁面：亂打網址顯示中文說明，導覽列還在，可以回首頁（P0-2）', async ({ page }) => {
@@ -99,7 +117,8 @@ test('無解：列出卡住的條件，一鍵放寬預算後有解（Q23）', as
   await expect(page.getByText('每人不超過 $500').first()).toBeVisible()
   await page.getByRole('button', { name: /每人預算改成 \$800/ }).click()
   await expect(resultsHeading(page)).toBeVisible()
-  await expect(page).toHaveURL(/budget=800/)
+  await expect(page).toHaveURL(/\/p\/[0-9a-f]{32}/)
+  await expect(page.getByRole('button', { name: '每人 $800' })).toBeVisible()
 })
 
 test('沒有場次、排隊已滿：白話說明', async ({ page }) => {
@@ -132,8 +151,9 @@ test('改條件小視窗：預算改 $1,500 重算，網址和花費區同步（
   await page.getByRole('button', { name: '每人 $1,000' }).click()
   await page.getByRole('radio', { name: '$1,500' }).click()
   await page.getByRole('button', { name: '重算' }).click()
-  await expect(page).toHaveURL(/budget=1500/)
   await expect(resultsHeading(page)).toBeVisible()
+  await expect(page).toHaveURL(/\/p\/[0-9a-f]{32}/)
+  await expect(page.getByRole('button', { name: '每人 $1,500' })).toBeVisible()
   await expect(page.getByText(/未超過預算 \$1,500/)).toBeVisible()
 })
 
@@ -167,8 +187,12 @@ test.describe('從目前位置出發（2026-10-21）', () => {
     await expect(page.getByRole('button', { name: /已使用目前位置/ })).toHaveAttribute('aria-pressed', 'true')
     for (let i = 0; i < 3; i++) await page.getByRole('button', { name: '下一步' }).click()
     await page.getByRole('button', { name: '排出接得上的行程' }).click()
+    // 還在 /result（等待畫面）時，網址就不能帶座標；排好後換成 /p/編號，同樣不帶
+    await expect(page).toHaveURL(/\/result\?/)
+    expect(page.url()).toContain('from=here')
+    expect(page.url()).not.toContain('24.97')
     await expect(resultsHeading(page)).toBeVisible()
-    await expect(page).toHaveURL(/from=here/)
+    await expect(page).toHaveURL(/\/p\/[0-9a-f]{32}/)
     expect(page.url()).not.toContain('24.97')
     await expect(page.getByLabel('行程時間軸').locator('li').first()).toContainText('目前位置')
     await expect(page.getByLabel('行程時間軸').locator('li').last()).toContainText('回到目前位置')
@@ -186,6 +210,7 @@ test.describe('目前位置離商圈太遠', () => {
   test.use({ permissions: ['geolocation'], geolocation: { latitude: 22.6273, longitude: 120.3014 } }) // 高雄
 
   test('後端回 400，畫面說明並請改選出發站', async ({ page }) => {
+    await page.clock.setFixedTime(new Date('2026-11-08T10:00:00+08:00')) // 白天：直接開第 4 步送出時，今天 17:00 出發還沒過
     await page.goto('/plan/1')
     await page.getByRole('button', { name: /使用目前位置/ }).click()
     // 等定位寫進條件（zg-plan 暫存有 origin_lat）再換頁，不然有時會帶著舊的出發站
@@ -202,4 +227,14 @@ test('平板直放：路線示意圖不會被放大到滿版（P2-5）', async (
   await expect(resultsHeading(page)).toBeVisible()
   const box = await page.getByRole('group', { name: /^路線：/ }).boundingBox()
   expect(box!.width).toBeLessThanOrEqual(320)
+})
+
+test('結果頁預設就有行程路線地圖：沒有金鑰時用示意圖並說明，也能開 Google 地圖看完整路線（規格 D10）', async ({ page }) => {
+  await page.goto(resultUrl(''))
+  await expect(resultsHeading(page)).toBeVisible()
+  const map = page.getByRole('main').getByTestId('route-map')
+  await expect(map.getByRole('group', { name: /^路線：/ })).toBeVisible()
+  await map.getByRole('radio', { name: 'Google 地圖' }).click()
+  await expect(map.getByRole('status')).toContainText('目前沒有開啟 Google 地圖')
+  await expect(map.getByRole('link', { name: /在 Google 地圖查看完整路線/ })).toHaveAttribute('href', /^https:\/\/www\.google\.com\/maps\/dir\//)
 })
