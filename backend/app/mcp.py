@@ -66,9 +66,31 @@ STAGE_TEXT = {
     "building_result": "整理結果",
 }
 
+# NO_FEASIBLE 的 reasons（規格書 6.4）
+REASON_TEXT = {
+    "showtime": "趕不上開演",
+    "walk": "影城到餐廳走太遠",
+    "opening_hours": "不在營業時間",
+    "last_order": "過了最後點餐",
+    "last_train": "趕不上回程",
+    "budget": "超過預算",
+    "transit_window": "出發點的交通接不上",
+}
+
 
 def _tool_error(exc: ApiError) -> ToolError:
     return ToolError(f"{exc.code}：{exc.message}")
+
+
+def _plan_error_text(data: dict[str, Any]) -> str:
+    """附上 reasons：AI 只看到「可以放寬」就只會叫使用者加預算，要知道卡在哪才建議得對
+    （2026-10-30 mcp-eval 端到端 N01）。網頁的 SSE 本來就有 reasons。"""
+    out = f"{data['code']}：{data['message']}"
+    reasons = data.get("reasons") or {}
+    if reasons:
+        parts = "、".join(f"{REASON_TEXT.get(k, k)} {n:,}" for k, n in reasons.items())
+        out += f"（被排除的組合：{parts}）"
+    return out
 
 
 def validation_error_text(exc: ValidationError) -> str:
@@ -325,7 +347,7 @@ async def plan_date(
             if name == "result":
                 return data
             if name == "error":
-                raise ToolError(f"{data['code']}：{data['message']}")
+                raise ToolError(_plan_error_text(data))
             if name == "queued":
                 message = f"排隊中，前面還有 {data['position'] - 1} 個"
             elif name == "progress":

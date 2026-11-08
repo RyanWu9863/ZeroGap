@@ -220,3 +220,15 @@ async def test_error_result_releases_the_lock(env, worker, redis_url):
         result = await client.call_tool("plan_date", args, read_timeout_seconds=120)
         assert result.is_error and "NO_FEASIBLE：" in result.content[0].text
         assert redis.Redis.from_url(redis_url).keys("active:plan:*") == []
+
+
+async def test_no_feasible_tells_the_ai_why(env, worker):
+    # 網頁收得到 reasons，AI 原本只拿到一句「可以放寬時間、預算或步行距離」，
+    # 只會叫使用者加預算（2026-10-30 mcp-eval 端到端 N01）。要附上被刷掉的原因和組數
+    args = plan_args(None, origin_station_name="中壢站", budget_per_person=100)
+    async with connect() as client:
+        result = await client.call_tool("plan_date", args, read_timeout_seconds=120)
+    assert result.is_error
+    text_ = result.content[0].text
+    assert "NO_FEASIBLE：" in text_
+    assert "（被排除的組合：" in text_ and "超過預算 " in text_
