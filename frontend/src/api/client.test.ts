@@ -85,3 +85,15 @@ describe('下拉選單', () => {
     expect(fetchMock.mock.calls[0][0]).toBe('/api/stations?county=Taoyuan')
   })
 })
+
+describe('getSavedPlan（假資料模式）', () => {
+  it('找不到編號：PlanError，code NOT_FOUND、狀態 404', async () => {
+    vi.resetModules()
+    vi.stubEnv('VITE_USE_MOCK', 'true')
+    vi.stubGlobal('localStorage', { getItem: () => null, setItem: () => undefined, removeItem: () => undefined })
+    const { getSavedPlan, PlanError } = await import('./client')
+    const err = await getSavedPlan('b'.repeat(32)).catch((e: unknown) => e)
+    expect(err).toBeInstanceOf(PlanError)
+    expect(err).toMatchObject({ code: 'NOT_FOUND', status: 404 })
+  })
+})

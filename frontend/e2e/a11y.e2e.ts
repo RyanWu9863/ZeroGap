@@ -5,7 +5,7 @@ import { expect, test, type Page } from '@playwright/test'
  * 無障礙自動檢查（計畫 P2-2）：每一頁，用 axe 掃 WCAG 2.1 A／AA。
  * 「嚴重」和「重大」等級的問題一律要修；只在桌機 Chromium 跑一次。
  */
-const PAGES: { name: string; path: string; ready: (p: Page) => Promise<void> }[] = [
+const PAGES: { name: string; path: string; ready: (p: Page) => Promise<void>; still?: boolean }[] = [
   { name: '介紹頁', path: '/', ready: (p) => p.getByRole('heading', { level: 1 }).first().waitFor() },
   ...[1, 2, 3, 4].map((n) => ({
     name: `精靈第 ${n} 步`,
@@ -13,9 +13,18 @@ const PAGES: { name: string; path: string; ready: (p: Page) => Promise<void> }[]
     ready: (p: Page) => p.getByRole('button', { name: n < 4 ? '下一步' : '排出接得上的行程' }).waitFor(),
   })),
   {
-    name: '結果頁',
+    name: '排程中的漏斗',
+    path: '/result?from=103&to=taoyuan&t=17:00-23:00&food=japanese&budget=1000&walk=12&mock=pending',
+    ready: (p) => p.getByRole('list', { name: '規劃進度' }).waitFor(),
+    still: true, // 漏斗會一直轉：用「減少動態」讓轉圈停下來才量得到靜止的顏色
+  },
+  {
+    name: '結果頁 /p/編號',
     path: '/result?from=103&to=taoyuan&t=17:00-23:00&food=japanese&budget=1000&walk=12',
-    ready: (p) => p.getByRole('heading', { name: '這 3 個行程，每一段都接得上。' }).waitFor(),
+    ready: async (p) => {
+      await p.waitForURL(/\/p\/[0-9a-f]{32}/)
+      await p.getByRole('heading', { name: '這 3 個行程，每一段都接得上。' }).waitFor()
+    },
   },
   { name: '系統幕後', path: '/behind', ready: (p) => p.getByRole('heading', { name: /^從全部組合到/ }).waitFor() },
   { name: '找不到頁面', path: '/no-such-page', ready: (p) => p.getByRole('heading', { name: '找不到這一頁' }).waitFor() },
@@ -24,8 +33,8 @@ const PAGES: { name: string; path: string; ready: (p: Page) => Promise<void> }[]
 for (const scheme of ['light', 'dark'] as const) for (const pg of PAGES) {
   test(`無障礙（${scheme === 'dark' ? '夜' : '日'}）：${pg.name}`, async ({ page }, info) => {
     test.skip(info.project.name !== 'chromium', '只在桌機 Chromium 掃一次')
-    test.setTimeout(120_000) // 結果頁要先播完篩選動畫；CI 的 Windows 機器忙時預設 45 秒會不夠（同 experience.e2e.ts 的 AXE_TIMEOUT）
-    await page.emulateMedia({ colorScheme: scheme })
+    test.setTimeout(120_000) // 結果頁要先播完篩選動畫；CI 的 Windows 機器忙時預設 45 秒會不夠
+    await page.emulateMedia({ colorScheme: scheme, ...(pg.still ? { reducedMotion: 'reduce' } : {}) })
     await page.goto(pg.path)
     await pg.ready(page)
     // 等進場動畫全部跑完（淡入到一半時顏色會比較淡），顏色對比才量得準

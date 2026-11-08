@@ -99,17 +99,18 @@ test.describe('改條件小視窗', () => {
     await dialog.getByRole('radio', { name: '$1,000' }).click()
     await expect(dialog.getByRole('button', { name: '重算' })).toBeDisabled()
 
+    const before = page.url()
     await dialog.getByRole('radio', { name: '$2,000' }).click()
     await dialog.getByRole('button', { name: '取消' }).click()
     await expect(dialog).toHaveCount(0)
-    await expect(page).toHaveURL(/budget=1000/)
+    await expect(page).toHaveURL(before) // 沒有重排：網址一個字都沒變
 
     await chip.click() // 重開時草稿要清掉，回到目前的條件
     await expect(dialog.getByRole('radio', { name: '$1,000' })).toHaveAttribute('aria-checked', 'true')
     await dialog.getByRole('radio', { name: '$500' }).click()
     await page.keyboard.press('Escape')
     await expect(dialog).toHaveCount(0)
-    await expect(page).toHaveURL(/budget=1000/)
+    await expect(page).toHaveURL(before)
     await expect(chip).toBeVisible()
   })
 
@@ -122,8 +123,8 @@ test.describe('改條件小視窗', () => {
     await dialog.getByRole('button', { name: '下個月' }).click()
     await day(page, '11/3（二）').click()
     await dialog.getByRole('button', { name: '重算' }).click()
-    await expect(page).toHaveURL(/date=2026-11-03/)
     await expect(resultsHeading(page)).toBeVisible()
+    await expect(page).toHaveURL(/\/p\/[0-9a-f]{32}/)
     await expect(page.getByRole('button', { name: '11/3（二）' })).toBeVisible()
   })
 
@@ -135,7 +136,7 @@ test.describe('改條件小視窗', () => {
     await dialog.getByLabel('搜尋出發站').fill('楊梅')
     await dialog.getByRole('radio', { name: '楊梅站' }).click()
     await dialog.getByRole('button', { name: '重算' }).click()
-    await expect(page).toHaveURL(/from=105/) // 楊梅站在假資料裡的 id
+    await expect(page).toHaveURL(/\/p\/[0-9a-f]{32}/)
     await expect(page.getByRole('button', { name: '楊梅站 → 桃園區' })).toBeVisible()
   })
 })
