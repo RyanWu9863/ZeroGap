@@ -27,18 +27,32 @@ PROBS = {"r1": 0.45, "r2": 0.35, "r3": 0.20}
 
 
 class FakeRedis:
-    """exists、get、set（nx、ex）、delete、incr、expire、pipeline。"""
+    """exists、get、set（nx、ex）、delete、incr、expire、pipeline（含 WATCH／MULTI／EXEC 交易）。
+
+    每個 key 有版本號，寫入或過期就加一，給交易判斷「WATCH 之後有沒有被別人改過」。
+    `before_exec` 可以放一個函式，下一次交易 EXEC 前會先執行一次，模擬別的 worker 剛好插進來。
+    """
 
     def __init__(self):
         self.now = 1000.0
         self.data: dict[str, tuple[str, float | None]] = {}
+        self.versions: dict[str, int] = {}
+        self.before_exec = None
+
+    def _touch(self, key):
+        self.versions[key] = self.versions.get(key, 0) + 1
 
     def _alive(self, key):
         item = self.data.get(key)
         if item and item[1] is not None and self.now >= item[1]:
             del self.data[key]
+            self._touch(key)
             return None
         return item
+
+    def version(self, key):
+        self._alive(key)
+        return self.versions.get(key, 0)
 
     def exists(self, key):
         return int(self._alive(key) is not None)
@@ -51,15 +65,22 @@ class FakeRedis:
         if nx and self._alive(key) is not None:
             return None
         self.data[key] = (str(value), None if ex is None else self.now + ex)
+        self._touch(key)
         return True
 
     def delete(self, *keys):
-        return sum(self.data.pop(k, None) is not None for k in keys)
+        n = 0
+        for k in keys:
+            if self.data.pop(k, None) is not None:
+                n += 1
+                self._touch(k)
+        return n
 
     def incr(self, key):
         item = self._alive(key)
         value = int(item[0]) + 1 if item else 1
         self.data[key] = (str(value), item[1] if item else None)
+        self._touch(key)
         return value
 
     def expire(self, key, seconds):
@@ -67,6 +88,7 @@ class FakeRedis:
         if item is None:
             return False
         self.data[key] = (item[0], self.now + seconds)
+        self._touch(key)
         return True
 
     def pipeline(self):
@@ -74,18 +96,50 @@ class FakeRedis:
 
 
 class FakePipeline:
+    """沒有 WATCH 時把指令排起來，execute 一次跑完。WATCH 之後、MULTI 之前的指令馬上執行；
+    execute 時被 WATCH 的 key 有變動就丟 WatchError，和 redis-py 的交易相同。"""
+
     def __init__(self, client):
-        self.client, self.calls = client, []
+        self.client, self.calls, self.watched, self.queued = client, [], None, False
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *exc):
+        self.reset()
+
+    def reset(self):
+        self.calls, self.watched, self.queued = [], None, False
+
+    def watch(self, *keys):
+        self.watched = {k: self.client.version(k) for k in keys}
+
+    def unwatch(self):
+        self.watched = None
+
+    def multi(self):
+        self.queued = True
 
     def __getattr__(self, name):
-        def queue(*args, **kw):
+        def call(*args, **kw):
+            if self.watched is not None and not self.queued:
+                return getattr(self.client, name)(*args, **kw)
             self.calls.append((name, args, kw))
             return self
 
-        return queue
+        return call
 
     def execute(self):
-        return [getattr(self.client, n)(*a, **kw) for n, a, kw in self.calls]
+        try:
+            if self.watched is not None:
+                hook, self.client.before_exec = self.client.before_exec, None
+                if hook:
+                    hook()
+                if any(self.client.version(k) != v for k, v in self.watched.items()):
+                    raise redis.WatchError("WATCH 的 key 被改過")
+            return [getattr(self.client, n)(*a, **kw) for n, a, kw in self.calls]
+        finally:
+            self.reset()
 
 
 class BrokenRedis:
@@ -265,26 +319,6 @@ def test_failed_probe_reopens_even_if_failures_expired(r):
     assert route.call_count == 1
 
 
-def test_success_between_failure_steps_leaves_no_open_circuit(r):
-    # record_failure 數到門檻、還沒開熔斷之前，別的 worker 成功了：留下的熔斷標記不算
-    store = RedisBreakerStore(r, BASE)
-    store.record_failure(2, 60)
-    real_pipeline, calls = r.pipeline, []
-
-    def racing_pipeline():
-        calls.append(1)
-        if len(calls) == 2:  # 第二步（開熔斷）之前
-            store.record_success()
-        return real_pipeline()
-
-    r.pipeline = racing_pipeline
-    assert store.record_failure(2, 60) == 2
-    r.pipeline = real_pipeline
-    assert r.exists(store.open_key)  # 標記被留下來了
-    assert store.state(2, 6) == "closed"  # 但不算熔斷
-    assert not r.exists(store.open_key)
-
-
 def test_probe_lock_value_identifies_owner(r):
     a, b = RedisBreakerStore(r, BASE), RedisBreakerStore(r, BASE)
     for _ in range(2):
@@ -292,3 +326,110 @@ def test_probe_lock_value_identifies_owner(r):
     r.now += 61
     assert a.state(2, 6) == "probe"
     assert r.get(a.probe_key) == a.token != b.token
+
+
+# ── 交易和試探租約（2026-11-08 跨廠商複審發現） ──
+
+
+def other(r):
+    return RedisBreakerStore(r, BASE)
+
+
+def test_success_between_read_and_write_restarts_failure(r):
+    # record_failure 讀完次數、寫入之前，別的 worker 成功清掉狀態：交易重來，從 0 開始數，不會開熔斷
+    store = other(r)
+    store.record_failure(2, 60)
+    r.before_exec = lambda: other(r).record_success()
+    assert store.record_failure(2, 60) == 1
+    assert not r.exists(store.open_key)
+    assert store.state(2, 6) == "closed"
+
+
+def test_own_probe_failure_does_not_revive_cleared_state(r):
+    # 自己的試探失敗、失敗次數中途過期，寫入前剛好有別的請求成功：不能把清掉的狀態補回門檻
+    store = other(r)
+    for _ in range(2):
+        store.record_failure(2, 2)
+    r.now += 3
+    assert store.state(2, 6) == "probe"
+    r.now += 2  # 失敗次數過期，試探租約還在
+    r.before_exec = lambda: other(r).record_success()
+    assert store.record_failure(2, 2) == 1
+    assert other(r).state(2, 6) == "closed"
+
+
+def test_concurrent_reopen_wins_over_probe(r):
+    # 要搶試探租約時，在途的失敗剛好回來重新熔斷：交易重來，看到新的熔斷，不去試
+    store = other(r)
+    for _ in range(2):
+        store.record_failure(2, 60)
+    r.now += 61
+    r.before_exec = lambda: other(r).record_failure(2, 60)
+    assert store.state(2, 6) == "open"
+    assert r.exists(store.open_key) and not r.exists(store.probe_key)
+    assert store.token is None
+
+
+def test_late_success_from_expired_probe_keeps_new_holder(r):
+    a, b = other(r), other(r)
+    for _ in range(2):
+        a.record_failure(2, 300)
+    r.now += 301
+    assert a.state(2, 35) == "probe"
+    r.now += 36  # A 的租約過期
+    assert b.state(2, 35) == "probe"  # B 接手試探
+    a.record_success()  # A 遲到的成功
+    assert r.get(b.probe_key) == b.token
+    assert other(r).state(2, 35) == "open"  # B 還在試，第三個 worker 不能呼叫
+
+
+def test_late_failure_from_expired_probe_is_ignored(r):
+    a, b = other(r), other(r)
+    for _ in range(2):
+        a.record_failure(2, 300)
+    r.now += 301
+    assert a.state(2, 35) == "probe"
+    r.now += 36
+    assert b.state(2, 35) == "probe"
+    assert a.record_failure(2, 300) == 2  # 不動狀態，回傳目前的次數
+    assert not r.exists(b.open_key)
+    assert r.get(b.probe_key) == b.token
+
+
+def test_expired_probe_without_takeover_counts_as_normal_failure(r):
+    # 租約過期、也沒有人接手時，回報當作一般失敗；失敗次數也過期了，就從 1 開始數
+    store = other(r)
+    for _ in range(2):
+        store.record_failure(2, 2)
+    r.now += 3
+    assert store.state(2, 6) == "probe"
+    r.now += 7  # 租約（6 秒）和失敗次數都過期
+    assert store.record_failure(2, 2) == 1
+    assert other(r).state(2, 6) == "closed"
+
+
+def test_normal_failure_keeps_someone_elses_probe(r):
+    a, b = other(r), other(r)
+    for _ in range(2):
+        a.record_failure(2, 60)
+    r.now += 61
+    assert b.state(2, 6) == "probe"
+    assert a.record_failure(2, 60) == 3  # 在途的一般失敗：重新熔斷，但不刪 B 的租約
+    assert r.exists(a.open_key) and r.get(b.probe_key) == b.token
+
+
+def test_contention_falls_back_to_open(r, caplog):
+    store = other(r)
+    for _ in range(2):
+        store.record_failure(2, 60)
+    r.now += 61
+
+    def churn():  # 每一次 EXEC 前都有人改
+        r.incr(store.failures_key)
+        r.before_exec = churn
+
+    r.before_exec = churn
+    assert store.state(2, 6) == "open"
+    r.before_exec = None
+    assert "一直被其他 worker 改動" in caplog.text
+    assert not r.exists(store.probe_key)
