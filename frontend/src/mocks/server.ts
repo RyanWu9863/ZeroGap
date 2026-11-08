@@ -1,7 +1,9 @@
 import { ApiError } from '@/api/errors'
-import type { PlanRequest } from '@/api/schemas'
+import { API_TIMEOUT_MS } from '@/shared/lib/config'
+import type { PlanRequest, PlanResult } from '@/api/schemas'
 import { areas, categories, counties, coverage, stations, status } from './catalog'
 import { mockResult } from './planResult'
+import { mockSavePlan, newJobId } from './savedPlans'
 
 /*
  * 假後端（VITE_USE_MOCK=true、展示模式、GitHub Pages 展示版用）。
@@ -15,20 +17,37 @@ import { mockResult } from './planResult'
  *   queue_full      排隊已滿（HTTP 503）
  *   pending         規劃一直不回應：看（和測試）等待畫面
  *   options_error   精靈的商圈清單前 2 次都失敗（第一次＋自動重試），之後按「重試」就成功（計畫 P1-1）
+ *   coverage_error  場次日期（/api/coverage）前 2 次都失敗，之後按「重試」就成功（首頁「哪天」那格自己說明＋重試）
+ *   slow_lists      縣市、商圈、車站清單和場次日期都晚 2 秒才回（看和測試首頁「排行程」先按、載入好再送）
+ *   lists_hang      縣市、商圈、車站清單和場次日期一直不回，跟真的連線一樣 10 秒後算逾時（會自動再查一次）；
+ *                   每送一次在 console.debug 記一筆（看和測試首頁「排行程」等太久的說明、請求有沒有被叫重來）
  */
 const wait = (ms: number) => new Promise((r) => setTimeout(r, ms))
 const scenario = () => new URLSearchParams(window.location.search).get('mock')
 
 let areasFailLeft = 2
+let coverageFailLeft = 2
+
+const LIST_PATHS = ['/api/counties', '/api/areas', '/api/stations', '/api/coverage']
 
 export async function mockGet(path: string, signal?: AbortSignal): Promise<unknown> {
-  await wait(120)
+  const url = new URL(path, 'http://mock')
+  const list = LIST_PATHS.includes(url.pathname)
+  if (list && scenario() === 'lists_hang') {
+    console.debug(`假資料情境 lists_hang：送出 ${url.pathname}`)
+    await wait(API_TIMEOUT_MS.default)
+    throw new ApiError('timeout', `API ${path} 超過 ${API_TIMEOUT_MS.default / 1000} 秒沒有回應`)
+  }
+  await wait(list && scenario() === 'slow_lists' ? 2000 : 120)
   // 和真的 fetch 一樣：被取消的請求（例如開發模式 React 重掛一次）算取消，不算失敗
   if (signal?.aborted) throw new DOMException('取消', 'AbortError')
-  const url = new URL(path, 'http://mock')
   if (url.pathname === '/api/areas' && scenario() === 'options_error' && areasFailLeft > 0) {
     areasFailLeft--
     throw new ApiError('network', '假資料情境：商圈清單載入失敗')
+  }
+  if (url.pathname === '/api/coverage' && scenario() === 'coverage_error' && coverageFailLeft > 0) {
+    coverageFailLeft--
+    throw new ApiError('network', '假資料情境：場次日期載入失敗')
   }
   const q = (k: string) => url.searchParams.get(k)
   switch (url.pathname) {
@@ -51,11 +70,11 @@ export async function mockGet(path: string, signal?: AbortSignal): Promise<unkno
 type Frame = [delayMs: number, event: string, data: unknown]
 
 /** 這次要依序送出的事件（相隔的毫秒數、事件名稱、內容） */
-function frames(req: PlanRequest): Frame[] {
+function frames(req: PlanRequest, jobId: string): Frame[] {
   const s = scenario()
   const head: Frame[] = [
-    [0, 'queued', { job_id: 'mock-job', position: 2 }],
-    [300, 'queued', { job_id: 'mock-job', position: 1 }],
+    [0, 'queued', { job_id: jobId, position: 2 }],
+    [300, 'queued', { job_id: jobId, position: 1 }],
     [300, 'progress', { stage: 'loading_data' }],
   ]
   if (s === 'no_showtimes') return [...head, [300, 'error', { code: 'NO_SHOWTIMES', message: '沒有符合條件的場次' }]]
@@ -82,7 +101,7 @@ function frames(req: PlanRequest): Frame[] {
     [200, 'progress', { stage: 'verifying_hours' }],
     [200, 'progress', { stage: 'routing' }],
     [200, 'progress', { stage: 'building_result' }],
-    [200, 'result', mockResult(req, low)],
+    [200, 'result', mockResult(req, low, jobId)],
   ]
 }
 
@@ -110,17 +129,24 @@ export async function mockPlanResponse(req: PlanRequest, signal?: AbortSignal): 
       headers: { 'Content-Type': 'application/json', 'Retry-After': '60' },
     })
   }
+  const jobId = newJobId()
   const enc = new TextEncoder()
   const timers: ReturnType<typeof setTimeout>[] = []
   const body = new ReadableStream<Uint8Array>({
     start(controller) {
       let t = 0
-      for (const [delay, event, data] of frames(req)) {
+      for (const [delay, event, data] of frames(req, jobId)) {
         t += delay
         // 先送心跳註解，事件再從位元組中間切成兩半送（可能切在中文字中間）：確認拆串流的程式不怕被切斷
         const bytes = enc.encode(`: ping\n\nevent: ${event}\ndata: ${JSON.stringify(data)}\n\n`)
         const cut = Math.floor(bytes.length / 2) + 1
-        timers.push(setTimeout(() => controller.enqueue(bytes.slice(0, cut)), t))
+        timers.push(
+          setTimeout(() => {
+            // 結果送出前先存進假後端（被取消的規劃計時器已清掉，不會存）
+            if (event === 'result') mockSavePlan({ job_id: jobId, request: req, result: data as PlanResult })
+            controller.enqueue(bytes.slice(0, cut))
+          }, t),
+        )
         timers.push(setTimeout(() => controller.enqueue(bytes.slice(cut)), t + 10))
       }
       timers.push(setTimeout(() => controller.close(), t + 30))

@@ -5,19 +5,22 @@ import { Logo } from '@/shared/brand/Logo'
 import { ThemeToggle } from '@/shared/theme/ThemeToggle'
 import { useApplyTheme } from '@/shared/theme/theme'
 import { useDemoStore } from '@/store/demoStore'
-import { BottomNav, NAV_ITEMS } from './BottomNav'
+import { BottomNav } from './BottomNav'
+import { activeNav, NAV_ITEMS } from './navItems'
 import { SiteFooter } from './SiteFooter'
 
 /** 每一頁共用的外框：頂部導覽（電腦）＋內容＋頁尾＋底部導覽（手機） */
 export function AppShell() {
   useApplyTheme()
   const { pathname } = useLocation()
+  const current = activeNav(pathname)
   const demo = useDemoStore((s) => s.demo)
   return (
     <MotionConfig reducedMotion="user">
       {demo && (
         <div className="bg-zg-tight px-4 py-1.5 text-center text-xs font-medium text-background" role="status" style={{ paddingTop: 'max(0.375rem, env(safe-area-inset-top, 0px))' }}>
           展示模式：使用預先錄製的回應，不是即時查詢
+          <Link to="/behind#demo" className="ml-3 underline underline-offset-2">到幕後頁關掉</Link>
         </div>
       )}
       <header className="sticky z-40 border-b bg-background/80 backdrop-blur-md" style={{ top: 'env(safe-area-inset-top, 0px)' }}>
@@ -31,12 +34,12 @@ export function AppShell() {
             )}
             <nav aria-label="主要頁面" className="hidden sm:block">
               <ul className="flex items-center gap-1">
-                {NAV_ITEMS.map(({ to, label, match }) => (
+                {NAV_ITEMS.map(({ to, label }) => (
                   <li key={to}>
                     <Link
                       to={to}
-                      aria-current={match(pathname) ? 'page' : undefined}
-                      className={`rounded-md px-3 py-2 text-sm transition-colors hover:text-foreground ${match(pathname) ? 'text-foreground font-medium' : 'text-muted-foreground'}`}
+                      aria-current={current === to ? 'page' : undefined}
+                      className={`rounded-md px-3 py-2 text-sm transition-colors hover:text-foreground ${current === to ? 'text-foreground font-medium' : 'text-muted-foreground'}`}
                     >
                       {label}
                     </Link>

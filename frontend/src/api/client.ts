@@ -1,3 +1,4 @@
+import { mockLoadPlan } from '@/mocks/savedPlans'
 import { mockGet, mockPlanResponse } from '@/mocks/server'
 import { API_TIMEOUT_MS } from '@/shared/lib/config'
 import { useDemoStore } from '@/store/demoStore'
@@ -10,6 +11,7 @@ import {
   PlanErrorBody,
   PlanResult,
   ProgressEvent,
+  SavedPlan,
   QueuedEvent,
   StationsResponse,
   StatusResponse,
@@ -102,6 +104,17 @@ export const getStations = async (county: string, signal?: AbortSignal) =>
   parseOrThrow(StationsResponse, await getJson(`/api/stations?county=${encodeURIComponent(county)}`, signal), '車站')
 export const getCategories = async (kind: 'movie_genre' | 'cuisine', signal?: AbortSignal) =>
   parseOrThrow(CategoriesResponse, await getJson(`/api/categories?kind=${kind}`, signal), '類別')
+/** 分享連結（GET /api/plans/{id}）。找不到或過期：PlanError，code NOT_FOUND、status 404 */
+export async function getSavedPlan(id: string, signal?: AbortSignal): Promise<SavedPlan> {
+  if (mocking()) {
+    await new Promise((r) => setTimeout(r, 120))
+    const doc = mockLoadPlan(id)
+    if (!doc) throw new PlanError({ code: 'NOT_FOUND', message: '找不到這份行程，可能已經超過 7 天' }, 404)
+    return parseOrThrow(SavedPlan, doc, '分享的行程')
+  }
+  return parseOrThrow(SavedPlan, await getJson(`/api/plans/${encodeURIComponent(id)}`, signal), '分享的行程')
+}
+
 export const getStatus = async (signal?: AbortSignal) => parseOrThrow(StatusResponse, await getJson('/api/status', signal), '系統狀態')
 
 /** 有場次的日期；帶日期時另外列出當天的電影、片型、影廳、語言 */
