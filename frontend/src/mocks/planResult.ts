@@ -76,7 +76,7 @@ function build(date: string, origin: Place, s: Spec, rank: number, highlight: Pl
   }
 }
 
-export function mockResult(req: PlanRequest, lowConfidence: boolean): PlanResult {
+export function mockResult(req: PlanRequest, lowConfidence: boolean, jobId = 'f'.repeat(32)): PlanResult {
   const st = stations.find((s) => s.id === req.origin_station_id) ?? stations[2]
   // 從目前位置出發時，起點和終點是 location（2026-10-21）
   const origin: Place =
@@ -126,5 +126,5 @@ export function mockResult(req: PlanRequest, lowConfidence: boolean): PlanResult
     if (req.movie_id != null) p.probabilities.movie = 1 // 指定電影時選片機率當作 1（規格書 6.5）
     p.score = Math.round((p.probabilities.movie ?? 1) * (p.probabilities.restaurant ?? 1) * 100) / 100
   }
-  return { job_id: 'mock-job', restaurant_source: 'google', stats: { combinations: 1880, feasible: 39 }, plans }
+  return { job_id: jobId, restaurant_source: 'google', stats: { combinations: 1880, feasible: 39 }, plans }
 }

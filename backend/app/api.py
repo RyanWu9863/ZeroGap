@@ -11,7 +11,7 @@ from fastapi.responses import StreamingResponse
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app import services
+from app import saved_plans, services, tracing
 from app.config import Settings, get_settings
 from app.db import async_session
 from app.plan_stream import plan_events, rate_limited, reserve_plan, sse_stream
@@ -24,9 +24,11 @@ from app.schemas import (
     CoverageOut,
     LocationOut,
     PlanRequest,
+    SavedPlanOut,
     StationOut,
     StatusOut,
 )
+from app.services import ApiError
 
 router = APIRouter(prefix="/api")
 
@@ -122,13 +124,29 @@ async def health(db: Db, r: Redis):
 @router.post("/plans")
 async def create_plan(request: Request, req: PlanRequest, db: Db, r: Redis, s: Conf):
     """送出規劃，直接回傳 SSE 串流（6.4）。被擋下時回一般的 JSON 錯誤，不開始串流。"""
-    await services.validate_plan(db, req)
-    ip = client_ip(request)
     job_id = uuid.uuid4().hex
-    await reserve_plan(r, s, ip, job_id)
-    events = plan_events(r, s, job_id, req.model_dump(mode="json"), ip, request.is_disconnected)
+    # 只量檢查和佔位；排進佇列和等結果在 plan.stream（SSE 開始後才執行），接在這個 span 下面
+    with tracing.span("plan.request", {"job_id": job_id}):
+        await services.validate_plan(db, req)
+        ip = client_ip(request)
+        await reserve_plan(r, s, ip, job_id)
+        parent = tracing.capture()
+    events = plan_events(
+        r, s, job_id, req.model_dump(mode="json"), ip, request.is_disconnected, trace_parent=parent
+    )
     return StreamingResponse(
         sse_stream(events),
         media_type="text/event-stream",
         headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
     )
+
+
+@router.get("/plans/{job_id}", response_model=SavedPlanOut, dependencies=read)
+async def get_saved_plan(job_id: str, r: Redis, s: Conf):
+    """分享連結（6.8）：拿回當初排出來的同一份結果。格式不對或過期都回 404。"""
+    doc = (
+        await saved_plans.load_plan(r, job_id) if saved_plans.JOB_ID_RE.fullmatch(job_id) else None
+    )
+    if doc is None:
+        raise ApiError(404, "NOT_FOUND", saved_plans.not_found_message(s))
+    return doc

@@ -2,7 +2,10 @@ import { describe, expect, it } from 'vitest'
 import fixture from '@/api/__fixtures__/backend-plan-result.json'
 import { PlanResult, type Plan } from '@/api/schemas'
 import { mockResult } from '@/mocks/planResult'
-import { benchmarkRequest } from '@/mocks/request'
+import { benchmarkRequest as todayRequest } from '@/mocks/request'
+
+// 基準案例的日期跟著今天走（P0-1）；這裡的步驟寫死了 10/30 的時刻，所以固定一天
+const benchmarkRequest = { ...todayRequest, date: '2026-10-30' }
 import { bufferSentence } from './buffer'
 import { describeTimeline, timelinePlaces, transitLeg } from './steps'
 

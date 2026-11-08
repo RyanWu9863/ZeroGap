@@ -3,27 +3,9 @@ import { useState } from 'react'
 import { useRequestLabels } from '@/api/labels'
 import type { Plan, PlanRequest } from '@/api/schemas'
 import { cn } from '@/lib/utils'
+import { writeClipboard } from '@/shared/lib/clipboard'
 import { itineraryToText } from '@/shared/lib/copyText'
 import type { SwapView } from './swap'
-
-/** 先用新式剪貼簿；被瀏覽器擋下（LINE 內建瀏覽器、權限未開）就改用舊方法 */
-async function writeClipboard(text: string): Promise<boolean> {
-  try {
-    await navigator.clipboard.writeText(text)
-    return true
-  } catch {
-    const area = document.createElement('textarea')
-    area.value = text
-    area.setAttribute('readonly', '')
-    area.style.position = 'fixed'
-    area.style.opacity = '0'
-    document.body.appendChild(area)
-    area.select()
-    const ok = document.execCommand('copy')
-    area.remove()
-    return ok
-  }
-}
 
 /** 「複製行程」（Q27、Q61）：純前端。兩種方法都失敗時，直接把文字秀出來讓人手動複製。 */
 export function CopyButton({ request, plan, swapped, className }: { request: PlanRequest; plan: Plan; swapped: SwapView | null; className?: string }) {
@@ -47,7 +29,7 @@ export function CopyButton({ request, plan, swapped, className }: { request: Pla
       {state === 'manual' && (
         <div className="zg-surface p-3 text-xs">
           <p className="mb-2 text-muted-foreground">這個瀏覽器不讓網頁自動複製，請長按下面的文字手動複製：</p>
-          <textarea readOnly value={text} rows={8} className="w-full resize-none rounded-md border bg-background p-2 font-mono text-base sm:text-[11px]" onFocus={(e) => e.currentTarget.select()} />
+          <textarea readOnly value={text} rows={8} className="w-full resize-none rounded-md border bg-background p-2 font-mono text-base sm:text-[11px] pointer-coarse:text-base" onFocus={(e) => e.currentTarget.select()} />
         </div>
       )}
     </div>

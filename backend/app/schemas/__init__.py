@@ -374,6 +374,17 @@ class PlanResult(_Model):
         return data
 
 
+class SavedPlanOut(_Model):
+    """GET /api/plans/{job_id}（規格書 6.8）。request、result 原樣回傳：
+    7 天內後端可能改版，舊資料不要因為新版的驗證而打不開；前端自己用 zod 驗。"""
+
+    job_id: str
+    request: dict[str, Any]
+    result: dict[str, Any]
+    created_at: datetime
+    expires_at: datetime
+
+
 # ── SSE 事件與錯誤（6.1、6.4） ───────────────────────────────────
 
 Stage = Literal[

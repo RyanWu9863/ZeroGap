@@ -1,0 +1,7 @@
+# Mac 和 Windows 一起開發：repo 裡的文字檔一律用 LF 換行。
+# 不然 Windows 的 Git 可能把換行改成 CRLF，nginx 設定、Dockerfile 進到 Linux 容器時會出問題，diff 也會整片變色。
+* text=auto eol=lf
+*.png binary
+*.jpg binary
+*.ico binary
+*.woff2 binary

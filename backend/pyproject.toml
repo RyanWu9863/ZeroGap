@@ -18,6 +18,9 @@ dependencies = [
     "beautifulsoup4>=4.15.0",
     "lxml>=6.1.3",
     "mcp>=2.3,<3",
+    "opentelemetry-api>=1.45.1",
+    "opentelemetry-sdk>=1.45.1",
+    "opentelemetry-exporter-otlp-proto-http>=1.45.1",
 ]
 
 [dependency-groups]

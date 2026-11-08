@@ -55,6 +55,10 @@ class Settings(BaseSettings):
     # 規劃結束時把每一題的決策紀錄寫進 decision_records（日誌那一行照常輸出）。
     # 寫入失敗只記警告，不影響規劃
     decision_trace_db: bool = True
+    # OpenTelemetry 追蹤（app.tracing）：預設關閉，關閉時不建立 span、不連任何外部服務。
+    # 開啟後用 OTLP/HTTP 送到 collector（例如 Jaeger 的 4318 port）；送不出去只記警告
+    otel_enabled: bool = False
+    otel_exporter_endpoint: str = "http://localhost:4318/v1/traces"
 
     # --- 時間規則（7.1） ---
     arrive_before_showtime_minutes: int = 15
@@ -114,6 +118,11 @@ class Settings(BaseSettings):
     route_cache_ttl_seconds: int = 6 * 3600
     route_cache_slot_minutes: int = 15
     llm_status_ttl_seconds: int = 30
+    # 分享連結（規格書 6.8）：排出來的結果存幾秒；網頁的網址（沒設定時 MCP 不附 share_url）
+    saved_plan_ttl_seconds: int = 7 * 24 * 3600
+    public_web_base_url: str = ""
+    # Redis 記憶體用量超過 maxmemory 的這個比例就不存分享用的行程（maxmemory 為 0 不檢查）
+    saved_plan_max_memory_ratio: float = 0.7
 
     @field_validator("cors_origins", mode="before")
     @classmethod

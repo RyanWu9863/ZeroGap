@@ -56,6 +56,8 @@
 | 決策紀錄 | `docker compose logs worker` | 每次規劃印一行 `decision_trace`：每一題由 Jev 還是 LLM 決定（Jev 額度用完、LLM 也沒回答時記成 `fallback`，原因在 `fallback_reason`）、機率、花多久（v0.15、v0.19）。同樣的內容也寫進資料表 `decision_records`，可用 `job_id` 查（v0.19） |
 | 三大技術 | 講解 | FastAPI（SSE、MCP）、PostgreSQL（PostGIS 算步行範圍、CHECK 約束守住 Google 條款）、Redis（RQ 佇列、限流、快取、Pub/Sub） |
 
+**展示模式的開關**在網址 `/behind`（導覽列沒有連結，知道網址才進得去）。
+
 **要說明的限制**
 - 資料是**學術展示用**：場次來自開眼電影網、餐廳來自 OpenStreetMap（畫面上要標「© OpenStreetMap contributors」）。
 - 店家的價位、用餐時間是本機小模型判斷的，不一定準。

@@ -26,6 +26,7 @@ function toNodes(plan: Plan): Node[] {
  * 路線示意圖（Q28）：不是真實地圖比例，只畫「先到哪、再到哪」。
  * 版面是不依座標的鋸齒排列：Google 來源的餐廳沒有座標，也不能被當成地圖畫（規格書 6.7）。
  * 點站點或下方按鈕都會開 Google 地圖（Q28b）；Google 來源的餐廳在卡片底部附標誌。
+ * 平板直放時側欄變成整行寬，圖最多 20rem 寬，不然字會被放大到快 3 倍（P2-5）。
  */
 export function RouteSketch({ plan }: { plan: Plan }) {
   const nodes = toNodes(plan)
@@ -38,12 +39,13 @@ export function RouteSketch({ plan }: { plan: Plan }) {
     <div className="zg-surface p-4">
       <p className="text-sm font-medium">路線示意</p>
       <p className="text-xs text-muted-foreground">非實際比例</p>
-      <svg viewBox={`0 0 ${W} ${H}`} className="mt-3 w-full" role="img" aria-label={`路線：${nodes.map((n) => n.label).join(' → ')}`}>
+      {/* role="group"（不是 img）：裡面的站點是可以點的連結，img 裡不能放可互動的東西（P2-2） */}
+      <svg viewBox={`0 0 ${W} ${H}`} className="mt-3 w-full md:mx-auto md:max-w-xs" role="group" aria-label={`路線：${nodes.map((n) => n.label).join(' → ')}`}>
         {pos.slice(1).map((p, i) => {
           const a = pos[i]
           const walk = nodes[i + 1].via === 'walk'
           return (
-            <g key={i}>
+            <g key={i} aria-hidden="true">
               <line x1={a.x} y1={a.y} x2={p.x} y2={p.y} stroke="currentColor" strokeWidth={walk ? 1.5 : 3} strokeDasharray={walk ? '4 5' : undefined} opacity={walk ? 0.55 : 0.9} />
               <foreignObject x={(a.x + p.x) / 2 - 9} y={(a.y + p.y) / 2 - 9} width="18" height="18">
                 <span className="grid size-[18px] place-items-center rounded-full bg-background text-muted-foreground">
@@ -54,10 +56,10 @@ export function RouteSketch({ plan }: { plan: Plan }) {
           )
         })}
         {nodes.map((n, i) => (
-          <a key={i} href={placeUrl({ ...n, name: n.label })} target="_blank" rel="noreferrer">
+          <a key={i} href={placeUrl({ ...n, name: n.label })} target="_blank" rel="noreferrer" aria-label={`${n.label}（在 Google 地圖開啟）`}>
             {/* 透明的大圓：手指比較好點到站點（看不到，只是放大點擊範圍） */}
             <circle cx={pos[i].x} cy={pos[i].y} r={16} fill="transparent" />
-            <circle cx={pos[i].x} cy={pos[i].y} r={n.kind === 'station' || n.kind === 'location' ? 7 : 5.5} className={n.kind === 'station' || n.kind === 'location' ? 'fill-background stroke-foreground' : 'fill-zg-ok stroke-background cine:fill-primary'} strokeWidth="2.5" />
+            <circle cx={pos[i].x} cy={pos[i].y} r={n.kind === 'station' || n.kind === 'location' ? 7 : 5.5} className={n.kind === 'station' || n.kind === 'location' ? 'fill-background stroke-foreground' : 'fill-zg-ok stroke-background'} strokeWidth="2.5" />
             <text x={pos[i].x + (i % 2 === 0 ? -14 : 14)} y={pos[i].y + 4} textAnchor={i % 2 === 0 ? 'end' : 'start'} className="fill-foreground text-[12px]">
               {n.label}
             </text>

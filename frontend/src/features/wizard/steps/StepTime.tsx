@@ -1,24 +1,24 @@
-import { Clapperboard, TriangleAlert, UtensilsCrossed } from 'lucide-react'
-import { useEffect } from 'react'
+import { CalendarClock, Clapperboard, TriangleAlert, UtensilsCrossed } from 'lucide-react'
 import { useRequestLabels } from '@/api/labels'
-import { useCoverage } from '@/api/queries'
+import { failure, useCoverage } from '@/api/queries'
 import { usePlanStore } from '@/store/planStore'
 import { ChoiceCard, Field } from '../parts/Choice'
 import { DateCalendar } from '../parts/DateCalendar'
 import { TimeRange } from '../parts/TimeRange'
+import { useDateAutoFix } from '../useDateAutoFix'
+import { useDateContext } from '../useDateContext'
 import { departureInPast, durationLabel, minutesAvailable, tooTight } from '../validation'
 import { StepShell } from './StepShell'
 
 /** ② 時間（Q47、Q48、Q49、Q70、Q97）。有場次的日子來自 /api/coverage 的 available_dates（提案 #4） */
 export function StepTime() {
   const { request, setRequest } = usePlanStore()
-  const { data } = useCoverage(request.area || undefined)
+  const coverage = useCoverage(request.area || undefined)
+  const { data } = coverage
   const { station } = useRequestLabels(request)
-
-  // 存著的日期這個商圈已經沒有場次 → 清掉，請使用者重選
-  useEffect(() => {
-    if (data && request.date && !data.available_dates.includes(request.date)) setRequest({ date: '' })
-  }, [data, request.date, setRequest])
+  const dateCtx = useDateContext()
+  // 日期不能用、或今天的出發時間已過 → 自動換成最近可以排的日子並說明（跟首頁同一條規則）
+  const { notice, pickDate, touch } = useDateAutoFix(dateCtx)
 
   const warn = (text: string) => (
     <span className="inline-flex items-center gap-1 font-medium text-zg-tight">
@@ -27,11 +27,22 @@ export function StepTime() {
     </span>
   )
   return (
-    <StepShell title="哪一天、幾點到幾點？" loading={!data}>
+    <StepShell title="哪一天、幾點到幾點？" loading={!data} error={failure(coverage)} onRetry={() => coverage.refetch()}>
       {data && (
         <>
           <Field title="日期" hint="灰色的日子還沒有場次資料。">
-            <DateCalendar available={data.available_dates} value={request.date} onChange={(date) => setRequest({ date })} />
+            {notice && (
+              <p className="flex items-start gap-1.5 rounded-md border border-zg-tight/40 px-3 py-2 text-sm" role="status">
+                <CalendarClock className="mt-0.5 size-4 shrink-0 text-zg-tight" aria-hidden="true" />
+                <span>{notice}</span>
+              </p>
+            )}
+            <DateCalendar
+              available={data.available_dates}
+              value={request.date}
+              today={dateCtx.today}
+              onChange={pickDate}
+            />
           </Field>
           <Field
             title={`你有 ${durationLabel(minutesAvailable(request))}`}
@@ -47,7 +58,10 @@ export function StepTime() {
               from={request.earliest_departure}
               to={request.latest_home}
               toLabel={`回到${station}`}
-              onChange={(earliest_departure, latest_home) => setRequest({ earliest_departure, latest_home })}
+              onChange={(earliest_departure, latest_home) => {
+                if (earliest_departure !== request.earliest_departure) touch()
+                setRequest({ earliest_departure, latest_home })
+              }}
             />
           </Field>
           <Field title="先看電影，還是先吃飯？">

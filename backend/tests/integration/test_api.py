@@ -337,6 +337,42 @@ async def test_plan_stream_error_event(client, engine, worker):
     assert data["reasons"]["budget"] > 0
 
 
+# ── GET /api/plans/{job_id}：分享連結（規格書 6.8） ──────────────────────
+
+
+async def test_saved_plan_round_trip(client, engine, worker):
+    res = await client.post("/api/plans", json=plan_body(engine), timeout=60)
+    result = parse_sse(res.text)[-1][1]
+    job = result["job_id"]
+
+    got = await client.get(f"/api/plans/{job}")
+    assert got.status_code == 200
+    body = got.json()
+    assert body["job_id"] == job
+    assert body["result"] == result  # 跟 SSE 交出的同一份，沒有重排
+    assert body["request"]["area"] == "taoyuan"
+    assert body["created_at"].endswith("+08:00")
+    created = datetime.fromisoformat(body["created_at"])
+    expires = datetime.fromisoformat(body["expires_at"])
+    assert expires - created == timedelta(days=7)
+
+
+@pytest.mark.parametrize("job", ["a" * 32, "A" * 32, "not-a-job-id"])
+async def test_saved_plan_not_found(client, job):
+    res = await client.get(f"/api/plans/{job}")
+    assert res.status_code == 404
+    assert res.json()["error"]["code"] == "NOT_FOUND"
+    assert "7 天" in res.json()["error"]["message"]
+
+
+async def test_saved_plan_uses_read_limit(client):
+    override(api_read_per_minute=1)
+    assert (await client.get(f"/api/plans/{'a' * 32}")).status_code == 404
+    res = await client.get(f"/api/plans/{'a' * 32}")
+    assert res.status_code == 429
+    assert "Retry-After" in res.headers
+
+
 # ── GET /api/locations：自選的出發位置（2026-10-21） ─────────────────
 
 
@@ -364,3 +400,25 @@ async def test_locations_rate_limited_per_hour(client):
     res = await client.get("/api/locations", params={"q": "中壢"})
     assert res.status_code == 429
     assert res.json()["error"]["code"] == "RATE_LIMITED"
+
+
+async def test_coverage_skips_cinemas_without_restaurants_nearby(client, engine):
+    # 影城附近走路（步行上限最大的選項）到不了任何能排的餐廳：場次排不進行程，不能列給 AI，
+    # 不然 AI 以為有片可看，送出後才收到 NO_FEASIBLE（2026-10-30 mcp-eval 端到端 N01）
+    with engine.begin() as conn:
+        conn.execute(
+            text(
+                "UPDATE cinemas SET geom = ST_Translate(geom::geometry, 0, 0.03)::geography "
+                "WHERE area_id = (SELECT id FROM areas WHERE code = 'taoyuan')"
+            )
+        )
+    try:
+        res = await client.get(
+            "/api/coverage", params={"area": "taoyuan", "date": TOMORROW.isoformat()}
+        )
+        data = res.json()
+        assert data["available_dates"] == []
+        assert data["movies"] == [] and data["genres"] == [] and data["hall_types"] == []
+        assert data["cuisines"]  # 料理照樣列
+    finally:
+        reseed(engine, TODAY)

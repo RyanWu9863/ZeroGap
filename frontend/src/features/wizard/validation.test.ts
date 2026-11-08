@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { benchmarkRequest } from '@/mocks/request'
 import { blankRequest } from '@/store/planStore'
-import { departureInPast, durationLabel, firstIncomplete, homeLabel, homeMinutes, minutesAvailable, stepComplete, toHHMM, toMinutes, tooTight } from './validation'
+import { dateUsable, departureInPast, durationLabel, firstIncomplete, homeLabel, homeMinutes, minutesAvailable, stepComplete, toHHMM, toMinutes, tooTight } from './validation'
 
 describe('時間換算', () => {
   it('來回一致', () => {
@@ -11,10 +11,28 @@ describe('時間換算', () => {
 })
 
 describe('stepComplete', () => {
-  it('基準案例四步都填完', () => expect(firstIncomplete(benchmarkRequest)).toBeNull())
+  // 基準案例的日期是「今天」，下午五點後出發時間已過；測試固定一個未來日期
+  it('基準案例四步都填完', () => expect(firstIncomplete({ ...benchmarkRequest, date: '2099-01-01' })).toBeNull())
   it('清空後卡在第 1 步', () => expect(firstIncomplete(blankRequest)).toBe(1))
   it('回到站早於出門 → 第 2 步沒完成', () => {
     expect(stepComplete(2, { ...benchmarkRequest, earliest_departure: '20:00', latest_home: '19:00' })).toBe(false)
+  })
+})
+
+describe('日期要能用（P0-1）', () => {
+  const ctx = { today: '2026-11-02', available: ['2026-11-02', '2026-11-03'] }
+  it('過去的日期不通過，精靈會停在第 2 步', () => {
+    expect(dateUsable('2026-10-30', ctx)).toBe(false)
+    expect(firstIncomplete({ ...benchmarkRequest, date: '2026-10-30' }, ctx)).toBe(2)
+  })
+  it('沒有場次的日子不通過', () => expect(dateUsable('2026-11-04', ctx)).toBe(false))
+  it('今天、可選日都通過', () => {
+    expect(dateUsable('2026-11-02', ctx)).toBe(true)
+    expect(firstIncomplete({ ...benchmarkRequest, date: '2026-11-03' }, ctx)).toBeNull()
+  })
+  it('沒給背景資訊時只檢查有沒有填', () => {
+    expect(dateUsable('2026-10-30')).toBe(true)
+    expect(dateUsable('')).toBe(false)
   })
 })
 
@@ -43,8 +61,9 @@ describe('跨午夜（規格書 6.4：早於 06:00 算隔天，最晚 02:00）',
 
 describe('今天不能選過去的出門時間', () => {
   const now = { date: '2026-10-30', minutes: 17 * 60 + 30 }
-  it('今天 17:00 出門，現在 17:30 → 已經過了', () => expect(departureInPast(benchmarkRequest, now)).toBe(true))
-  it('別天不受影響', () => expect(departureInPast(benchmarkRequest, { ...now, date: '2026-10-29' })).toBe(false))
+  const r = { ...benchmarkRequest, date: '2026-10-30' }
+  it('今天 17:00 出門，現在 17:30 → 已經過了', () => expect(departureInPast(r, now)).toBe(true))
+  it('別天不受影響', () => expect(departureInPast(r, { ...now, date: '2026-10-29' })).toBe(false))
 })
 
 describe('出發點二擇一（2026-10-21）', () => {

@@ -1,7 +1,8 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useLocation, useSearchParams } from 'react-router'
 import { requestKey } from '@/api/planRuns'
 import type { PlanRequest } from '@/api/schemas'
+import { todayISO } from '@/shared/lib/dates'
 import { usePlanStore } from '@/store/planStore'
 import { needsOrigin, readRank, readRequest, writeRequest } from './urlState'
 
@@ -14,12 +15,13 @@ import { needsOrigin, readRank, readRequest, writeRequest } from './urlState'
 export function useResultState() {
   const [params, setParams] = useSearchParams()
   const location = useLocation()
-  const { request: stored, selectedRank, replaceRequest, selectRank } = usePlanStore()
+  const { request: stored, selectedRank, replaceRequest } = usePlanStore()
+  const [today] = useState(todayISO)
   // 目前位置的座標只存在這台瀏覽器（網址只寫 from=here）
   const here = stored.origin_lat != null && stored.origin_lng != null ? { lat: stored.origin_lat, lng: stored.origin_lng } : null
-  const fromUrl = readRequest(params, here)
+  const fromUrl = readRequest(params, today, here)
   /** 別人傳來「從目前位置出發」的網址：這台沒有座標，要請使用者選出發點 */
-  const pickOrigin = needsOrigin(params, here)
+  const pickOrigin = needsOrigin(params, here, today)
   const request = fromUrl ?? stored
   const rank = (fromUrl ? readRank(params) : null) ?? selectedRank
   const urlKey = fromUrl ? requestKey(fromUrl) : null
@@ -38,9 +40,5 @@ export function useResultState() {
     replaceRequest(next)
     setParams((p) => writeRequest(p, next, 1), { replace: true })
   }
-  const choosePlan = (r: number) => {
-    selectRank(r)
-    setParams((p) => writeRequest(p, request, r), { replace: true })
-  }
-  return { request, rank, update, choosePlan, pickOrigin }
+  return { request, rank, today, update, pickOrigin }
 }

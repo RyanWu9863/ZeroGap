@@ -1,4 +1,4 @@
-import { useCategories } from '@/api/queries'
+import { failure, useCategories } from '@/api/queries'
 import { BUDGET_OPTIONS, WALK_OPTIONS } from '@/shared/lib/config'
 import { formatMoney, walkDistance } from '@/shared/lib/format'
 import { usePlanStore } from '@/store/planStore'
@@ -11,9 +11,10 @@ import { StepShell } from './StepShell'
  */
 export function StepFood() {
   const { request, setRequest } = usePlanStore()
-  const { data } = useCategories('cuisine')
+  const cuisines = useCategories('cuisine')
+  const { data } = cuisines
   return (
-    <StepShell title="想吃什麼、預算多少？" loading={!data}>
+    <StepShell title="想吃什麼、預算多少？" loading={!data} error={failure(cuisines)} onRetry={() => cuisines.refetch()}>
       {data && (
         <>
           <Field title="想吃哪一類？">

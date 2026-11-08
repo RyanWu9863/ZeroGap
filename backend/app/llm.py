@@ -14,6 +14,7 @@ from typing import Any, Literal, Protocol
 
 import httpx
 
+from app import tracing
 from app.planning.choose import LLM_TOP_N, ChoiceQuestion
 
 log = logging.getLogger(__name__)
@@ -138,8 +139,24 @@ class LlmPicker:
         self._http = httpx.Client()
 
     def pick(self, question: ChoiceQuestion, probs: dict[str, float]) -> LlmPick:
+        # 只記模型、狀態、熔斷和時間；prompt 和候選內容不放進 span
+        attrs = {"llm.model": self.model, "llm.timeout_s": self.timeout, "llm.top_n": self.top_n}
+        with tracing.span("llm.pick", attrs) as sp:
+            pick = self._pick(question, probs, sp)
+            tracing.set_attrs(sp, {
+                "llm.status": pick.status,
+                "llm.used": pick.used_llm,
+                "llm.latency_ms": pick.latency_ms,
+            })  # fmt: skip
+            if pick.status in _UNREACHABLE:
+                tracing.set_error(sp, f"llm {pick.status}")
+            return pick
+
+    def _pick(self, question: ChoiceQuestion, probs: dict[str, float], sp) -> LlmPick:
         ranked = _ranked(probs)
-        if self._is_open():
+        breaker = self._breaker_state()
+        tracing.set_attrs(sp, {"llm.breaker_state": breaker})
+        if breaker == "open":
             return LlmPick(ranked[0], False, status="circuit_open", model=self.model)
         candidates = ranked[: self.top_n]
         allowed = [*candidates, ABSTAIN] if self.allow_abstain else candidates
@@ -177,11 +194,15 @@ class LlmPicker:
         return LlmPick(choice, True, status="ok", latency_ms=latency_ms, model=self.model)
 
     def _is_open(self) -> bool:
+        return self._breaker_state() == "open"
+
+    def _breaker_state(self) -> str:
+        """closed、open；共用熔斷冷卻結束後放去試的那一個請求是 probe。"""
         if self.breaker_store is not None:
             # 試探鎖比一次呼叫的逾時多留 5 秒
-            state = self.breaker_store.state(self.breaker_failures, self.timeout + 5)
-            return state == "open"
-        return self._open_until is not None and self.clock() < self._open_until
+            return self.breaker_store.state(self.breaker_failures, self.timeout + 5)
+        open_ = self._open_until is not None and self.clock() < self._open_until
+        return "open" if open_ else "closed"
 
     def _record(self, status: LlmStatus) -> None:
         if self.breaker_store is not None:
