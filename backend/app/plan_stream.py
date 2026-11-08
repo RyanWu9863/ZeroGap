@@ -10,6 +10,7 @@
 import asyncio
 import json
 from collections.abc import AsyncIterator, Awaitable, Callable
+from contextlib import aclosing
 from typing import Any
 
 import anyio
@@ -90,10 +91,15 @@ async def plan_events(
     讓 `plan.stream` 接在它下面；MCP 不傳，`plan.stream` 自己是一條 trace 的開頭。"""
     sp, ctx = tracing.start_span("plan.stream", {"job_id": job_id}, parent=trace_parent)
     try:
-        async for item in _plan_events(r, s, job_id, body, ip, disconnected, ctx):
-            if item[0] in ("result", "error"):
-                tracing.set_attrs(sp, {"plan.outcome": item[0]})
-            yield item
+        # 這裡被提早關掉（拿到結果就離開、出錯、取消）時，aclosing 會馬上關內層，讓它的 finally
+        # 立刻收尾：取消還沒跑完的工作、釋放這個 IP 的「規劃中」標記。只用 async for 的話，內層
+        # 要等被回收才收尾，同一個 IP 的下一個請求會收到 PLAN_IN_PROGRESS（和 mcp.py 用 aclosing
+        # 的原因相同）
+        async with aclosing(_plan_events(r, s, job_id, body, ip, disconnected, ctx)) as inner:
+            async for item in inner:
+                if item[0] in ("result", "error"):
+                    tracing.set_attrs(sp, {"plan.outcome": item[0]})
+                yield item
     finally:
         tracing.end_span(sp)
 
