@@ -77,7 +77,7 @@ def plan_job(request: dict[str, Any]) -> None:
                 redis=r,
                 transit=make_transit(settings, r),
                 jev=make_jev(settings),
-                llm=make_llm(settings),
+                llm=make_llm(settings, r),
                 places=make_places(settings),
                 settings=settings,
             )
