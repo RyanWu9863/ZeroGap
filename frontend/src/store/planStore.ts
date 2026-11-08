@@ -1,7 +1,9 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
-import type { PlanRequest } from '@/api/schemas'
+import { z } from 'zod'
+import { DraftRequest, type PlanRequest } from '@/api/schemas'
 import { benchmarkRequest } from '@/mocks/request'
+import { pickValid } from './persistSafe'
 
 /**
  * 「清空重來」後的空白點餐單：地點、出發站、日期要重選，其他用常見預設值。
@@ -36,6 +38,17 @@ type PlanState = {
   selectRank: (rank: number) => void
 }
 
+/** 從暫存讀回時逐欄驗證（P1-3）：條件格式不對（舊版、被改過）就用預設條件，不讓畫面出錯 */
+export function mergePlanState(persisted: unknown, current: PlanState): PlanState {
+  return {
+    ...current,
+    ...pickValid<PlanState>(persisted, {
+      request: DraftRequest,
+      selectedRank: z.number().int().min(1).max(3),
+    }),
+  }
+}
+
 export const usePlanStore = create<PlanState>()(
   persist(
     (set) => ({
@@ -53,8 +66,10 @@ export const usePlanStore = create<PlanState>()(
       migrate: (old, version) => {
         const o = old as { request?: PlanRequest; selectedRank?: number } | undefined
         if (version === 2 && o?.request) return { request: { ...o.request, origin_lat: null, origin_lng: null }, selectedRank: o.selectedRank ?? 1 }
-        return { request: benchmarkRequest, selectedRank: 1 }
+        // 更舊的版本原樣交給 merge 逐欄驗證，對不上的欄位用預設值（persistSafe.ts 的版本規則）
+        return old
       },
+      merge: mergePlanState,
       partialize: (s) => ({ request: s.request, selectedRank: s.selectedRank }),
     },
   ),

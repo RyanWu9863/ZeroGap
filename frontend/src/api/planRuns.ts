@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import { PlanError, postPlan } from './client'
+import { ApiError } from './errors'
 import type { PlanRequest, PlanResult, Stage } from './schemas'
 
 /*
@@ -84,8 +85,10 @@ const timers = new Map<string, ReturnType<typeof setTimeout>>()
 const wait = (ms: number) => new Promise((r) => setTimeout(r, ms))
 
 function toRunError(e: unknown): RunError {
-  if (e instanceof PlanError) return { code: e.code, message: e.message, reasons: e.reasons, retryAfter: e.retryAfter, status: e.status }
-  return { code: 'NETWORK', message: e instanceof Error ? e.message : String(e), reasons: null, retryAfter: null, status: null }
+  if (e instanceof PlanError) return { code: e.code, message: e.message, reasons: e.reasons, retryAfter: e.retryAfter, status: e.status ?? null }
+  // 連不上、等太久、格式不對（errors.ts 的種類）各給一個代碼，結果頁照代碼講白話
+  const code = e instanceof ApiError ? e.kind.toUpperCase() : 'NETWORK'
+  return { code, message: e instanceof Error ? e.message : String(e), reasons: null, retryAfter: null, status: null }
 }
 
 async function execute(key: string, req: PlanRequest, ctrl: AbortController) {

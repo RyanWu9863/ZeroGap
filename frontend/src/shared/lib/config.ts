@@ -17,3 +17,9 @@ export const WALK_OPTIONS = [5, 8, 12, 15, 20] as const
 
 /** Jev 最高機率低於這個值就交給 LLM 代選（規格書 3.1）。前端只拿來顯示 */
 export const JEV_THRESHOLD = 0.6
+
+/**
+ * 等後端回應最多幾毫秒（計畫 P1-2）；超過就顯示「等太久了」。
+ * connect＝送出規劃到串流開始：後端先驗條件才開串流，給長一點。串流開始後就不限時（規劃本來就要 1～3 分鐘）
+ */
+export const API_TIMEOUT_MS = { connect: 30_000, default: 10_000 } as const

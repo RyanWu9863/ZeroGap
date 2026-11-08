@@ -261,6 +261,9 @@ class Planner:
             if tight:
                 # 出發點的交通本身就排不進去，換哪部片、哪家店都一樣，reasons 只放這一項
                 raise PlanError("NO_FEASIBLE", tight, {"transit_window": result.combinations})
+            far = self._cinemas_too_far()
+            if far:
+                raise PlanError("NO_FEASIBLE", far, result.reasons)
             raise PlanError(
                 "NO_FEASIBLE", "沒有接得上的組合，可以放寬時間、預算或步行距離", result.reasons
             )
@@ -566,6 +569,29 @@ class Planner:
             f"從出發點最早 {first:%H:%M} 才到得了商圈，最晚 {last:%H:%M} 就要離開，{window}；"
             f"看一部電影加吃一餐至少要 {need} 分鐘。建議改從車站出發，或提早出門、延後回家。"
         )
+
+    def _cinemas_too_far(self) -> str | None:
+        """有場次的影城，步行上限內都沒有能排的餐廳時，回傳給使用者的說明；有一間走得到就是 None。
+
+        例如中壢的動作片只在桃園新光影城（高鐵站旁），離中壢的餐廳 6 公里：放寬時間、預算都沒用
+        （2026-10-30 mcp-eval 端到端 N01）。
+        """
+        nearest: dict[int, int | None] = {}
+        for cid in self.cinemas:
+            walks = [m for (c, _), m in self.walk.items() if c == cid]
+            nearest[cid] = min(walks) if walks else None
+        limit = self.cond.max_walk_minutes
+        if any(m is not None and m <= limit for m in nearest.values()):
+            return None
+        names = "、".join(f"「{self.cinemas[c].name}」" for c in sorted(nearest))
+        closest = min((m for m in nearest.values() if m is not None), default=None)
+        options = [o for o in self.s.walk_limit_options if closest is not None and o >= closest]
+        if options:
+            hint = f"建議把步行上限放寬到 {options[0]} 分鐘，或換片型、換商圈。"
+        else:
+            hint = "放寬時間、預算或步行距離都沒有用，建議換片型、換商圈。"
+        far = f"最近的一家要走 {closest} 分鐘。" if closest is not None else ""
+        return f"符合條件的場次都在{names}，走路 {limit} 分鐘內沒有能排的餐廳，{far}{hint}"
 
     # ── 步驟 4：Jev 做選擇 ─────────────────────────────────────
 
