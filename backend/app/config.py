@@ -49,6 +49,9 @@ class Settings(BaseSettings):
     ollama_think: bool | None = None  # qwen3 之類會思考的模型設成 false
     # LLM 可以回答「無法判斷」，這時採用 Jev 最高的選項；先關閉，等實測過棄權的頻率再決定
     llm_allow_abstain: bool = False
+    # 規劃結束時把每一題的決策紀錄寫進 decision_records（日誌那一行照常輸出）。
+    # 寫入失敗只記警告，不影響規劃
+    decision_trace_db: bool = True
 
     # --- 時間規則（7.1） ---
     arrive_before_showtime_minutes: int = 15

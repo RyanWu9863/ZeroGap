@@ -163,3 +163,12 @@ def test_planner_records_fallback_when_jev_quota_is_used_up():
     p.decisions, p._jev_result, p._jev_unavailable = [], JEV, False
     p._decide(QUESTION, UNIFORM)
     assert (p.decisions[0].decided_by, p.decisions[0].fallback_reason) == ("jev", "llm_timeout")
+
+
+def test_jev_unavailable_with_single_option_is_decided_by_jev():
+    # 只有一個選項就沒有選擇的空間：額度用完也不算 fallback
+    single = ChoiceQuestion(
+        id="restaurant", instructions="選一家", options=[Option("r1", "餐廳 1", {})]
+    )
+    r = record_decision(single, ChoiceAnswer({"r1": 1.0}), POLICY, None, None, jev_unavailable=True)
+    assert (r.chosen, r.decided_by, r.fallback_reason) == ("r1", "jev", None)

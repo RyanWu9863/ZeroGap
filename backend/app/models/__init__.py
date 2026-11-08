@@ -14,6 +14,7 @@ from sqlalchemy import (
     Boolean,
     CheckConstraint,
     DateTime,
+    Double,
     ForeignKey,
     Identity,
     Index,
@@ -225,3 +226,39 @@ class CrawlRun(TimestampMixin, Base):
     finished_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     stats: Mapped[dict | None] = mapped_column(JSONB)
     error: Mapped[str | None] = mapped_column(Text)
+
+
+class DecisionRecordRow(TimestampMixin, Base):
+    """一次規劃裡每一題的決策紀錄（app.decision_trace.DecisionRecord），planner 在規劃結束時寫入。
+
+    和日誌那一行一樣，只放選項代碼、機率、狀態和時間，不放使用者偏好、選項名稱、prompt。
+    job_id 是 RQ 的工作 ID，工作不存在資料庫，所以不設外鍵。
+    """
+
+    __tablename__ = "decision_records"
+    __table_args__ = (
+        CheckConstraint(
+            "decided_by IN ('jev', 'llm', 'fallback')", name="ck_decision_records_decided_by"
+        ),
+        Index("ix_decision_records_job_id", "job_id"),
+        Index("ix_decision_records_created_at", "created_at"),
+    )
+    id: Mapped[int] = pk()
+    job_id: Mapped[str] = mapped_column(Text)
+    question_id: Mapped[str] = mapped_column(Text)
+    k: Mapped[int] = mapped_column(SmallInteger)  # 選項數
+    policy: Mapped[str] = mapped_column(Text)  # 例如 fixed:0.6
+    p_top: Mapped[float | None] = mapped_column(Double)
+    margin: Mapped[float | None] = mapped_column(Double)
+    norm_entropy: Mapped[float | None] = mapped_column(Double)
+    unsure: Mapped[bool] = mapped_column(Boolean)
+    jev_top: Mapped[str | None] = mapped_column(Text)
+    jev_model: Mapped[str | None] = mapped_column(Text)
+    jev_latency_ms: Mapped[float | None] = mapped_column(Double)
+    jev_attempts: Mapped[int | None] = mapped_column(SmallInteger)
+    llm_status: Mapped[str | None] = mapped_column(Text)
+    llm_latency_ms: Mapped[float | None] = mapped_column(Double)
+    llm_model: Mapped[str | None] = mapped_column(Text)
+    chosen: Mapped[str | None] = mapped_column(Text)
+    decided_by: Mapped[str] = mapped_column(Text)  # jev、llm、fallback
+    fallback_reason: Mapped[str | None] = mapped_column(Text)
