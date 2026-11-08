@@ -326,3 +326,110 @@ def test_probe_lock_value_identifies_owner(r):
     r.now += 61
     assert a.state(2, 6) == "probe"
     assert r.get(a.probe_key) == a.token != b.token
+
+
+# ── 交易和試探租約（2026-11-08 跨廠商複審發現） ──
+
+
+def other(r):
+    return RedisBreakerStore(r, BASE)
+
+
+def test_success_between_read_and_write_restarts_failure(r):
+    # record_failure 讀完次數、寫入之前，別的 worker 成功清掉狀態：交易重來，從 0 開始數，不會開熔斷
+    store = other(r)
+    store.record_failure(2, 60)
+    r.before_exec = lambda: other(r).record_success()
+    assert store.record_failure(2, 60) == 1
+    assert not r.exists(store.open_key)
+    assert store.state(2, 6) == "closed"
+
+
+def test_own_probe_failure_does_not_revive_cleared_state(r):
+    # 自己的試探失敗、失敗次數中途過期，寫入前剛好有別的請求成功：不能把清掉的狀態補回門檻
+    store = other(r)
+    for _ in range(2):
+        store.record_failure(2, 2)
+    r.now += 3
+    assert store.state(2, 6) == "probe"
+    r.now += 2  # 失敗次數過期，試探租約還在
+    r.before_exec = lambda: other(r).record_success()
+    assert store.record_failure(2, 2) == 1
+    assert other(r).state(2, 6) == "closed"
+
+
+def test_concurrent_reopen_wins_over_probe(r):
+    # 要搶試探租約時，在途的失敗剛好回來重新熔斷：交易重來，看到新的熔斷，不去試
+    store = other(r)
+    for _ in range(2):
+        store.record_failure(2, 60)
+    r.now += 61
+    r.before_exec = lambda: other(r).record_failure(2, 60)
+    assert store.state(2, 6) == "open"
+    assert r.exists(store.open_key) and not r.exists(store.probe_key)
+    assert store.token is None
+
+
+def test_late_success_from_expired_probe_keeps_new_holder(r):
+    a, b = other(r), other(r)
+    for _ in range(2):
+        a.record_failure(2, 300)
+    r.now += 301
+    assert a.state(2, 35) == "probe"
+    r.now += 36  # A 的租約過期
+    assert b.state(2, 35) == "probe"  # B 接手試探
+    a.record_success()  # A 遲到的成功
+    assert r.get(b.probe_key) == b.token
+    assert other(r).state(2, 35) == "open"  # B 還在試，第三個 worker 不能呼叫
+
+
+def test_late_failure_from_expired_probe_is_ignored(r):
+    a, b = other(r), other(r)
+    for _ in range(2):
+        a.record_failure(2, 300)
+    r.now += 301
+    assert a.state(2, 35) == "probe"
+    r.now += 36
+    assert b.state(2, 35) == "probe"
+    assert a.record_failure(2, 300) == 2  # 不動狀態，回傳目前的次數
+    assert not r.exists(b.open_key)
+    assert r.get(b.probe_key) == b.token
+
+
+def test_expired_probe_without_takeover_counts_as_normal_failure(r):
+    # 租約過期、也沒有人接手時，回報當作一般失敗；失敗次數也過期了，就從 1 開始數
+    store = other(r)
+    for _ in range(2):
+        store.record_failure(2, 2)
+    r.now += 3
+    assert store.state(2, 6) == "probe"
+    r.now += 7  # 租約（6 秒）和失敗次數都過期
+    assert store.record_failure(2, 2) == 1
+    assert other(r).state(2, 6) == "closed"
+
+
+def test_normal_failure_keeps_someone_elses_probe(r):
+    a, b = other(r), other(r)
+    for _ in range(2):
+        a.record_failure(2, 60)
+    r.now += 61
+    assert b.state(2, 6) == "probe"
+    assert a.record_failure(2, 60) == 3  # 在途的一般失敗：重新熔斷，但不刪 B 的租約
+    assert r.exists(a.open_key) and r.get(b.probe_key) == b.token
+
+
+def test_contention_falls_back_to_open(r, caplog):
+    store = other(r)
+    for _ in range(2):
+        store.record_failure(2, 60)
+    r.now += 61
+
+    def churn():  # 每一次 EXEC 前都有人改
+        r.incr(store.failures_key)
+        r.before_exec = churn
+
+    r.before_exec = churn
+    assert store.state(2, 6) == "open"
+    r.before_exec = None
+    assert "一直被其他 worker 改動" in caplog.text
+    assert not r.exists(store.probe_key)
