@@ -1,7 +1,9 @@
 import { MotionConfig } from 'motion/react'
+import { useEffect } from 'react'
 import { Link, Outlet, ScrollRestoration, useLocation } from 'react-router'
 import { USE_MOCK } from '@/api/client'
 import { Logo } from '@/shared/brand/Logo'
+import { markAppReady } from '@/splash/ready'
 import { ThemeToggle } from '@/shared/theme/ThemeToggle'
 import { useApplyTheme } from '@/shared/theme/theme'
 import { useDemoStore } from '@/store/demoStore'
@@ -15,6 +17,8 @@ export function AppShell() {
   const { pathname } = useLocation()
   const current = activeNav(pathname)
   const demo = useDemoStore((s) => s.demo)
+  // 外框畫出來了：進場動畫可以展開（src/splash/splash.ts）
+  useEffect(markAppReady, [])
   return (
     <MotionConfig reducedMotion="user">
       {demo && (

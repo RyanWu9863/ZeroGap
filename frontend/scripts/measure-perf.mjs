@@ -18,6 +18,8 @@ const NETWORKS = [
 ]
 const PAGES = [
   { name: '首頁', path: '/' },
+  // 量測工具是自動化瀏覽器，預設不播開場動畫；?intro=1 強制播，看它對 LCP 的影響和動畫在第幾秒結束
+  { name: '首頁＋開場動畫', path: '/?intro=1' },
   { name: '精靈第 1 步', path: '/plan/1' },
 ]
 
@@ -38,12 +40,16 @@ async function measureOnce(browser, net, path) {
   // 在頁面一開始就掛上 LCP 觀察器
   await page.addInitScript(() => {
     window.__lcp = 0
+    window.__splashDone = 0
+    addEventListener('zg:splash-done', () => (window.__splashDone = performance.now()))
     new PerformanceObserver((list) => {
       for (const e of list.getEntries()) window.__lcp = e.startTime
     }).observe({ type: 'largest-contentful-paint', buffered: true })
   })
   await page.goto(BASE + path, { waitUntil: 'networkidle', timeout: 120_000 })
   await page.waitForTimeout(500)
+  // 有開場動畫時等它播完（沒有就直接過）
+  await page.waitForFunction(() => !document.getElementById('zg-splash'), null, { timeout: 30_000 })
   const m = await page.evaluate(() => {
     const fcp = performance.getEntriesByName('first-contentful-paint')[0]?.startTime ?? 0
     const nav = performance.getEntriesByType('navigation')[0]
@@ -53,6 +59,7 @@ async function measureOnce(browser, net, path) {
     return {
       fcp,
       lcp: window.__lcp,
+      splashDone: window.__splashDone,
       bytes,
       requests: res.length + 1,
       fontBytes: fonts.reduce((s, r) => s + (r.transferSize || 0), 0),
@@ -85,6 +92,7 @@ try {
         頁面: pg.name,
         'FCP 秒': (median(runs.map((r) => r.fcp)) / 1000).toFixed(2),
         'LCP 秒': (median(runs.map((r) => r.lcp)) / 1000).toFixed(2),
+        '開場結束 秒': runs[0].splashDone ? (median(runs.map((r) => r.splashDone)) / 1000).toFixed(2) : '—',
         '傳輸 KB': Math.round(median(runs.map((r) => r.bytes)) / KB),
         '字型 KB（檔數）': `${Math.round(median(runs.map((r) => r.fontBytes)) / KB)}（${median(runs.map((r) => r.fontCount))}）`,
         請求數: median(runs.map((r) => r.requests)),

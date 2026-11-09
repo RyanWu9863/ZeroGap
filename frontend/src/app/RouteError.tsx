@@ -1,7 +1,8 @@
 import { Home, RotateCw } from 'lucide-react'
-import type { ReactNode } from 'react'
+import { type ReactNode, useEffect } from 'react'
 import { isRouteErrorResponse, Link, useRouteError } from 'react-router'
 import { LogoMark } from '@/shared/brand/Logo'
+import { markAppReady } from '@/splash/ready'
 import { usePageTitle } from '@/shared/lib/usePageTitle'
 
 /*
@@ -62,6 +63,8 @@ export function RouteError() {
   const error = useRouteError()
   const notFound = isRouteErrorResponse(error) && error.status === 404
   usePageTitle(notFound ? '找不到這一頁' : '出了點問題') // 外層的標題會蓋過內層，所以這裡也要分清楚
+  // 連外框都出錯時 AppShell 不會畫出來：由錯誤頁告訴進場動畫可以展開，不用等滿 8 秒
+  useEffect(markAppReady, [])
   if (notFound) return <NotFound />
   const detail = error instanceof Error ? `${error.name}: ${error.message}` : String(error)
   return (

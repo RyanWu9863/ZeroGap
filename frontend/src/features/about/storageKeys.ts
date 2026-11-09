@@ -6,4 +6,5 @@ export const STORAGE_KEYS: { key: string; what: string; keep: string }[] = [
   { key: 'zg-demo', what: '展示模式有沒有打開', keep: '直到你清除瀏覽器資料' },
   { key: 'zg-route-cache', what: '地圖查過的走路路線和餐廳位置，同一份行程不重複查', keep: '7 天' },
   { key: 'zg-mock-saved', what: '展示站（示範資料）排好的行程，讓分享頁在同一台瀏覽器打得開', keep: '7 天' },
+  { key: 'zg-intro-seen', what: '這個分頁已經播過開場動畫，換頁、重新整理不再播', keep: '關掉這個分頁就清掉' },
 ]
