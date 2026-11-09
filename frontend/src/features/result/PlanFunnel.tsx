@@ -63,8 +63,10 @@ export function PlanFunnel({ request, run, onDone, onCancel }: Props) {
   const target = run?.feasible ?? run?.combinations ?? null
   const plans = run?.status === 'done' ? (run.result?.plans ?? []) : []
 
+  // min-h-dvh：等待畫面至少一個視窗高，整頁一定比視窗長。整頁塞得進視窗時（例如 iPad 直放 810×1080），
+  // 換到 /p/編號的 viewTransition 會讓 WebKit 的頁面當掉（Playwright 的 WebKit 實測，桌機 1280×1080 也一樣）
   return (
-    <div className="mx-auto max-w-md px-4 py-12">
+    <div className="mx-auto min-h-dvh max-w-md px-4 py-12">
       <div className="flex flex-col items-center text-center">
         <LogoMark size={48} spinning={!finished} />
         <p role="status" aria-live="polite" className="mt-4 text-sm text-muted-foreground">
