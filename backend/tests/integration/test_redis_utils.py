@@ -98,8 +98,18 @@ class TestLock:
         assert not r.exists("lock:job:x")
 
 
+def _month_start(year: int, month: int, day: int = 1) -> datetime:
+    """day 日 00:00（台灣時間）；month 可以是 13，代表下一年 1 月。"""
+    return datetime(year + (month - 1) // 12, (month - 1) % 12 + 1, day, tzinfo=TZ)
+
+
 class TestQuota:
-    NOW = datetime(2026, 10, 20, 12, 0, tzinfo=TZ)
+    # 用「這個月 20 日中午」，不寫死日期：額度 key 是 EXPIREAT 到下個月 5 日，
+    # 寫死的日期一旦過了那天，Redis 會立刻刪掉 key，測試就會失敗（2026-11-05 之後發生過）
+    _TODAY = datetime.now(TZ)
+    NOW = datetime(_TODAY.year, _TODAY.month, 20, 12, 0, tzinfo=TZ)
+    NEXT_MONTH_5TH = _month_start(NOW.year, NOW.month + 1, 5)
+    NEXT_MONTH_START = _month_start(NOW.year, NOW.month + 1)
 
     def test_count_and_room(self, r):
         assert used(r, "google:details_enterprise", self.NOW) == 0
@@ -116,12 +126,12 @@ class TestQuota:
 
     def test_expires_on_5th_of_next_month(self, r):
         add_usage(r, "tdx_points", 2, now=self.NOW)
-        expire_at = r.expiretime("quota:tdx_points:2026-10")
-        assert expire_at == int(datetime(2026, 11, 5, tzinfo=TZ).timestamp())
+        expire_at = r.expiretime(f"quota:tdx_points:{self.NOW:%Y-%m}")
+        assert expire_at == int(self.NEXT_MONTH_5TH.timestamp())
 
     def test_new_month_starts_from_zero(self, r):
         add_usage(r, "tdx_points", 100, now=self.NOW)
-        assert used(r, "tdx_points", datetime(2026, 11, 1, 0, 1, tzinfo=TZ)) == 0
+        assert used(r, "tdx_points", self.NEXT_MONTH_START.replace(minute=1)) == 0
 
 
 class CountingTransit(MockTransit):

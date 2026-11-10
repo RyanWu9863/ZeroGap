@@ -1,0 +1,69 @@
+# 後端檢查：backend/ 有改動的 PR 和推到 main 時，跑 ruff、單元測試、整合測試
+# 整合測試要 PostgreSQL（含 PostGIS）和 Redis，用 GitHub Actions 的 service container，和 docker-compose 同版本
+# 外部服務（TDX、Jev、Google）由 tests/integration/conftest.py 強制改成模擬版，不需要任何金鑰
+name: Backend CI
+
+on:
+  pull_request:
+    paths: ['backend/**', '.github/workflows/backend-ci.yml']
+  push:
+    branches: [main]
+    paths: ['backend/**', '.github/workflows/backend-ci.yml']
+
+permissions:
+  contents: read
+
+concurrency:
+  group: backend-ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: backend
+    services:
+      postgres:
+        image: postgis/postgis:16-3.5
+        env:
+          POSTGRES_USER: zerogap
+          POSTGRES_PASSWORD: zerogap
+          POSTGRES_DB: zerogap
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U zerogap"
+          --health-interval 5s --health-timeout 5s --health-retries 20
+      redis:
+        image: redis:7
+        ports: ['6379:6379']
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s --health-timeout 5s --health-retries 20
+    env:
+      DATABASE_URL: postgresql+psycopg://zerogap:zerogap@localhost:5432/zerogap
+      REDIS_URL: redis://localhost:6379/0
+      TEST_REDIS_URL: redis://localhost:6379/15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+          cache-dependency-glob: backend/uv.lock
+      - run: uv sync --frozen
+      - run: uv run ruff check .
+      - run: uv run ruff format --check .
+      - name: 單元測試＋整合測試
+        shell: bash
+        run: |
+          set -o pipefail
+          uv run pytest -q -rs -p no:cacheprovider | tee pytest.log
+      - name: 整合測試不能因為連不上資料庫而整批略過
+        # conftest 連不上 PostgreSQL／Redis 時是 pytest.skip，結果仍會顯示通過，所以另外檢查
+        shell: bash
+        run: |
+          if grep -E "SKIPPED.*連不上" pytest.log; then
+            echo "::error::整合測試因為連不上資料庫或 Redis 被略過，等於沒有跑"
+            exit 1
+          fi
